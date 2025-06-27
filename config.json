@@ -1,0 +1,197 @@
+{
+  "organization": {
+    "id": "org_001",
+    "name": "Smart Security Solutions Ltd",
+    "address": "123 Security Boulevard, Tech City, TC 12345",
+    "contact_email": "admin@smartsecurity.com",
+    "server_video_path": "/var/cqubetech/videos/org_001",
+    "client_video_access_path": "https://storage.cqubetech.com/videos/org_001",
+    "retention": 30,
+    "upload_username": "admin_org001",
+    "upload_password": "SecurePass123!",
+    "created_at": "2024-01-15T08:00:00Z",
+    "updated_at": "2024-06-27T10:30:00Z"
+  },
+  "server_video_path": "/var/cqubetech/videos/org_001",
+  "client_video_access_path": "https://storage.cqubetech.com/videos/org_001",
+  "retention": 30,
+  "upload": {
+    "username": "admin_org001",
+    "password": "SecurePass123!"
+  },
+  "users": [
+    {
+      "id": "usr_001",
+      "name": "John Security",
+      "role": "Manager",
+      "login_role": "Admin",
+      "organization_id": "org_001",
+      "email": "john@smartsecurity.com",
+      "created_at": "2024-01-16T09:00:00Z",
+      "updated_at": "2024-06-27T10:30:00Z"
+    },
+    {
+      "id": "usr_002",
+      "name": "Sarah Monitor",
+      "role": "Operator",
+      "login_role": "Owner",
+      "organization_id": "org_001",
+      "email": "sarah@smartsecurity.com",
+      "created_at": "2024-02-01T10:00:00Z",
+      "updated_at": "2024-06-27T10:30:00Z"
+    }
+  ],
+  "cameras": [
+    {
+      "id": "cam_001",
+      "name": "Main Entrance Camera",
+      "location": "Building A - Main Entrance",
+      "ip_address": "192.168.1.101",
+      "model": "Hikvision DS-2CD2143G0-IS",
+      "organization_id": "org_001",
+      "status": "Active",
+      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.16/axis-media/media.amp",
+      "created_at": "2024-01-20T11:00:00Z",
+      "updated_at": "2024-06-27T10:30:00Z",
+      "GUID": "550e8400-e29b-41d4-a716-446655440001",
+      "description": "Main Entrance Camera - Building A - Main Entrance",
+      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.16/axis-media/media.amp",
+      "is_recording": true,
+      "detection_features": {
+        "people_detection": true,
+        "vehicle_detection": true,
+        "face_detection": true,
+        "face_recognition": true,
+        "mask_detection": true,
+        "intrusion_detection": true,
+        "line_crossing_detection": true,
+        "loitering_detection": true,
+        "aggressive_behavior_detection": true,
+        "suspicious_behavior_detection": true,
+        "social_distancing_detection": true,
+        "object_left_behind": true,
+        "object_removed": true,
+        "bag_detection": true,
+        "gun_detection": true,
+        "smoking_detection": true,
+        "license_plate_recognition": true,
+        "crowd_density_estimation": true,
+        "dwell_time_analysis": true,
+        "heatmap_generation": true,
+        "queue_monitoring": true,
+        "footfall_analysis": true,
+        "fire_detection": true,
+        "smoke_detection": true,
+        "night_time_movement_detection": true,
+        "scream_gunshot_detection": true,
+        "glass_break_detection": true,
+        "re_identification": true,
+        "multi_camera_tracking": true,
+        "action_recognition": true,
+        "scene_anomaly_detection": true,
+        "zone_based_alerts": true,
+        "virtual_tripwire": true
+      },
+      "alert_settings": {
+        "real_time_alerts": true,
+        "sms_alerts": true,
+        "email_alerts": true,
+        "in_app_alerts": true,
+        "phone_numbers": [
+          "+1-555-0101",
+          "+1-555-0102"
+        ],
+        "email_addresses": [
+          "security@smartsecurity.com",
+          "alerts@smartsecurity.com"
+        ],
+        "alert_sensitivity": "High",
+        "notification_cooldown": 3
+      }
+    },
+    {
+      "id": "cam_002",
+      "name": "Parking Lot Overview",
+      "location": "Building A - Parking Area",
+      "ip_address": "192.168.1.102",
+      "model": "Dahua IPC-HFW4431R-Z",
+      "organization_id": "org_001",
+      "status": "Active",
+      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.16/axis-media/media.amp",
+      "created_at": "2024-01-20T11:30:00Z",
+      "updated_at": "2024-06-27T10:30:00Z",
+      "GUID": "550e8400-e29b-41d4-a716-446655440002",
+      "description": "Parking Lot Overview - Building A - Parking Area",
+      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.16/axis-media/media.amp",
+      "is_recording": true,
+      "detection_features": {
+        "people_detection": true,
+        "vehicle_detection": true,
+        "vehicle_counting": true,
+        "intrusion_detection": true,
+        "loitering_detection": true,
+        "suspicious_behavior_detection": true,
+        "fall_detection": true,
+        "object_left_behind": true,
+        "bag_detection": true,
+        "gun_detection": true,
+        "helmet_detection": true,
+        "ppe_detection": true,
+        "phone_usage_detection": true,
+        "license_plate_recognition": true,
+        "parking_occupancy_detection": true,
+        "wrong_way_detection": true,
+        "speed_detection": true,
+        "illegal_parking_detection": true,
+        "heatmap_generation": true,
+        "fire_detection": true,
+        "smoke_detection": true,
+        "flood_water_level_detection": true,
+        "night_time_movement_detection": true,
+        "multi_camera_tracking": true,
+        "pose_estimation": true,
+        "gesture_recognition": true,
+        "scene_anomaly_detection": true,
+        "zone_based_alerts": true
+      },
+      "alert_settings": {
+        "real_time_alerts": true,
+        "sms_alerts": false,
+        "email_alerts": true,
+        "in_app_alerts": true,
+        "phone_numbers": [],
+        "email_addresses": [
+          "parking@smartsecurity.com"
+        ],
+        "alert_sensitivity": "Medium",
+        "notification_cooldown": 5
+      }
+    }
+  ],
+  "multi_camera_selections": [
+    {
+      "camera_ids": [
+        "cam_001",
+        "cam_002"
+      ],
+      "detection_sync": true,
+      "shared_analytics": true
+    }
+  ],
+  "detection_analytics": {
+    "total_active_detections": 52,
+    "total_alert_configurations": 2,
+    "detection_breakdown": {
+      "people_detection": 2,
+      "vehicle_detection": 2,
+      "face_detection": 1,
+      "face_recognition": 1,
+      "intrusion_detection": 2,
+      "gun_detection": 2,
+      "fire_detection": 2,
+      "smoke_detection": 2,
+      "license_plate_recognition": 2,
+      "zone_based_alerts": 2
+    }
+  }
+}
