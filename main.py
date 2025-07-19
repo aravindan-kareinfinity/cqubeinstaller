@@ -27,7 +27,81 @@ merge_queue = queue.Queue()
 merge_worker_thread = None
 merge_worker_stop_flag = False
 # Global variable for API configuration
-api_organization_id = 8
+api_organization_id = 11  # Default to match your config.json organization ID
+
+def generate_thumbnail(video_file_path, thumbnail_path=None):
+    """Generate a thumbnail from video file using ffmpeg"""
+    try:
+        if thumbnail_path is None:
+            # Create thumbnail path in same directory as video
+            video_dir = os.path.dirname(video_file_path)
+            video_name = os.path.splitext(os.path.basename(video_file_path))[0]
+            thumbnail_path = os.path.join(video_dir, f"{video_name}_thumb.jpg")
+        
+        # Check if video file exists
+        if not os.path.exists(video_file_path):
+            print(f"Video file does not exist: {video_file_path}")
+            return None
+        
+        file_size = os.path.getsize(video_file_path)
+        print(f"Video file size: {file_size} bytes")
+        
+        # Try to generate thumbnail even if file is small (might be incomplete)
+        if file_size == 0:
+            print(f"Video file is empty, but trying anyway: {video_file_path}")
+        
+        # Use ffmpeg to extract thumbnail - try multiple approaches
+        attempts = [
+            # Attempt 1: Try to get frame at 1 second
+            [
+                "ffmpeg",
+                "-i", video_file_path,
+                "-ss", "00:00:01",  # Seek to 1 second
+                "-vframes", "1",    # Extract 1 frame
+                "-q:v", "2",        # High quality
+                "-y",               # Overwrite if exists
+                thumbnail_path
+            ],
+            # Attempt 2: Try to get first frame if seeking fails
+            [
+                "ffmpeg",
+                "-i", video_file_path,
+                "-vframes", "1",    # Extract 1 frame
+                "-q:v", "2",        # High quality
+                "-y",               # Overwrite if exists
+                thumbnail_path
+            ],
+            # Attempt 3: Try with different seeking approach
+            [
+                "ffmpeg",
+                "-i", video_file_path,
+                "-ss", "00:00:00.5",  # Seek to 0.5 second
+                "-vframes", "1",      # Extract 1 frame
+                "-q:v", "2",          # High quality
+                "-y",                 # Overwrite if exists
+                thumbnail_path
+            ]
+        ]
+        
+        for i, ffmpeg_cmd in enumerate(attempts, 1):
+            print(f"Thumbnail generation attempt {i}: {' '.join(ffmpeg_cmd)}")
+            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+            
+            # Check if thumbnail was created successfully
+            if os.path.exists(thumbnail_path) and os.path.getsize(thumbnail_path) > 0:
+                print(f"Thumbnail generated successfully on attempt {i}: {thumbnail_path}")
+                return thumbnail_path
+            else:
+                print(f"Attempt {i} failed. Return code: {result.returncode}")
+                if result.stderr:
+                    print(f"FFmpeg stderr: {result.stderr}")
+        
+        print(f"All thumbnail generation attempts failed for: {video_file_path}")
+        return None
+            
+    except Exception as e:
+        print(f"Error generating thumbnail: {e}")
+        return None
 
 def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
     """Upload merged video to the API endpoint"""
@@ -43,38 +117,50 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
         if organization_id is None:
             organization_id = api_organization_id
         
+        # Generate thumbnail inside upload function
+        video_dir = os.path.dirname(video_file_path)
+        video_name = os.path.splitext(os.path.basename(video_file_path))[0]
+        thumbnail_path = os.path.join(video_dir, f"{video_name}_thumb.jpg")
+        
+        # Always generate thumbnail for upload
+        print(f"Generating thumbnail for upload: {os.path.basename(video_file_path)}")
+        thumbnail_path = generate_thumbnail(video_file_path, thumbnail_path)
+        
         # Prepare the files for upload
-        with open(video_file_path, 'rb') as video_file:
-            files = {
-                'video_file': (os.path.basename(video_file_path), video_file, 'video/mp4')
-            }
-            
-            data = {
-                'organization_id': organization_id
-            }
-            
-            # Add camera GUID if provided
-            if camera_guid:
-                data['guid'] = camera_guid
-            
-            print(f"Uploading video to API: {video_file_path}")
-            print(f"API URL: {api_url}")
-            print(f"Organization ID: {organization_id}")
-            if camera_guid:
-                print(f"Camera GUID: {camera_guid}")
-            
-            # Make the POST request
-            response = requests.post(api_url, files=files, data=data, timeout=300)  # 5 minutes timeout
-            
-            if response.status_code == 200:
-                result = response.json()
-                print(f"Video uploaded successfully!")
-                print(f"Response: {result}")
-                return True
-            else:
-                print(f"Error uploading video: HTTP {response.status_code}")
-                print(f"Response: {response.text}")
-                return False
+        files = {
+            'video_file': (os.path.basename(video_file_path), open(video_file_path, 'rb'), 'video/mp4')
+        }
+        
+        # Add thumbnail if it was generated successfully
+        if thumbnail_path and os.path.exists(thumbnail_path):
+            files['thumbnail_file'] = (os.path.basename(thumbnail_path), open(thumbnail_path, 'rb'), 'image/jpeg')
+            print(f"Thumbnail included in upload: {os.path.basename(thumbnail_path)}")
+        else:
+            print(f"No thumbnail available for upload: {os.path.basename(video_file_path)}")
+        
+        data = {
+            'organization_id': str(organization_id)  # Convert to string as expected by API
+        }
+        
+        # Add camera GUID if provided
+        if camera_guid:
+            data['guid'] = camera_guid
+        
+        # Make the POST request
+        response = requests.post(api_url, files=files, data=data, timeout=300)  # 5 minutes timeout
+        
+        # Close file handles
+        files['video_file'][1].close()
+        if 'thumbnail_file' in files:
+            files['thumbnail_file'][1].close()
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Video uploaded: {os.path.basename(video_file_path)}")
+            return True
+        else:
+            print(f"❌ Upload failed: {os.path.basename(video_file_path)} (HTTP {response.status_code})")
+            return False
                 
     except requests.exceptions.Timeout:
         print(f"Timeout error uploading video: {video_file_path}")
@@ -210,7 +296,8 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
     
     # Create output directory structure: base_path/date/cameraguid/mp4
     current_date = datetime.now().strftime("%Y-%m-%d")
-    output_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+    current_hour = datetime.now().strftime("%H")
+    output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
     os.makedirs(output_dir, exist_ok=True)
     
     # Start hourly merging task
@@ -227,28 +314,88 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                     print(f"RTSP stream test failed for camera: {camera_name} ({camera_id}). Skipping recording.")
                     break
                 
+                # Get camera settings from config
+                camera_config = None
+                for cam in cameras_data:
+                    if cam['id'] == camera_id:
+                        camera_config = cam
+                        break
+                
+                # Default settings
+                frame_rate = 15
+                video_bitrate = "110k"
+                audio_bitrate = "24k"
+                resolution = "1280:720"
+                preset = "veryfast"
+                crf = "28"
+                segment_time = 60
+                enable_audio = True
+                
+                # Override with camera-specific settings if available
+                if camera_config:
+                    if 'camera_settings' in camera_config:
+                        settings = camera_config['camera_settings']
+                        frame_rate = settings.get('frame_rate', frame_rate)
+                        video_bitrate = f"{settings.get('video_bitrate', 110)}k"
+                        audio_bitrate = f"{settings.get('audio_bitrate', 24)}k"
+                        preset = settings.get('preset', preset)
+                        crf = str(settings.get('crf', crf))
+                        segment_time = settings.get('segment_time', segment_time)
+                        enable_audio = settings.get('enable_audio', enable_audio)
+                        
+                        # Handle resolution
+                        res = settings.get('resolution', '1280x1080')
+                        if 'x' in res:
+                            width, height = res.split('x')
+                            resolution = f"{width}:{height}"
+                    else:
+                        # Fallback to direct camera properties
+                        frame_rate = camera_config.get('frame_rate', frame_rate)
+                        video_bitrate = f"{camera_config.get('video_bitrate', 110)}k"
+                        audio_bitrate = f"{camera_config.get('audio_bitrate', 24)}k"
+                        preset = camera_config.get('preset', preset)
+                        crf = str(camera_config.get('crf', crf))
+                        segment_time = camera_config.get('segment_time', segment_time)
+                        enable_audio = camera_config.get('enable_audio', enable_audio)
+                        
+                        # Handle resolution
+                        res = camera_config.get('resolution', '1280x1080')
+                        if 'x' in res:
+                            width, height = res.split('x')
+                            resolution = f"{width}:{height}"
+                
+                # Build ffmpeg command with camera-specific settings
                 ffmpeg_cmd = [
-    "ffmpeg",
-    "-rtsp_transport", "tcp",
-    "-i", camera_url,
-    "-c:v", "libx264",
-    "-b:v", "110k",             # Target video bitrate
-    "-maxrate", "110k",         # Limit max bitrate
-    "-bufsize", "220k",         # Buffer to smooth bitrate control
-    "-preset", "veryfast",      # Faster encoding
-    "-crf", "28",               # Quality factor (won't apply much with -b:v set)
-    "-c:a", "aac",
-    "-b:a", "24k",              # Low bitrate audio
-    "-r", "15",                 # Frame rate
-    "-vf", "scale=1280:720",    # Resize to 720p
-    "-f", "segment",
-    "-segment_time", "60",      # 1-minute segments
-    "-segment_time_delta", "0.1",
-    "-reset_timestamps", "1",
-    "-strftime", "1",           # Use time in filename
-    "-avoid_negative_ts", "make_zero",
-    os.path.join(output_dir, "%H%M.mp4")  # Output path like 1325.mp4 (1:25 PM)
-]
+                    "ffmpeg",
+                    "-rtsp_transport", "tcp",
+                    "-i", camera_url,
+                    "-c:v", "libx264",
+                    "-b:v", video_bitrate,
+                    "-maxrate", video_bitrate,
+                    "-bufsize", f"{int(video_bitrate.replace('k', '')) * 2}k",
+                    "-preset", preset,
+                    "-crf", crf,
+                    "-r", str(frame_rate),
+                    "-vf", f"scale={resolution}",
+                ]
+                
+                # Add audio settings if enabled
+                if enable_audio:
+                    ffmpeg_cmd.extend([
+                        "-c:a", "aac",
+                        "-b:a", audio_bitrate,
+                    ])
+                
+                # Add segment settings
+                ffmpeg_cmd.extend([
+                    "-f", "segment",
+                    "-segment_time", str(segment_time),
+                    "-segment_time_delta", "0.1",
+                    "-reset_timestamps", "1",
+                    "-strftime", "1",
+                    "-avoid_negative_ts", "make_zero",
+                    os.path.join(output_dir, "%H%M.mp4")
+                ])
 
                 # Build ffmpeg command - this will run continuously and create segments every 60 seconds
 #                 ffmpeg_cmd = [
@@ -301,9 +448,10 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                 monitor_thread.daemon = True
                 monitor_thread.start()
                 
-                # Monitor file creation
+                # Monitor file creation and generate thumbnails during video creation
                 def monitor_files():
                     last_files = set()
+                    processing_files = set()  # Track files being processed
                     while process.poll() is None and not stop_flags.get(camera_id, False):
                         try:
                             current_files = set()
@@ -316,30 +464,52 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                             new_files = current_files - last_files
                             if new_files:
                                 for new_file in new_files:
-                                    print(f"New file created [{camera_name}]: {new_file}")
+                                    print(f"New file detected [{camera_name}]: {new_file}")
+                                    processing_files.add(new_file)
                                     
-                                    # Upload the new 1-minute video segment to API
+                                    # File detected - will generate thumbnail during upload
                                     video_file_path = os.path.join(output_dir, new_file)
-                                    print(f"Uploading 1-minute segment [{camera_name}]: {new_file}")
-                                    
-                                    # Upload in a separate thread to avoid blocking
-                                    def upload_segment():
-                                        try:
-                                            upload_success = upload_video_to_api(video_file_path, camera_guid=camera_guid)
-                                            if upload_success:
-                                                print(f"✅ 1-minute segment uploaded successfully [{camera_name}]: {new_file}")
-                                            else:
-                                                print(f"❌ 1-minute segment upload failed [{camera_name}]: {new_file}")
-                                        except Exception as e:
-                                            print(f"Error uploading 1-minute segment [{camera_name}]: {new_file} - {e}")
-                                    
-                                    # Start upload thread
-                                    upload_thread = threading.Thread(target=upload_segment, name=f"upload_{camera_name}_{new_file}")
-                                    upload_thread.daemon = True
-                                    upload_thread.start()
+                                    print(f"New video file detected [{camera_name}]: {new_file}")
+                            
+                            # Check for completed files (files that are no longer being written)
+                            completed_files = set()
+                            for file in processing_files:
+                                file_path = os.path.join(output_dir, file)
+                                if os.path.exists(file_path):
+                                    # Check if file size is stable (not being written)
+                                    try:
+                                        size1 = os.path.getsize(file_path)
+                                        time.sleep(1)
+                                        size2 = os.path.getsize(file_path)
+                                        if size1 == size2:  # File size is stable
+                                            completed_files.add(file)
+                                    except:
+                                        pass
+                            
+                            # Process completed files for upload
+                            for completed_file in completed_files:
+                                if completed_file in processing_files:
+                                    processing_files.remove(completed_file)
+                                
+                                print(f"File completed [{camera_name}]: {completed_file}")
+                                
+                                # Upload the completed 1-minute video segment to API
+                                video_file_path = os.path.join(output_dir, completed_file)
+                                
+                                # Upload in a separate thread to avoid blocking
+                                def upload_segment():
+                                    try:
+                                        upload_video_to_api(video_file_path, camera_guid=camera_guid)
+                                    except Exception as e:
+                                        print(f"Upload error: {completed_file} - {e}")
+                                
+                                # Start upload thread
+                                upload_thread = threading.Thread(target=upload_segment, name=f"upload_{camera_name}_{completed_file}")
+                                upload_thread.daemon = True
+                                upload_thread.start()
                             
                             last_files = current_files
-                            time.sleep(5)  # Check every 5 seconds
+                            time.sleep(2)  # Check more frequently for better responsiveness
                         except Exception as e:
                             print(f"Error monitoring files for {camera_name}: {e}")
                             time.sleep(5)
@@ -390,8 +560,10 @@ def start_camera_thread(camera):
     """Start a thread for a specific camera"""
     camera_id = camera['id']
     camera_name = camera['name']
-    camera_url = camera.get('URL', '')  # Get URL from camera config
-    camera_guid = camera.get('GUID', camera_id)  # Get GUID from camera config, fallback to ID
+    
+    # Try to get URL from camera config - check both 'URL' and 'url' fields
+    camera_url = camera.get('URL', camera.get('url', ''))
+    camera_guid = camera.get('GUID', str(camera_id))  # Get GUID from camera config, fallback to ID as string
     
     if not camera_url:
         print(f"No URL found for camera: {camera_name} ({camera_id})")
@@ -481,19 +653,39 @@ def merge_existing_segments():
 
 def load_cameras():
     """Load cameras from config.json"""
-    global cameras_data, base_video_path
+    global cameras_data, base_video_path, api_organization_id
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)
         
         cameras_data = config.get('cameras', [])
+        
+        # Try to get base_video_path from config, if not found use default
         base_video_path = config.get('base_video_path', './videos')
+        
+        # If still not found, try to get from organization settings
+        if base_video_path == './videos':
+            org = config.get('organization', {})
+            if org and 'server_video_path' in org:
+                # Extract local path from server_video_path if it's a local path
+                server_path = org['server_video_path']
+                if not server_path.startswith(('http://', 'https://', 'firebase://')):
+                    base_video_path = server_path
+                else:
+                    # For cloud storage, use local videos directory
+                    base_video_path = './videos'
+        
+        # Get organization ID from config
+        org = config.get('organization', {})
+        if org and 'id' in org:
+            api_organization_id = org['id']
         
         # Create base video directory if it doesn't exist
         os.makedirs(base_video_path, exist_ok=True)
         
         print(f"Loaded {len(cameras_data)} cameras from config.json")
         print(f"Base video path: {base_video_path}")
+        print(f"Organization ID: {api_organization_id}")
         
         # Start the global merge worker thread
         start_merge_worker_thread()
@@ -505,6 +697,9 @@ def load_cameras():
                 
         # Merge existing segments
         merge_existing_segments()
+        
+        # Generate thumbnails for existing videos
+        generate_missing_thumbnails()
         
         # Clean up any orphaned segments
         cleanup_all_orphaned_segments()
@@ -559,10 +754,16 @@ def toggle_camera_recording(camera_id):
     """API endpoint to toggle camera recording status"""
     global cameras_data
     
+    # Convert camera_id to int for comparison since your config uses numeric IDs
+    try:
+        camera_id_int = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == camera_id_int:
             camera = cam
             break
     
@@ -583,7 +784,7 @@ def toggle_camera_recording(camera_id):
         print(f"Recording turned ON for camera: {camera['name']}")
     else:
         # Stop thread if recording is turned OFF
-        stop_camera_thread(camera_id)
+        stop_camera_thread(camera_id_int)
         print(f"Recording turned OFF for camera: {camera['name']}")
     
     # Save to file
@@ -608,18 +809,24 @@ def get_thread_status():
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
     """API endpoint to get camera RTSP URL for direct streaming"""
+    # Convert camera_id to int for comparison since your config uses numeric IDs
+    try:
+        camera_id_int = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == camera_id_int:
             camera = cam
             break
     
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
     
-    # Return the RTSP URL for direct streaming
-    camera_url = camera.get('URL', '')
+    # Return the RTSP URL for direct streaming - check both URL and url fields
+    camera_url = camera.get('URL', camera.get('url', ''))
     return jsonify({
         'camera_id': camera_id,
         'camera_name': camera['name'],
@@ -652,10 +859,16 @@ def stream_camera(camera_id):
 @app.route('/api/cameras/<camera_id>/files')
 def get_camera_files(camera_id):
     """API endpoint to get current video files for a camera"""
+    # Convert camera_id to int for comparison since your config uses numeric IDs
+    try:
+        camera_id_int = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == camera_id_int:
             camera = cam
             break
     
@@ -663,7 +876,7 @@ def get_camera_files(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('GUID', str(camera_id_int))
         current_date = datetime.now().strftime("%Y-%m-%d")
         segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
         
@@ -1131,10 +1344,16 @@ def manage_organization_id():
 @app.route('/api/video/upload/<camera_id>/<hour_str>', methods=['POST'])
 def trigger_video_upload(camera_id, hour_str):
     """API endpoint to manually trigger video upload for a specific hour"""
+    # Convert camera_id to int for comparison since your config uses numeric IDs
+    try:
+        camera_id_int = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == camera_id_int:
             camera = cam
             break
     
@@ -1142,7 +1361,7 @@ def trigger_video_upload(camera_id, hour_str):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('GUID', str(camera_id_int))
         current_date = datetime.now().strftime("%Y-%m-%d")
         video_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", f"{hour_str}.mp4")
         
@@ -1153,7 +1372,7 @@ def trigger_video_upload(camera_id, hour_str):
                 'file_path': video_file_path
             }), 404
         
-        # Upload the video
+        # Upload the video (now includes thumbnail generation)
         upload_success = upload_video_to_api(video_file_path, camera_guid=camera_guid)
         
         if upload_success:
@@ -1162,7 +1381,8 @@ def trigger_video_upload(camera_id, hour_str):
                 'message': f'Video uploaded successfully for hour {hour_str} in camera {camera_id}',
                 'camera_name': camera['name'],
                 'file_path': video_file_path,
-                'organization_id': api_organization_id
+                'organization_id': api_organization_id,
+                'thumbnail_generated': True
             })
         else:
             return jsonify({
@@ -1195,10 +1415,16 @@ def get_upload_status():
 @app.route('/api/video/upload/segment/<camera_id>/<filename>', methods=['POST'])
 def trigger_segment_upload(camera_id, filename):
     """API endpoint to manually trigger upload of a specific 1-minute video segment"""
+    # Convert camera_id to int for comparison since your config uses numeric IDs
+    try:
+        camera_id_int = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == camera_id_int:
             camera = cam
             break
     
@@ -1206,7 +1432,7 @@ def trigger_segment_upload(camera_id, filename):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('GUID', str(camera_id_int))
         current_date = datetime.now().strftime("%Y-%m-%d")
         video_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", filename)
         
@@ -1224,7 +1450,7 @@ def trigger_segment_upload(camera_id, filename):
                 'camera_name': camera['name']
             }), 400
         
-        # Upload the video segment
+        # Upload the video segment (now includes thumbnail generation)
         upload_success = upload_video_to_api(video_file_path, camera_guid=camera_guid)
         
         if upload_success:
@@ -1234,7 +1460,8 @@ def trigger_segment_upload(camera_id, filename):
                 'camera_name': camera['name'],
                 'file_path': video_file_path,
                 'organization_id': api_organization_id,
-                'segment_type': '1-minute'
+                'segment_type': '1-minute',
+                'thumbnail_generated': True
             })
         else:
             return jsonify({
@@ -1343,6 +1570,59 @@ def start_hourly_merging(camera_guid):
     merging_tasks[camera_guid] = merging_thread
     merging_thread.start()
     print(f"Started hourly merging task for camera {camera_guid}")
+
+def generate_missing_thumbnails():
+    """Generate thumbnails for any existing videos that don't have thumbnails"""
+    def thumbnail_worker():
+        try:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            segment_dir = os.path.join(base_video_path, current_date)
+            
+            if not os.path.exists(segment_dir):
+                print(f"No segment directory found for date {current_date}")
+                return
+            
+            # Find all camera directories
+            camera_dirs = [d for d in os.listdir(segment_dir) if os.path.isdir(os.path.join(segment_dir, d))]
+            
+            if not camera_dirs:
+                print(f"No camera directories found for date {current_date}")
+                return
+            
+            # Process each camera
+            for camera_dir in camera_dirs:
+                camera_guid = camera_dir
+                mp4_dir = os.path.join(segment_dir, camera_guid, "mp4")
+                
+                if not os.path.exists(mp4_dir):
+                    continue
+                
+                # Find all MP4 files without thumbnails
+                for file in os.listdir(mp4_dir):
+                    if file.endswith('.mp4'):
+                        video_path = os.path.join(mp4_dir, file)
+                        video_name = os.path.splitext(file)[0]
+                        thumbnail_path = os.path.join(mp4_dir, f"{video_name}_thumb.jpg")
+                        
+                        # Generate thumbnail if it doesn't exist
+                        if not os.path.exists(thumbnail_path):
+                            print(f"Generating missing thumbnail for: {file}")
+                            try:
+                                generate_thumbnail(video_path, thumbnail_path)
+                                print(f"✅ Generated thumbnail: {os.path.basename(thumbnail_path)}")
+                            except Exception as e:
+                                print(f"❌ Failed to generate thumbnail for {file}: {e}")
+                
+        except Exception as e:
+            print(f"Error in generate_missing_thumbnails: {e}")
+        finally:
+            print(f"Thumbnail generation worker completed")
+    
+    # Create and start thumbnail generation thread
+    thumbnail_thread = threading.Thread(target=thumbnail_worker, name="generate_missing_thumbnails")
+    thumbnail_thread.daemon = True
+    thumbnail_thread.start()
+    print(f"Started thumbnail generation thread for existing videos")
 
 def cleanup_all_orphaned_segments():
     """Clean up any orphaned segments for all cameras"""
