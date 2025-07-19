@@ -29,147 +29,203 @@ merge_worker_stop_flag = False
 # Global variable for API configuration
 api_organization_id = 11  # Default to match your config.json organization ID
 
-def generate_thumbnail(video_file_path, thumbnail_path=None):
-    """Generate a thumbnail from video file using ffmpeg"""
+
+import os
+
+def mp4_to_bytes(file_path):
+    """
+    Convert an MP4 file to bytes
+    
+    Args:
+        file_path (str): Path to the MP4 file
+        
+    Returns:
+        bytes: The MP4 file content as bytes or None if failed
+    """
     try:
+        # Validate file exists
+        if not os.path.exists(file_path):
+            print(f"Error: File not found at {file_path}")
+            return None
+            
+        # Validate it's an MP4 file
+        if not file_path.lower().endswith('.mp4'):
+            print("Error: File is not an MP4")
+            return None
+            
+        # Read file as bytes
+        with open(file_path, 'rb') as file:
+            file_bytes = file.read()
+            
+        print(f"Successfully converted MP4 to bytes (size: {len(file_bytes)} bytes)")
+        return file_bytes
+        
+    except Exception as e:
+        print(f"Error converting MP4 to bytes: {str(e)}")
+        return None
+        
+        
+def generate_thumbnail(mp4_path, thumbnail_path=None, quality=2):
+    """
+    Creates a thumbnail from an MP4 video file
+    
+    Args:
+        mp4_path (str): Full path to the MP4 file
+        thumbnail_path (str, optional): Custom path for thumbnail. 
+                                      If None, will be created in same directory as video.
+        quality (int): Thumbnail quality (1-31, lower is better)
+    
+    Returns:
+        str: Path to created thumbnail or None if failed
+    """
+    try:
+        # Validate input path
+        if not os.path.exists(mp4_path):
+            print(f"Error: MP4 file not found at {mp4_path}")
+            return None
+        print(f"E found at {mp4_path}")
+        byteshj = mp4_to_bytes(mp4_path)
+        
+        
+        # Set default thumbnail path if not provided
         if thumbnail_path is None:
-            # Create thumbnail path in same directory as video
-            video_dir = os.path.dirname(video_file_path)
-            video_name = os.path.splitext(os.path.basename(video_file_path))[0]
+            video_dir = os.path.dirname(mp4_path)
+            video_name = os.path.splitext(os.path.basename(mp4_path))[0]
             thumbnail_path = os.path.join(video_dir, f"{video_name}_thumb.jpg")
         
-        # Check if video file exists
-        if not os.path.exists(video_file_path):
-            print(f"Video file does not exist: {video_file_path}")
-            return None
-        
-        file_size = os.path.getsize(video_file_path)
-        print(f"Video file size: {file_size} bytes")
-        
-        # Try to generate thumbnail even if file is small (might be incomplete)
-        if file_size == 0:
-            print(f"Video file is empty, but trying anyway: {video_file_path}")
-        
-        # Use ffmpeg to extract thumbnail - try multiple approaches
-        attempts = [
-            # Attempt 1: Try to get frame at 1 second
-            [
-                "ffmpeg",
-                "-i", video_file_path,
-                "-ss", "00:00:01",  # Seek to 1 second
-                "-vframes", "1",    # Extract 1 frame
-                "-q:v", "2",        # High quality
-                "-y",               # Overwrite if exists
-                thumbnail_path
-            ],
-            # Attempt 2: Try to get first frame if seeking fails
-            [
-                "ffmpeg",
-                "-i", video_file_path,
-                "-vframes", "1",    # Extract 1 frame
-                "-q:v", "2",        # High quality
-                "-y",               # Overwrite if exists
-                thumbnail_path
-            ],
-            # Attempt 3: Try with different seeking approach
-            [
-                "ffmpeg",
-                "-i", video_file_path,
-                "-ss", "00:00:00.5",  # Seek to 0.5 second
-                "-vframes", "1",      # Extract 1 frame
-                "-q:v", "2",          # High quality
-                "-y",                 # Overwrite if exists
-                thumbnail_path
-            ]
+        # FFmpeg command to extract thumbnail at 1 second mark
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-i", mp4_path,
+            "-ss", "00:00:01",  # Seek to 1 second
+            "-vframes", "1",     # Capture 1 frame
+            "-q:v", str(quality), # Quality (2 is good)
+            "-y",                # Overwrite if exists
+            thumbnail_path
         ]
         
-        for i, ffmpeg_cmd in enumerate(attempts, 1):
-            print(f"Thumbnail generation attempt {i}: {' '.join(ffmpeg_cmd)}")
-            result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
-            
-            # Check if thumbnail was created successfully
-            if os.path.exists(thumbnail_path) and os.path.getsize(thumbnail_path) > 0:
-                print(f"Thumbnail generated successfully on attempt {i}: {thumbnail_path}")
-                return thumbnail_path
-            else:
-                print(f"Attempt {i} failed. Return code: {result.returncode}")
-                if result.stderr:
-                    print(f"FFmpeg stderr: {result.stderr}")
+        print(f"Creating thumbnail for {mp4_path}")
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
         
-        print(f"All thumbnail generation attempts failed for: {video_file_path}")
+        # Verify thumbnail was created
+        if os.path.exists(thumbnail_path) and os.path.getsize(thumbnail_path) > 0:
+            print(f"Successfully created thumbnail at {thumbnail_path}")
+            return thumbnail_path
+        
+        # If first attempt failed, try getting first frame
+        print("First attempt failed, trying to get first frame...")
+        ffmpeg_cmd[4] = "00:00:00"  # Seek to start
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True)
+        
+        if os.path.exists(thumbnail_path) and os.path.getsize(thumbnail_path) > 0:
+            print(f"Successfully created thumbnail at {thumbnail_path}")
+            return thumbnail_path
+        
+        print(f"Failed to create thumbnail: {result.stderr}")
         return None
-            
+        
     except Exception as e:
-        print(f"Error generating thumbnail: {e}")
+        print(f"Error creating thumbnail: {e}")
         return None
+    
+
+
+
+
 
 def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
-    """Upload merged video to the API endpoint"""
+    """Upload video to API and always attempt thumbnail generation"""
     try:
         api_url = "http://127.0.0.1:8000/api/video/upload"
         
-        # Check if file exists
+        # Check if file exists (don't check size)
         if not os.path.exists(video_file_path):
             print(f"Error: Video file not found: {video_file_path}")
             return False
         
-        # Use global organization_id if not provided
-        if organization_id is None:
-            organization_id = api_organization_id
-        
-        # Generate thumbnail inside upload function
+        # Always attempt thumbnail generation
         video_dir = os.path.dirname(video_file_path)
         video_name = os.path.splitext(os.path.basename(video_file_path))[0]
         thumbnail_path = os.path.join(video_dir, f"{video_name}_thumb.jpg")
         
-        # Always generate thumbnail for upload
-        print(f"Generating thumbnail for upload: {os.path.basename(video_file_path)}")
+        print(f"Generating thumbnail for: {os.path.basename(video_file_path)}")
         thumbnail_path = generate_thumbnail(video_file_path, thumbnail_path)
         
-        # Prepare the files for upload
+        # Prepare files for upload
         files = {
             'video_file': (os.path.basename(video_file_path), open(video_file_path, 'rb'), 'video/mp4')
         }
         
-        # Add thumbnail if it was generated successfully
+        # Add thumbnail if generated successfully
         if thumbnail_path and os.path.exists(thumbnail_path):
-            files['thumbnail_file'] = (os.path.basename(thumbnail_path), open(thumbnail_path, 'rb'), 'image/jpeg')
-            print(f"Thumbnail included in upload: {os.path.basename(thumbnail_path)}")
+            try:
+                files['thumbnail_file'] = (os.path.basename(thumbnail_path), open(thumbnail_path, 'rb'), 'image/jpeg')
+                print(f"Thumbnail included: {os.path.basename(thumbnail_path)}")
+            except Exception as e:
+                print(f"Error adding thumbnail: {e}")
         else:
-            print(f"No thumbnail available for upload: {os.path.basename(video_file_path)}")
+            print(f"No thumbnail available for: {os.path.basename(video_file_path)}")
         
         data = {
-            'organization_id': str(organization_id)  # Convert to string as expected by API
+            'organization_id': str(organization_id or api_organization_id),
         }
-        
-        # Add camera GUID if provided
         if camera_guid:
             data['guid'] = camera_guid
         
-        # Make the POST request
-        response = requests.post(api_url, files=files, data=data, timeout=300)  # 5 minutes timeout
+        # Upload with timeout
+        response = requests.post(api_url, files=files, data=data, timeout=300)
         
-        # Close file handles
-        files['video_file'][1].close()
-        if 'thumbnail_file' in files:
-            files['thumbnail_file'][1].close()
+        # Close all file handles
+        for file_info in files.values():
+            file_info[1].close()
         
         if response.status_code == 200:
-            result = response.json()
-            print(f"✅ Video uploaded: {os.path.basename(video_file_path)}")
+            print(f"✅ Upload successful: {os.path.basename(video_file_path)}")
             return True
         else:
-            print(f"❌ Upload failed: {os.path.basename(video_file_path)} (HTTP {response.status_code})")
+            print(f"❌ Upload failed (HTTP {response.status_code}): {os.path.basename(video_file_path)}")
             return False
-                
-    except requests.exceptions.Timeout:
-        print(f"Timeout error uploading video: {video_file_path}")
-        return False
-    except requests.exceptions.RequestException as e:
-        print(f"Request error uploading video: {e}")
-        return False
+            
     except Exception as e:
-        print(f"Error uploading video {video_file_path}: {e}")
+        print(f"Error uploading video: {e}")
+        return False
+
+def upload_image_to_api(image_file_path, organization_id=None, camera_guid=None):
+    """Upload image to API"""
+    try:
+        api_url = "http://127.0.0.1:8000/api/image/upload"  # Adjust this URL as needed
+        
+        # Check if file exists
+        if not os.path.exists(image_file_path):
+            print(f"Error: Image file not found: {image_file_path}")
+            return False
+        
+        # Prepare files for upload
+        files = {
+            'image_file': (os.path.basename(image_file_path), open(image_file_path, 'rb'), 'image/jpeg')
+        }
+        
+        data = {
+            'organization_id': str(organization_id or api_organization_id),
+        }
+        if camera_guid:
+            data['guid'] = camera_guid
+        
+        # Upload with timeout
+        response = requests.post(api_url, files=files, data=data, timeout=300)
+        
+        # Close file handle
+        files['image_file'][1].close()
+        
+        if response.status_code == 200:
+            print(f"✅ Image upload successful: {os.path.basename(image_file_path)}")
+            return True
+        else:
+            print(f"❌ Image upload failed (HTTP {response.status_code}): {os.path.basename(image_file_path)}")
+            return False
+            
+    except Exception as e:
+        print(f"Error uploading image: {e}")
         return False
 
 def merge_worker_thread_function():
@@ -290,11 +346,12 @@ def test_rtsp_stream(camera_url, camera_name):
         print(f"Error testing RTSP stream for {camera_name}: {e}")
         return False
 
+
 def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
     """Function that runs in each camera thread - creates video recordings using ffmpeg"""
     print(f"Thread started for camera: {camera_name} ({camera_id})")
     
-    # Create output directory structure: base_path/date/cameraguid/mp4
+    # Create output directory structure: base_path/date/cameraguid/hour
     current_date = datetime.now().strftime("%Y-%m-%d")
     current_hour = datetime.now().strftime("%H")
     output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
@@ -330,6 +387,8 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                 crf = "28"
                 segment_time = 60
                 enable_audio = True
+                capture_stills = False  # Set to True if you want to capture still images
+                stills_interval = 60    # Capture one still image every X seconds
                 
                 # Override with camera-specific settings if available
                 if camera_config:
@@ -342,30 +401,20 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                         crf = str(settings.get('crf', crf))
                         segment_time = settings.get('segment_time', segment_time)
                         enable_audio = settings.get('enable_audio', enable_audio)
+                        capture_stills = settings.get('capture_stills', capture_stills)
+                        stills_interval = settings.get('stills_interval', stills_interval)
                         
                         # Handle resolution
-                        res = settings.get('resolution', '1280x1080')
-                        if 'x' in res:
-                            width, height = res.split('x')
-                            resolution = f"{width}:{height}"
-                    else:
-                        # Fallback to direct camera properties
-                        frame_rate = camera_config.get('frame_rate', frame_rate)
-                        video_bitrate = f"{camera_config.get('video_bitrate', 110)}k"
-                        audio_bitrate = f"{camera_config.get('audio_bitrate', 24)}k"
-                        preset = camera_config.get('preset', preset)
-                        crf = str(camera_config.get('crf', crf))
-                        segment_time = camera_config.get('segment_time', segment_time)
-                        enable_audio = camera_config.get('enable_audio', enable_audio)
-                        
-                        # Handle resolution
-                        res = camera_config.get('resolution', '1280x1080')
+                        res = settings.get('resolution', '1280x720')
                         if 'x' in res:
                             width, height = res.split('x')
                             resolution = f"{width}:{height}"
                 
-                # Build ffmpeg command with camera-specific settings
-                ffmpeg_cmd = [
+
+                
+                # Create separate FFmpeg processes for video and image capture
+                # Video recording command
+                video_ffmpeg_cmd = [
                     "ffmpeg",
                     "-rtsp_transport", "tcp",
                     "-i", camera_url,
@@ -381,13 +430,13 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                 
                 # Add audio settings if enabled
                 if enable_audio:
-                    ffmpeg_cmd.extend([
+                    video_ffmpeg_cmd.extend([
                         "-c:a", "aac",
                         "-b:a", audio_bitrate,
                     ])
                 
-                # Add segment settings
-                ffmpeg_cmd.extend([
+                # Add segment settings for video recording
+                video_ffmpeg_cmd.extend([
                     "-f", "segment",
                     "-segment_time", str(segment_time),
                     "-segment_time_delta", "0.1",
@@ -396,68 +445,74 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                     "-avoid_negative_ts", "make_zero",
                     os.path.join(output_dir, "%H%M.mp4")
                 ])
-
-                # Build ffmpeg command - this will run continuously and create segments every 60 seconds
-#                 ffmpeg_cmd = [
-#     "ffmpeg",
-#     "-rtsp_transport", "tcp",
-#     "-i", camera_url,
-#     "-c:v", "libx264",
-#     "-b:v", "110k",            # Target video bitrate (~110 kbps)
-#     "-maxrate", "110k",        # Max bitrate
-#     "-bufsize", "220k",        # Buffer for smoother bitrate
-#     "-preset", "veryfast",
-#       "-crf", "28",  
-#     "-c:a", "aac",
-#     "-b:a", "24k",             # Lower audio bitrate
-#     "-r", "19",
-#     "-vf", "scale=1280:720",
-#     "-f", "segment",
-#     "-segment_time", "60",
-#     "-segment_time_delta", "0.1",
-#     "-reset_timestamps", "1",
-#     "-strftime", "1",
-#     "-avoid_negative_ts", "make_zero",
-#     os.path.join(output_dir, "%H%M.mp4")
-# ]
-
-
                 
-                print(f"Running ffmpeg command: {' '.join(ffmpeg_cmd)}")
+                # Image capture command (separate process)
+                image_ffmpeg_cmd = [
+                    "ffmpeg",
+                    "-rtsp_transport", "tcp",
+                    "-i", camera_url,
+                    "-vf", f"scale={resolution},fps=1/{stills_interval}",
+                    "-f", "image2",
+                    "-strftime", "1",
+                    os.path.join(output_dir, "%H%M.jpg")
+                ]
+
+                print(f"Running video ffmpeg command: {' '.join(video_ffmpeg_cmd)}")
+                print(f"Running image ffmpeg command: {' '.join(image_ffmpeg_cmd)}")
                 
-                # Start ffmpeg process - this will run continuously and create new files every 60 seconds
-                process = subprocess.Popen(
-                    ffmpeg_cmd,
+                # Start video ffmpeg process
+                video_process = subprocess.Popen(
+                    video_ffmpeg_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
                     universal_newlines=True,
                     bufsize=1
                 )
                 
-                print(f"FFmpeg process started with PID: {process.pid}")
+                # Start image ffmpeg process
+                image_process = subprocess.Popen(
+                    image_ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    bufsize=1
+                )
+                
+                print(f"Video FFmpeg process started with PID: {video_process.pid}")
+                print(f"Image FFmpeg process started with PID: {image_process.pid}")
                 
                 # Monitor FFmpeg output in real-time
-                def monitor_ffmpeg():
-                    while process.poll() is None:
-                        line = process.stderr.readline()
+                def monitor_video_ffmpeg():
+                    while video_process.poll() is None:
+                        line = video_process.stderr.readline()
                         if line:
-                            print(f"FFmpeg [{camera_name}]: {line.strip()}")
+                            print(f"Video FFmpeg [{camera_name}]: {line.strip()}")
                 
-                # Start monitoring thread
-                monitor_thread = threading.Thread(target=monitor_ffmpeg)
-                monitor_thread.daemon = True
-                monitor_thread.start()
+                def monitor_image_ffmpeg():
+                    while image_process.poll() is None:
+                        line = image_process.stderr.readline()
+                        if line:
+                            print(f"Image FFmpeg [{camera_name}]: {line.strip()}")
+                
+                # Start monitoring threads
+                video_monitor_thread = threading.Thread(target=monitor_video_ffmpeg)
+                video_monitor_thread.daemon = True
+                video_monitor_thread.start()
+                
+                image_monitor_thread = threading.Thread(target=monitor_image_ffmpeg)
+                image_monitor_thread.daemon = True
+                image_monitor_thread.start()
                 
                 # Monitor file creation and generate thumbnails during video creation
                 def monitor_files():
                     last_files = set()
-                    processing_files = set()  # Track files being processed
-                    while process.poll() is None and not stop_flags.get(camera_id, False):
+                    processing_files = set()
+                    while (video_process.poll() is None or image_process.poll() is None) and not stop_flags.get(camera_id, False):
                         try:
                             current_files = set()
                             if os.path.exists(output_dir):
                                 for file in os.listdir(output_dir):
-                                    if file.endswith('.mp4'):
+                                    if file.endswith('.mp4') or file.endswith('.jpg'):
                                         current_files.add(file)
                             
                             # Check for new files
@@ -466,22 +521,19 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                                 for new_file in new_files:
                                     print(f"New file detected [{camera_name}]: {new_file}")
                                     processing_files.add(new_file)
-                                    
-                                    # File detected - will generate thumbnail during upload
-                                    video_file_path = os.path.join(output_dir, new_file)
-                                    print(f"New video file detected [{camera_name}]: {new_file}")
+                                    file_path = os.path.join(output_dir, new_file)
+                                    print(f"New video/image file detected [{camera_name}]: {new_file}")
                             
-                            # Check for completed files (files that are no longer being written)
+                            # Check for completed files
                             completed_files = set()
                             for file in processing_files:
                                 file_path = os.path.join(output_dir, file)
                                 if os.path.exists(file_path):
-                                    # Check if file size is stable (not being written)
                                     try:
                                         size1 = os.path.getsize(file_path)
                                         time.sleep(1)
                                         size2 = os.path.getsize(file_path)
-                                        if size1 == size2:  # File size is stable
+                                        if size1 == size2:
                                             completed_files.add(file)
                                     except:
                                         pass
@@ -492,24 +544,32 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                                     processing_files.remove(completed_file)
                                 
                                 print(f"File completed [{camera_name}]: {completed_file}")
+                                file_path = os.path.join(output_dir, completed_file)
                                 
-                                # Upload the completed 1-minute video segment to API
-                                video_file_path = os.path.join(output_dir, completed_file)
-                                
-                                # Upload in a separate thread to avoid blocking
-                                def upload_segment():
-                                    try:
-                                        upload_video_to_api(video_file_path, camera_guid=camera_guid)
-                                    except Exception as e:
-                                        print(f"Upload error: {completed_file} - {e}")
-                                
-                                # Start upload thread
-                                upload_thread = threading.Thread(target=upload_segment, name=f"upload_{camera_name}_{completed_file}")
-                                upload_thread.daemon = True
-                                upload_thread.start()
+                                # Determine if it's a video or image and upload accordingly
+                                if completed_file.endswith('.mp4'):
+                                    def upload_segment():
+                                        try:
+                                            upload_video_to_api(file_path, camera_guid=camera_guid)
+                                        except Exception as e:
+                                            print(f"Upload error: {completed_file} - {e}")
+                                    upload_thread = threading.Thread(target=upload_segment, 
+                                                                  name=f"upload_{camera_name}_{completed_file}")
+                                    upload_thread.daemon = True
+                                    upload_thread.start()
+                                elif completed_file.endswith('.jpg'):
+                                    def upload_still():
+                                        try:
+                                            upload_image_to_api(file_path, camera_guid=camera_guid)
+                                        except Exception as e:
+                                            print(f"Upload error: {completed_file} - {e}")
+                                    upload_thread = threading.Thread(target=upload_still, 
+                                                                  name=f"upload_{camera_name}_{completed_file}")
+                                    upload_thread.daemon = True
+                                    upload_thread.start()
                             
                             last_files = current_files
-                            time.sleep(2)  # Check more frequently for better responsiveness
+                            time.sleep(2)
                         except Exception as e:
                             print(f"Error monitoring files for {camera_name}: {e}")
                             time.sleep(5)
@@ -519,42 +579,66 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                 file_monitor_thread.daemon = True
                 file_monitor_thread.start()
             
-                # Wait for process to complete or stop flag to be set
-                while process.poll() is None and not stop_flags.get(camera_id, False):
+                # Wait for processes to complete or stop flag to be set
+                while (video_process.poll() is None or image_process.poll() is None) and not stop_flags.get(camera_id, False):
                     time.sleep(1)
                 
-                # If stop flag is set, terminate the process
+                # If stop flag is set, terminate the processes
                 if stop_flags.get(camera_id, False):
                     print(f"Stopping recording for camera: {camera_name} ({camera_id})")
-                    process.terminate()
-                    try:
-                        process.wait(timeout=5)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
+                    
+                    # Terminate video process
+                    if video_process.poll() is None:
+                        video_process.terminate()
+                        try:
+                            video_process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            video_process.kill()
+                    
+                    # Terminate image process
+                    if image_process.poll() is None:
+                        image_process.terminate()
+                        try:
+                            image_process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            image_process.kill()
+                    
                     break
                 
-                # If process ended naturally (not due to stop flag), log it and restart
-                if process.poll() is not None and not stop_flags.get(camera_id, False):
+                # If processes ended naturally, log it and restart
+                if (video_process.poll() is not None or image_process.poll() is not None) and not stop_flags.get(camera_id, False):
                     print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
-                    # Get the error output
-                    stdout, stderr = process.communicate()
-                    if stderr:
-                        print(f"FFmpeg error output: {stderr}")
-                    if stdout:
-                        print(f"FFmpeg output: {stdout}")
+                    
+                    # Check video process
+                    if video_process.poll() is not None:
+                        stdout, stderr = video_process.communicate()
+                        if stderr:
+                            print(f"Video FFmpeg error output: {stderr}")
+                        if stdout:
+                            print(f"Video FFmpeg output: {stdout}")
+                    
+                    # Check image process
+                    if image_process.poll() is not None:
+                        stdout, stderr = image_process.communicate()
+                        if stderr:
+                            print(f"Image FFmpeg error output: {stderr}")
+                        if stdout:
+                            print(f"Image FFmpeg output: {stdout}")
                     
                     print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
-                    time.sleep(5)  # Wait 5 seconds before restarting
+                    time.sleep(5)
                     
             except Exception as e:
                 print(f"Error in FFmpeg process for camera {camera_name} ({camera_id}): {e}")
                 print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
-                time.sleep(5)  # Wait 5 seconds before restarting
+                time.sleep(5)
                 
     except Exception as e:
         print(f"Error in recording for camera {camera_name} ({camera_id}): {e}")
     
     print(f"Thread stopped for camera: {camera_name} ({camera_id})")
+
+
 
 def start_camera_thread(camera):
     """Start a thread for a specific camera"""
@@ -1535,6 +1619,129 @@ def get_camera_segments(camera_id):
         
     except Exception as e:
         return jsonify({'error': f'Error getting camera segments: {str(e)}'}), 500
+
+@app.route('/api/image/upload/<camera_id>/<filename>', methods=['POST'])
+def trigger_image_upload(camera_id, filename):
+    """API endpoint to manually trigger upload of a specific image file"""
+    # Convert camera_id to int for comparison since your config uses numeric IDs
+    try:
+        camera_id_int = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id_int:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', str(camera_id_int))
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        image_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", filename)
+        
+        if not os.path.exists(image_file_path):
+            return jsonify({
+                'error': f'Image file not found: {image_file_path}',
+                'camera_name': camera['name'],
+                'file_path': image_file_path
+            }), 404
+        
+        # Validate filename format (should be HHMM.jpg)
+        if not (filename.endswith('.jpg') and len(filename) == 8 and filename[:4].isdigit()):
+            return jsonify({
+                'error': f'Invalid filename format. Expected HHMM.jpg format, got: {filename}',
+                'camera_name': camera['name']
+            }), 400
+        
+        # Upload the image
+        upload_success = upload_image_to_api(image_file_path, camera_guid=camera_guid)
+        
+        if upload_success:
+            return jsonify({
+                'success': True,
+                'message': f'Image uploaded successfully: {filename}',
+                'camera_name': camera['name'],
+                'file_path': image_file_path,
+                'organization_id': api_organization_id,
+                'image_type': 'still'
+            })
+        else:
+            return jsonify({
+                'error': f'Failed to upload image: {filename}',
+                'camera_name': camera['name'],
+                'file_path': image_file_path
+            }), 500
+        
+    except Exception as e:
+        return jsonify({'error': f'Error uploading image: {str(e)}'}), 500
+
+@app.route('/api/images/<camera_id>')
+def get_camera_images(camera_id):
+    """API endpoint to get all image files for a camera"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+        
+        if not os.path.exists(segment_dir):
+            return jsonify({
+                'camera_id': camera_id,
+                'camera_name': camera['name'],
+                'directory': segment_dir,
+                'exists': False,
+                'images': [],
+                'total_images': 0
+            })
+        
+        # Get all image files (format: HHMM.jpg)
+        images = []
+        for file in os.listdir(segment_dir):
+            if file.endswith('.jpg') and len(file) == 8:  # HHMM.jpg format
+                file_path = os.path.join(segment_dir, file)
+                file_stat = os.stat(file_path)
+                
+                # Check if this is a still image (HHMM format)
+                if file[:4].isdigit():  # HHMM format
+                    images.append({
+                        'filename': file,
+                        'size': file_stat.st_size,
+                        'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                        'path': file_path,
+                        'hour': file[:2],
+                        'minute': file[2:4],
+                        'image_type': 'still'
+                    })
+        
+        # Sort images by filename (chronological order)
+        images.sort(key=lambda x: x['filename'])
+        
+        return jsonify({
+            'camera_id': camera_id,
+            'camera_name': camera['name'],
+            'directory': segment_dir,
+            'exists': True,
+            'images': images,
+            'total_images': len(images),
+            'total_size': sum(i['size'] for i in images)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error getting camera images: {str(e)}'}), 500
 
 def start_hourly_merging(camera_guid):
     """Start the hourly merging task for a camera"""

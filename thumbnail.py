@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-def create_thumbnail_for_mp4(mp4_path, thumbnail_path=None, quality=2):
+def generate_thumbnail(mp4_path, thumbnail_path=None, quality=2):
     """
     Creates a thumbnail from an MP4 video file
     
@@ -62,7 +62,7 @@ def create_thumbnail_for_mp4(mp4_path, thumbnail_path=None, quality=2):
         return None
     
 
-video_path = r"E:\bala\installer\videos\2025-07-19\46a77a07-6f77-427c-8492-66fb0bd55914\mp4\1539.mp4"
+video_path = r"./videos\2025-07-19\bf971549-38b8-4fa4-85d8-beb2aede9b87\16\1638.mp4"
 thumbnail_path = create_thumbnail_for_mp4(video_path)
 
 if thumbnail_path:
