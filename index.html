@@ -165,18 +165,27 @@
         }
         .live-camera-feed {
             width: 100%;
-            height: 200px;
+            height: 240px;
             background: #1a1a1a;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #666;
             font-size: 14px;
+            position: relative;
         }
         .live-camera-feed img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 0 0 8px 8px;
+        }
+        .live-camera-feed div {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
         }
         .no-active-cameras {
             text-align: center;
@@ -324,13 +333,58 @@
                 liveCard.innerHTML = `
                     <div class="live-camera-header">${camera.name}</div>
                     <div class="live-camera-feed" id="feed-${camera.id}">
-                        <img src="/api/cameras/${camera.id}/frame" alt="Live feed from ${camera.name}" 
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div style="display: none;">Loading live feed...</div>
+                        <img src="/api/cameras/${camera.id}/stream" alt="Live feed from ${camera.name}" 
+                             onerror="handleStreamError('${camera.id}')" 
+                             onload="handleStreamLoad('${camera.id}')">
+                        <div id="error-${camera.id}" style="display: none; color: #ff6b6b;">Stream not available</div>
+                        <div id="loading-${camera.id}" style="display: block; color: #666;">Loading live feed...</div>
                     </div>
                 `;
                 liveGrid.appendChild(liveCard);
+                
+                // Start polling for frame updates as fallback
+                startFramePolling(camera.id);
             });
+        }
+
+        // Handle stream load
+        function handleStreamLoad(cameraId) {
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            const errorDiv = document.getElementById(`error-${cameraId}`);
+            if (loadingDiv) loadingDiv.style.display = 'none';
+            if (errorDiv) errorDiv.style.display = 'none';
+        }
+
+        // Handle stream error
+        function handleStreamError(cameraId) {
+            const errorDiv = document.getElementById(`error-${cameraId}`);
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            if (errorDiv) errorDiv.style.display = 'block';
+            if (loadingDiv) loadingDiv.style.display = 'none';
+        }
+
+        // Start frame polling for cameras
+        function startFramePolling(cameraId) {
+            // Wait 2 seconds before starting to poll to allow camera threads to start
+            setTimeout(() => {
+                // Poll every 500ms for frame updates
+                setInterval(async () => {
+                    try {
+                        const response = await fetch(`/api/cameras/${cameraId}/frame`);
+                        const data = await response.json();
+                        
+                        if (data.status === 'live') {
+                            const img = document.querySelector(`#feed-${cameraId} img`);
+                            if (img) {
+                                img.src = 'data:image/jpeg;base64,' + data.frame_data;
+                                handleStreamLoad(cameraId);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error polling frame for camera ${cameraId}:`, error);
+                    }
+                }, 500);
+            }, 2000);
         }
 
         // Refresh live view

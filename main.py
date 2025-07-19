@@ -3,8 +3,12 @@ import threading
 import time
 import subprocess
 import os
+import cv2
+import glob
+import queue
+import requests
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, Response
 
 app = Flask(__name__)
 
@@ -16,6 +20,189 @@ base_video_path = ""
 active_threads = {}
 # Dictionary to store stop flags for each camera
 stop_flags = {}
+# Dictionary to store merging tasks for each camera
+merging_tasks = {}
+# Global merge queue and worker thread
+merge_queue = queue.Queue()
+merge_worker_thread = None
+merge_worker_stop_flag = False
+# Global variable for API configuration
+api_organization_id = 8
+
+def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
+    """Upload merged video to the API endpoint"""
+    try:
+        api_url = "http://127.0.0.1:8000/api/video/upload"
+        
+        # Check if file exists
+        if not os.path.exists(video_file_path):
+            print(f"Error: Video file not found: {video_file_path}")
+            return False
+        
+        # Use global organization_id if not provided
+        if organization_id is None:
+            organization_id = api_organization_id
+        
+        # Prepare the files for upload
+        with open(video_file_path, 'rb') as video_file:
+            files = {
+                'video_file': (os.path.basename(video_file_path), video_file, 'video/mp4')
+            }
+            
+            data = {
+                'organization_id': organization_id
+            }
+            
+            # Add camera GUID if provided
+            if camera_guid:
+                data['guid'] = camera_guid
+            
+            print(f"Uploading video to API: {video_file_path}")
+            print(f"API URL: {api_url}")
+            print(f"Organization ID: {organization_id}")
+            if camera_guid:
+                print(f"Camera GUID: {camera_guid}")
+            
+            # Make the POST request
+            response = requests.post(api_url, files=files, data=data, timeout=300)  # 5 minutes timeout
+            
+            if response.status_code == 200:
+                result = response.json()
+                print(f"Video uploaded successfully!")
+                print(f"Response: {result}")
+                return True
+            else:
+                print(f"Error uploading video: HTTP {response.status_code}")
+                print(f"Response: {response.text}")
+                return False
+                
+    except requests.exceptions.Timeout:
+        print(f"Timeout error uploading video: {video_file_path}")
+        return False
+    except requests.exceptions.RequestException as e:
+        print(f"Request error uploading video: {e}")
+        return False
+    except Exception as e:
+        print(f"Error uploading video {video_file_path}: {e}")
+        return False
+
+def merge_worker_thread_function():
+    """Global worker thread that processes all merge operations from the queue"""
+    global merge_worker_stop_flag
+    print("Merge worker thread started")
+    
+    while not merge_worker_stop_flag:
+        try:
+            # Get merge task from queue with timeout
+            try:
+                task = merge_queue.get(timeout=1)  # 1 second timeout
+            except queue.Empty:
+                continue  # Continue loop if no tasks
+            
+            if task is None:  # Shutdown signal
+                print("Received shutdown signal, stopping merge worker thread")
+                break
+                
+            camera_guid, hour_str, task_type = task
+            
+            print(f"Processing merge task: {task_type} for camera {camera_guid}, hour {hour_str} (Queue size: {merge_queue.qsize()})")
+            
+            if task_type == "existing":
+                # Handle existing segments merge
+                try:
+                    current_date = datetime.now().strftime("%Y-%m-%d")
+                    segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+                    if not os.path.exists(segment_dir):
+                        print(f"No segment directory found for camera {camera_guid}")
+                        continue
+                    
+                    # Check if 1-minute segments exist for this hour
+                    pattern = os.path.join(segment_dir, f"{hour_str}*.mp4")
+                    segment_files = glob.glob(pattern)
+                    
+                    if len(segment_files) >= 2:
+                        print(f"Merging existing 1-minute segments for hour {hour_str} in camera {camera_guid}")
+                        # Call the actual merge function
+                        merge_hourly_segments_direct(camera_guid, hour_str)
+                    else:
+                        print(f"Not enough segments to merge for hour {hour_str} in camera {camera_guid}")
+                        
+                except Exception as e:
+                    print(f"Error in existing merge task for hour {hour_str} in camera {camera_guid}: {e}")
+            
+            elif task_type == "hourly":
+                # Handle hourly merge (from start_hourly_merging)
+                try:
+                    print(f"Processing hourly merge for hour {hour_str} in camera {camera_guid}")
+                    merge_hourly_segments_direct(camera_guid, hour_str)
+                except Exception as e:
+                    print(f"Error in hourly merge task for hour {hour_str} in camera {camera_guid}: {e}")
+            
+            elif task_type == "manual":
+                # Handle manual merge (from API trigger)
+                try:
+                    print(f"Processing manual merge for hour {hour_str} in camera {camera_guid}")
+                    merge_hourly_segments_direct(camera_guid, hour_str)
+                except Exception as e:
+                    print(f"Error in manual merge task for hour {hour_str} in camera {camera_guid}: {e}")
+            
+            # Mark task as done
+            merge_queue.task_done()
+            print(f"Completed merge task: {task_type} for camera {camera_guid}, hour {hour_str}")
+            
+        except Exception as e:
+            print(f"Error in merge worker thread: {e}")
+            time.sleep(1)  # Wait before continuing
+    
+    print("Merge worker thread stopped")
+
+def start_merge_worker_thread():
+    """Start the global merge worker thread"""
+    global merge_worker_thread, merge_worker_stop_flag
+    
+    if merge_worker_thread is None or not merge_worker_thread.is_alive():
+        merge_worker_stop_flag = False
+        merge_worker_thread = threading.Thread(target=merge_worker_thread_function, name="merge_worker")
+        merge_worker_thread.daemon = True
+        merge_worker_thread.start()
+        print("Started global merge worker thread")
+
+def stop_merge_worker_thread():
+    """Stop the global merge worker thread"""
+    global merge_worker_thread, merge_worker_stop_flag
+    
+    if merge_worker_thread and merge_worker_thread.is_alive():
+        merge_worker_stop_flag = True
+        # Send shutdown signal
+        merge_queue.put(None)
+        merge_worker_thread.join(timeout=10)
+        print("Stopped global merge worker thread")
+
+def test_rtsp_stream(camera_url, camera_name):
+    """Test if RTSP stream is accessible"""
+    try:
+        print(f"Testing RTSP stream for {camera_name}: {camera_url}")
+        
+        # Try to open the stream with OpenCV
+        cap = cv2.VideoCapture(camera_url)
+        if not cap.isOpened():
+            print(f"Error: Could not open RTSP stream for {camera_name}")
+            return False
+        
+        # Try to read a frame
+        ret, frame = cap.read()
+        cap.release()
+        
+        if ret:
+            print(f"RTSP stream test successful for {camera_name}")
+            return True
+        else:
+            print(f"Error: Could not read frame from RTSP stream for {camera_name}")
+            return False
+            
+    except Exception as e:
+        print(f"Error testing RTSP stream for {camera_name}: {e}")
+        return False
 
 def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
     """Function that runs in each camera thread - creates video recordings using ffmpeg"""
@@ -26,49 +213,174 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
     output_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
     os.makedirs(output_dir, exist_ok=True)
     
+    # Start hourly merging task
+    start_hourly_merging(camera_guid)
+    
     try:
         print(f"Starting recording for camera: {camera_name} ({camera_id})")
         
-        # Build ffmpeg command - this will run continuously and create segments every 60 seconds
-        ffmpeg_cmd = [
-            "ffmpeg",
-            "-rtsp_transport", "tcp",
-            "-i", camera_url,
-            "-c", "copy",
-            "-f", "segment",
-            "-segment_time", "60",
-            "-reset_timestamps", "1",
-            "-strftime", "1",
-            os.path.join(output_dir, "segment_%Y%m%d_%H%M%S.mp4")
-        ]
-        
-        print(f"Running ffmpeg command: {' '.join(ffmpeg_cmd)}")
-        
-        # Start ffmpeg process - this will run continuously and create new files every minute
-        process = subprocess.Popen(
-            ffmpeg_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
-        
-        # Wait for process to complete or stop flag to be set
-        while process.poll() is None and not stop_flags.get(camera_id, False):
-            time.sleep(1)
-        
-        # If stop flag is set, terminate the process
-        if stop_flags.get(camera_id, False):
-            print(f"Stopping recording for camera: {camera_name} ({camera_id})")
-            process.terminate()
+        # Keep trying to start FFmpeg until stop flag is set
+        while not stop_flags.get(camera_id, False):
             try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-        
-        # If process ended naturally (not due to stop flag), log it
-        if process.poll() is not None and not stop_flags.get(camera_id, False):
-            print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
+                # Test RTSP stream
+                if not test_rtsp_stream(camera_url, camera_name):
+                    print(f"RTSP stream test failed for camera: {camera_name} ({camera_id}). Skipping recording.")
+                    break
+                
+                ffmpeg_cmd = [
+    "ffmpeg",
+    "-rtsp_transport", "tcp",
+    "-i", camera_url,
+    "-c:v", "libx264",
+    "-b:v", "110k",             # Target video bitrate
+    "-maxrate", "110k",         # Limit max bitrate
+    "-bufsize", "220k",         # Buffer to smooth bitrate control
+    "-preset", "veryfast",      # Faster encoding
+    "-crf", "28",               # Quality factor (won't apply much with -b:v set)
+    "-c:a", "aac",
+    "-b:a", "24k",              # Low bitrate audio
+    "-r", "15",                 # Frame rate
+    "-vf", "scale=1280:720",    # Resize to 720p
+    "-f", "segment",
+    "-segment_time", "60",      # 1-minute segments
+    "-segment_time_delta", "0.1",
+    "-reset_timestamps", "1",
+    "-strftime", "1",           # Use time in filename
+    "-avoid_negative_ts", "make_zero",
+    os.path.join(output_dir, "%H%M.mp4")  # Output path like 1325.mp4 (1:25 PM)
+]
+
+                # Build ffmpeg command - this will run continuously and create segments every 60 seconds
+#                 ffmpeg_cmd = [
+#     "ffmpeg",
+#     "-rtsp_transport", "tcp",
+#     "-i", camera_url,
+#     "-c:v", "libx264",
+#     "-b:v", "110k",            # Target video bitrate (~110 kbps)
+#     "-maxrate", "110k",        # Max bitrate
+#     "-bufsize", "220k",        # Buffer for smoother bitrate
+#     "-preset", "veryfast",
+#       "-crf", "28",  
+#     "-c:a", "aac",
+#     "-b:a", "24k",             # Lower audio bitrate
+#     "-r", "19",
+#     "-vf", "scale=1280:720",
+#     "-f", "segment",
+#     "-segment_time", "60",
+#     "-segment_time_delta", "0.1",
+#     "-reset_timestamps", "1",
+#     "-strftime", "1",
+#     "-avoid_negative_ts", "make_zero",
+#     os.path.join(output_dir, "%H%M.mp4")
+# ]
+
+
+                
+                print(f"Running ffmpeg command: {' '.join(ffmpeg_cmd)}")
+                
+                # Start ffmpeg process - this will run continuously and create new files every 60 seconds
+                process = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True,
+                    bufsize=1
+                )
+                
+                print(f"FFmpeg process started with PID: {process.pid}")
+                
+                # Monitor FFmpeg output in real-time
+                def monitor_ffmpeg():
+                    while process.poll() is None:
+                        line = process.stderr.readline()
+                        if line:
+                            print(f"FFmpeg [{camera_name}]: {line.strip()}")
+                
+                # Start monitoring thread
+                monitor_thread = threading.Thread(target=monitor_ffmpeg)
+                monitor_thread.daemon = True
+                monitor_thread.start()
+                
+                # Monitor file creation
+                def monitor_files():
+                    last_files = set()
+                    while process.poll() is None and not stop_flags.get(camera_id, False):
+                        try:
+                            current_files = set()
+                            if os.path.exists(output_dir):
+                                for file in os.listdir(output_dir):
+                                    if file.endswith('.mp4'):
+                                        current_files.add(file)
+                            
+                            # Check for new files
+                            new_files = current_files - last_files
+                            if new_files:
+                                for new_file in new_files:
+                                    print(f"New file created [{camera_name}]: {new_file}")
+                                    
+                                    # Upload the new 1-minute video segment to API
+                                    video_file_path = os.path.join(output_dir, new_file)
+                                    print(f"Uploading 1-minute segment [{camera_name}]: {new_file}")
+                                    
+                                    # Upload in a separate thread to avoid blocking
+                                    def upload_segment():
+                                        try:
+                                            upload_success = upload_video_to_api(video_file_path, camera_guid=camera_guid)
+                                            if upload_success:
+                                                print(f"✅ 1-minute segment uploaded successfully [{camera_name}]: {new_file}")
+                                            else:
+                                                print(f"❌ 1-minute segment upload failed [{camera_name}]: {new_file}")
+                                        except Exception as e:
+                                            print(f"Error uploading 1-minute segment [{camera_name}]: {new_file} - {e}")
+                                    
+                                    # Start upload thread
+                                    upload_thread = threading.Thread(target=upload_segment, name=f"upload_{camera_name}_{new_file}")
+                                    upload_thread.daemon = True
+                                    upload_thread.start()
+                            
+                            last_files = current_files
+                            time.sleep(5)  # Check every 5 seconds
+                        except Exception as e:
+                            print(f"Error monitoring files for {camera_name}: {e}")
+                            time.sleep(5)
+                
+                # Start file monitoring thread
+                file_monitor_thread = threading.Thread(target=monitor_files)
+                file_monitor_thread.daemon = True
+                file_monitor_thread.start()
             
+                # Wait for process to complete or stop flag to be set
+                while process.poll() is None and not stop_flags.get(camera_id, False):
+                    time.sleep(1)
+                
+                # If stop flag is set, terminate the process
+                if stop_flags.get(camera_id, False):
+                    print(f"Stopping recording for camera: {camera_name} ({camera_id})")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                    break
+                
+                # If process ended naturally (not due to stop flag), log it and restart
+                if process.poll() is not None and not stop_flags.get(camera_id, False):
+                    print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
+                    # Get the error output
+                    stdout, stderr = process.communicate()
+                    if stderr:
+                        print(f"FFmpeg error output: {stderr}")
+                    if stdout:
+                        print(f"FFmpeg output: {stdout}")
+                    
+                    print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
+                    time.sleep(5)  # Wait 5 seconds before restarting
+                    
+            except Exception as e:
+                print(f"Error in FFmpeg process for camera {camera_name} ({camera_id}): {e}")
+                print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
+                time.sleep(5)  # Wait 5 seconds before restarting
+                
     except Exception as e:
         print(f"Error in recording for camera {camera_name} ({camera_id}): {e}")
     
@@ -110,12 +422,62 @@ def stop_camera_thread(camera_id):
         thread = active_threads[camera_id]
         thread.join(timeout=5)  # Wait up to 5 seconds
         
-        # Remove from active threads
+        # Stop merging task if it exists
+        camera_guid = None
+        for cam in cameras_data:
+            if cam['id'] == camera_id:
+                camera_guid = cam.get('GUID', camera_id)
+                break
+        
+        if camera_guid and camera_guid in merging_tasks:
+            # Set a flag to stop the merging thread (we'll add this to the merging worker)
+            # For now, we'll just remove it from the dictionary
+            del merging_tasks[camera_guid]
+        
+        # Remove from active threads and clean up
         del active_threads[camera_id]
         if camera_id in stop_flags:
             del stop_flags[camera_id]
         
         print(f"Stopped recording thread for camera ID: {camera_id}")
+
+def merge_existing_segments():
+    """Merge any existing segments from previous hours when system starts"""
+    try:
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        current_hour = datetime.now().strftime("%H")
+        
+        # Get all camera GUIDs
+        camera_guids = set()
+        for camera in cameras_data:
+            camera_guid = camera.get('GUID', camera['id'])
+            camera_guids.add(camera_guid)
+        
+        # Add merge tasks to the global queue
+        for camera_guid in camera_guids:
+            segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+            if not os.path.exists(segment_dir):
+                continue
+            
+            # Check for any incomplete hours (hours before current hour)
+            for hour in range(24):
+                hour_str = f"{hour:02d}"
+                if hour_str >= current_hour:
+                    continue  # Skip current and future hours
+                
+                # Check if 1-minute segments exist for this hour
+                pattern = os.path.join(segment_dir, f"{hour_str}*.mp4")
+                segment_files = glob.glob(pattern)
+                
+                if len(segment_files) >= 2:
+                    # Add merge task to the global queue
+                    merge_queue.put((camera_guid, hour_str, "existing"))
+                    print(f"Added existing merge task to queue for hour {hour_str} in camera {camera_guid}")
+        
+        print(f"Added {merge_queue.qsize()} existing merge tasks to queue")
+            
+    except Exception as e:
+        print(f"Error in merge_existing_segments: {e}")
 
 def load_cameras():
     """Load cameras from config.json"""
@@ -133,11 +495,20 @@ def load_cameras():
         print(f"Loaded {len(cameras_data)} cameras from config.json")
         print(f"Base video path: {base_video_path}")
         
+        # Start the global merge worker thread
+        start_merge_worker_thread()
+        
         # Start recording for cameras that were already recording
         for camera in cameras_data:
             if camera.get('is_recording', False):
                 start_camera_thread(camera)
                 
+        # Merge existing segments
+        merge_existing_segments()
+        
+        # Clean up any orphaned segments
+        cleanup_all_orphaned_segments()
+        
     except FileNotFoundError:
         print("config.json not found. Creating default config...")
         cameras_data = []
@@ -236,7 +607,7 @@ def get_thread_status():
 
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
-    """API endpoint to get camera frame (placeholder for now)"""
+    """API endpoint to get camera RTSP URL for direct streaming"""
     # Find the camera
     camera = None
     for cam in cameras_data:
@@ -247,14 +618,765 @@ def get_camera_frame(camera_id):
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
     
-    # For now, return a placeholder response
-    # In a real implementation, this would capture and return a frame from the camera
+    # Return the RTSP URL for direct streaming
+    camera_url = camera.get('URL', '')
     return jsonify({
         'camera_id': camera_id,
         'camera_name': camera['name'],
-        'status': 'recording' if camera.get('is_recording', False) else 'stopped',
-        'message': 'Frame capture not implemented yet'
+        'rtsp_url': camera_url,
+        'status': 'live' if camera_url else 'no_url'
     })
+
+@app.route('/api/cameras/<camera_id>/stream')
+def stream_camera(camera_id):
+    """Direct RTSP streaming endpoint - returns RTSP URL for browser streaming"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    # Return the RTSP URL for direct streaming
+    camera_url = camera.get('URL', '')
+    return jsonify({
+        'camera_id': camera_id,
+        'camera_name': camera['name'],
+        'rtsp_url': camera_url,
+        'stream_type': 'rtsp_direct'
+    })
+
+@app.route('/api/cameras/<camera_id>/files')
+def get_camera_files(camera_id):
+    """API endpoint to get current video files for a camera"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+        
+        if not os.path.exists(segment_dir):
+            return jsonify({
+                'camera_id': camera_id,
+                'camera_name': camera['name'],
+                'files': [],
+                'directory': segment_dir,
+                'exists': False
+            })
+        
+        # Get all mp4 files in the directory
+        files = []
+        for file in os.listdir(segment_dir):
+            if file.endswith('.mp4'):
+                file_path = os.path.join(segment_dir, file)
+                file_stat = os.stat(file_path)
+                files.append({
+                    'name': file,
+                    'size': file_stat.st_size,
+                    'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                    'path': file_path
+                })
+        
+        # Sort files by name
+        files.sort(key=lambda x: x['name'])
+        
+        return jsonify({
+            'camera_id': camera_id,
+            'camera_name': camera['name'],
+            'files': files,
+            'directory': segment_dir,
+            'exists': True,
+            'total_files': len(files)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error getting files: {str(e)}'}), 500
+
+@app.route('/api/cameras/<camera_id>/frame-status')
+def get_frame_status(camera_id):
+    """API endpoint to get camera RTSP status for debugging"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        is_recording = camera.get('is_recording', False)
+        camera_url = camera.get('URL', '')
+        
+        return jsonify({
+            'camera_id': camera_id,
+            'camera_name': camera['name'],
+            'rtsp_url': camera_url,
+            'is_recording': is_recording,
+            'has_active_thread': camera_id in active_threads,
+            'status': 'active' if is_recording and camera_url else 'inactive',
+            'message': 'Camera ready for direct RTSP streaming' if camera_url else 'No RTSP URL configured'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error getting frame status: {str(e)}'}), 500
+
+@app.route('/api/threads/validate')
+def validate_all_threads():
+    """API endpoint to validate all camera threads"""
+    validation_results = {}
+    
+    for camera in cameras_data:
+        camera_id = camera['id']
+        is_recording = camera.get('is_recording', False)
+        has_active_thread = camera_id in active_threads
+        
+        status = "consistent"
+        issues = []
+        
+        if is_recording:
+            if not has_active_thread:
+                status = "error"
+                issues.append("Missing active thread")
+        else:
+            if has_active_thread:
+                status = "warning"
+                issues.append("Extra active thread")
+        
+        validation_results[camera_id] = {
+            'camera_name': camera['name'],
+            'is_recording': is_recording,
+            'has_active_thread': has_active_thread,
+            'status': status,
+            'issues': issues
+        }
+    
+    return jsonify({
+        'validation_results': validation_results,
+        'total_cameras': len(cameras_data),
+        'consistent_cameras': sum(1 for r in validation_results.values() if r['status'] == 'consistent'),
+        'error_cameras': sum(1 for r in validation_results.values() if r['status'] == 'error'),
+        'warning_cameras': sum(1 for r in validation_results.values() if r['status'] == 'warning')
+    })
+
+@app.route('/api/cameras/<camera_id>/merge/<hour_str>', methods=['POST'])
+def trigger_merge(camera_id, hour_str):
+    """API endpoint to manually trigger merging for a specific hour"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        
+        # Add merge task to the global queue
+        merge_queue.put((camera_guid, hour_str, "manual"))
+        
+        return jsonify({
+            'success': True,
+            'message': f'Merge task added to queue for hour {hour_str} in camera {camera_id}',
+            'camera_name': camera['name'],
+            'queue_size': merge_queue.qsize()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error triggering merge: {str(e)}'}), 500
+
+def merge_hourly_segments_direct(camera_guid, hour_str):
+    """Direct merge function that performs the actual merging without creating a new thread"""
+    try:
+        # Get the date for today
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+        
+        # Find all 1-minute segment files for this hour (e.g., 1600.mp4, 1601.mp4, ..., 1659.mp4)
+        pattern = os.path.join(segment_dir, f"{hour_str}*.mp4")
+        segment_files = glob.glob(pattern)
+        
+        if len(segment_files) < 2:
+            print(f"Not enough segments to merge for hour {hour_str} in camera {camera_guid}")
+            return
+        
+        # Sort files by name to ensure correct order
+        segment_files.sort()
+        
+        # Create output filename (e.g., 16.mp4)
+        output_file = os.path.join(segment_dir, f"{hour_str}.mp4")
+        
+        # Skip if output exists and is newer than all segments
+        if os.path.exists(output_file):
+            output_mtime = os.path.getmtime(output_file)
+            newest_segment = max(os.path.getmtime(f) for f in segment_files)
+            if output_mtime > newest_segment:
+                print(f"Skipping hour {hour_str} - merged file already up-to-date")
+                return
+        
+        # Build ffmpeg command using concat demuxer with direct file input
+        # Use a different approach that doesn't require text files
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-i", "concat:" + "|".join([os.path.basename(f) for f in segment_files]),
+            "-c", "copy",          # Stream copy (no re-encoding)
+            "-movflags", "faststart",  # Enable streaming
+            f"{hour_str}.mp4",     # Output filename (relative)
+            "-y"                   # Overwrite output file if it exists
+        ]
+        
+        print(f"Merging {len(segment_files)} 1-minute segments for hour {hour_str} in camera {camera_guid}")
+        print(f"Command: {' '.join(ffmpeg_cmd)}")
+        
+        # Run ffmpeg merge from the segment directory
+        result = subprocess.run(ffmpeg_cmd, cwd=segment_dir, capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            print(f"Successfully merged 1-minute segments into 1-hour video: {output_file}")
+            
+            # Verify the merged file was created successfully
+            if os.path.exists(output_file):
+                file_size = os.path.getsize(output_file)
+                print(f"1-hour video created successfully: {output_file} (Size: {file_size} bytes)")
+                
+                # Upload the merged video to API
+                print(f"Starting upload of merged video: {output_file}")
+                upload_success = upload_video_to_api(output_file, camera_guid=camera_guid)
+                
+                if upload_success:
+                    print(f"Video upload completed successfully for hour {hour_str} in camera {camera_guid}")
+                else:
+                    print(f"Video upload failed for hour {hour_str} in camera {camera_guid}")
+                
+                # Delete original 1-minute segment files
+                deleted_count = 0
+                for segment_file in segment_files:
+                    try:
+                        if os.path.exists(segment_file):
+                            os.remove(segment_file)
+                            deleted_count += 1
+                            print(f"Deleted 1-minute segment: {os.path.basename(segment_file)}")
+                        else:
+                            print(f"Warning: Segment file not found: {segment_file}")
+                    except Exception as e:
+                        print(f"Error deleting segment {segment_file}: {e}")
+                
+                print(f"Deleted {deleted_count} out of {len(segment_files)} 1-minute segments")
+                
+                # Verify deletion by checking remaining files
+                remaining_segments = glob.glob(pattern)
+                if remaining_segments:
+                    print(f"Warning: {len(remaining_segments)} 1-minute segments still exist after deletion")
+                    for remaining in remaining_segments:
+                        print(f"  - {os.path.basename(remaining)}")
+                else:
+                    print(f"All 1-minute segments for hour {hour_str} successfully deleted")
+                
+            else:
+                print(f"Error: 1-hour video file was not created: {output_file}")
+                return
+                
+        else:
+            print(f"Error merging segments for hour {hour_str}: {result.stderr}")
+            # Don't delete segments if merge failed
+            return
+            
+    except Exception as e:
+        print(f"Error in merge_hourly_segments_direct for hour {hour_str} in camera {camera_guid}: {e}")
+
+def merge_hourly_segments(camera_guid, hour_str):
+    """Merge all video segments for a specific hour into a single file"""
+    # Add merge task to the global queue
+    merge_queue.put((camera_guid, hour_str, "hourly"))
+    print(f"Added hourly merge task to queue for hour {hour_str} in camera {camera_guid}")
+
+def cleanup_orphaned_segments(camera_guid):
+    """Clean up any orphaned 1-minute segments that should have been deleted"""
+    def cleanup_worker():
+        try:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+            
+            if not os.path.exists(segment_dir):
+                print(f"No segment directory found for camera {camera_guid}")
+                return
+            
+            # Find all 1-minute segment files (format: HHMM.mp4)
+            all_segments = []
+            for file in os.listdir(segment_dir):
+                if file.endswith('.mp4') and len(file) == 8:  # HHMM.mp4 format
+                    all_segments.append(file)
+            
+            if not all_segments:
+                print(f"No 1-minute segments found for camera {camera_guid}")
+                return
+            
+            # Group segments by hour
+            segments_by_hour = {}
+            for segment in all_segments:
+                hour = segment[:2]  # Extract hour from filename
+                if hour not in segments_by_hour:
+                    segments_by_hour[hour] = []
+                segments_by_hour[hour].append(segment)
+            
+            # Check each hour
+            for hour, segments in segments_by_hour.items():
+                hour_file = os.path.join(segment_dir, f"{hour}.mp4")
+                
+                # If 1-hour file exists, delete all 1-minute segments for that hour
+                if os.path.exists(hour_file):
+                    print(f"1-hour file exists for hour {hour}, cleaning up {len(segments)} 1-minute segments")
+                    deleted_count = 0
+                    
+                    for segment in segments:
+                        segment_path = os.path.join(segment_dir, segment)
+                        try:
+                            if os.path.exists(segment_path):
+                                os.remove(segment_path)
+                                deleted_count += 1
+                                print(f"Deleted orphaned segment: {segment}")
+                        except Exception as e:
+                            print(f"Error deleting orphaned segment {segment}: {e}")
+                    
+                    print(f"Cleaned up {deleted_count} orphaned segments for hour {hour}")
+                else:
+                    print(f"No 1-hour file for hour {hour}, keeping {len(segments)} 1-minute segments")
+                    
+        except Exception as e:
+            print(f"Error in cleanup worker for camera {camera_guid}: {e}")
+        finally:
+            print(f"Cleanup worker for camera {camera_guid} completed")
+    
+    # Create and start cleanup thread
+    cleanup_thread = threading.Thread(target=cleanup_worker, name=f"cleanup_{camera_guid}")
+    cleanup_thread.daemon = True
+    cleanup_thread.start()
+    print(f"Started cleanup thread for camera {camera_guid}")
+
+@app.route('/api/cameras/<camera_id>/cleanup', methods=['POST'])
+def trigger_cleanup(camera_id):
+    """API endpoint to manually trigger cleanup of orphaned segments"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        
+        # Trigger cleanup in individual thread
+        cleanup_orphaned_segments(camera_guid)
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cleanup triggered for camera {camera_id}',
+            'camera_name': camera['name']
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error triggering cleanup: {str(e)}'}), 500
+
+@app.route('/api/cameras/<camera_id>/files/status')
+def get_camera_files_status(camera_id):
+    """API endpoint to get detailed file status showing segments and merged files"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+        
+        if not os.path.exists(segment_dir):
+            return jsonify({
+                'camera_id': camera_id,
+                'camera_name': camera['name'],
+                'directory': segment_dir,
+                'exists': False,
+                'segments': [],
+                'hourly_files': [],
+                'orphaned_segments': []
+            })
+        
+        # Get all files in the directory
+        all_files = []
+        for file in os.listdir(segment_dir):
+            if file.endswith('.mp4'):
+                file_path = os.path.join(segment_dir, file)
+                file_stat = os.stat(file_path)
+                all_files.append({
+                    'name': file,
+                    'size': file_stat.st_size,
+                    'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                    'path': file_path
+                })
+        
+        # Categorize files
+        segments = []  # 1-minute segments (HHMM.mp4 format)
+        hourly_files = []  # 1-hour files (HH.mp4 format)
+        
+        for file_info in all_files:
+            filename = file_info['name']
+            if len(filename) == 8:  # HHMM.mp4 format
+                segments.append(file_info)
+            elif len(filename) == 6:  # HH.mp4 format
+                hourly_files.append(file_info)
+        
+        # Find orphaned segments (segments that have corresponding hourly files)
+        orphaned_segments = []
+        for segment in segments:
+            hour = segment['name'][:2]  # Extract hour
+            # Check if corresponding hourly file exists
+            hourly_file_exists = any(hf['name'] == f"{hour}.mp4" for hf in hourly_files)
+            if hourly_file_exists:
+                orphaned_segments.append(segment)
+        
+        # Sort files
+        segments.sort(key=lambda x: x['name'])
+        hourly_files.sort(key=lambda x: x['name'])
+        orphaned_segments.sort(key=lambda x: x['name'])
+        
+        return jsonify({
+            'camera_id': camera_id,
+            'camera_name': camera['name'],
+            'directory': segment_dir,
+            'exists': True,
+            'segments': segments,
+            'hourly_files': hourly_files,
+            'orphaned_segments': orphaned_segments,
+            'total_segments': len(segments),
+            'total_hourly_files': len(hourly_files),
+            'total_orphaned': len(orphaned_segments),
+            'total_size_segments': sum(s['size'] for s in segments),
+            'total_size_hourly': sum(h['size'] for h in hourly_files)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error getting file status: {str(e)}'}), 500
+
+@app.route('/api/merge/queue/status')
+def get_merge_queue_status():
+    """API endpoint to get merge queue status"""
+    try:
+        return jsonify({
+            'queue_size': merge_queue.qsize(),
+            'worker_thread_alive': merge_worker_thread.is_alive() if merge_worker_thread else False,
+            'worker_thread_name': merge_worker_thread.name if merge_worker_thread else None,
+            'stop_flag': merge_worker_stop_flag
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error getting merge queue status: {str(e)}'}), 500
+
+@app.route('/api/config/organization_id', methods=['GET', 'POST'])
+def manage_organization_id():
+    """API endpoint to get and set the organization_id for video uploads"""
+    global api_organization_id
+    
+    if request.method == 'GET':
+        return jsonify({
+            'organization_id': api_organization_id,
+            'message': 'Current organization_id for video uploads'
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            new_organization_id = data.get('organization_id')
+            
+            if new_organization_id is None:
+                return jsonify({'error': 'organization_id is required'}), 400
+            
+            if not isinstance(new_organization_id, int):
+                return jsonify({'error': 'organization_id must be an integer'}), 400
+            
+            api_organization_id = new_organization_id
+            
+            return jsonify({
+                'success': True,
+                'organization_id': api_organization_id,
+                'message': f'Organization ID updated to {api_organization_id}'
+            })
+            
+        except Exception as e:
+            return jsonify({'error': f'Error updating organization_id: {str(e)}'}), 500
+
+@app.route('/api/video/upload/<camera_id>/<hour_str>', methods=['POST'])
+def trigger_video_upload(camera_id, hour_str):
+    """API endpoint to manually trigger video upload for a specific hour"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        video_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", f"{hour_str}.mp4")
+        
+        if not os.path.exists(video_file_path):
+            return jsonify({
+                'error': f'Video file not found: {video_file_path}',
+                'camera_name': camera['name'],
+                'file_path': video_file_path
+            }), 404
+        
+        # Upload the video
+        upload_success = upload_video_to_api(video_file_path, camera_guid=camera_guid)
+        
+        if upload_success:
+            return jsonify({
+                'success': True,
+                'message': f'Video uploaded successfully for hour {hour_str} in camera {camera_id}',
+                'camera_name': camera['name'],
+                'file_path': video_file_path,
+                'organization_id': api_organization_id
+            })
+        else:
+            return jsonify({
+                'error': f'Failed to upload video for hour {hour_str} in camera {camera_id}',
+                'camera_name': camera['name'],
+                'file_path': video_file_path
+            }), 500
+        
+    except Exception as e:
+        return jsonify({'error': f'Error uploading video: {str(e)}'}), 500
+
+@app.route('/api/video/upload/status')
+def get_upload_status():
+    """API endpoint to get video upload configuration and status"""
+    try:
+        return jsonify({
+            'api_url': 'http://127.0.0.1:8000/api/video/upload',
+            'organization_id': api_organization_id,
+            'upload_enabled': True,
+            'timeout_seconds': 300,
+            'upload_types': {
+                '1_minute_segments': 'Automatically uploaded when created',
+                'hourly_videos': 'Automatically uploaded after merging'
+            },
+            'message': 'Both 1-minute segments and hourly videos are automatically uploaded'
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error getting upload status: {str(e)}'}), 500
+
+@app.route('/api/video/upload/segment/<camera_id>/<filename>', methods=['POST'])
+def trigger_segment_upload(camera_id, filename):
+    """API endpoint to manually trigger upload of a specific 1-minute video segment"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        video_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", filename)
+        
+        if not os.path.exists(video_file_path):
+            return jsonify({
+                'error': f'Video segment file not found: {video_file_path}',
+                'camera_name': camera['name'],
+                'file_path': video_file_path
+            }), 404
+        
+        # Validate filename format (should be HHMM.mp4)
+        if not (filename.endswith('.mp4') and len(filename) == 8 and filename[:4].isdigit()):
+            return jsonify({
+                'error': f'Invalid filename format. Expected HHMM.mp4 format, got: {filename}',
+                'camera_name': camera['name']
+            }), 400
+        
+        # Upload the video segment
+        upload_success = upload_video_to_api(video_file_path, camera_guid=camera_guid)
+        
+        if upload_success:
+            return jsonify({
+                'success': True,
+                'message': f'1-minute video segment uploaded successfully: {filename}',
+                'camera_name': camera['name'],
+                'file_path': video_file_path,
+                'organization_id': api_organization_id,
+                'segment_type': '1-minute'
+            })
+        else:
+            return jsonify({
+                'error': f'Failed to upload 1-minute video segment: {filename}',
+                'camera_name': camera['name'],
+                'file_path': video_file_path
+            }), 500
+        
+    except Exception as e:
+        return jsonify({'error': f'Error uploading video segment: {str(e)}'}), 500
+
+@app.route('/api/video/segments/<camera_id>')
+def get_camera_segments(camera_id):
+    """API endpoint to get all 1-minute video segments for a camera"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+        
+        if not os.path.exists(segment_dir):
+            return jsonify({
+                'camera_id': camera_id,
+                'camera_name': camera['name'],
+                'directory': segment_dir,
+                'exists': False,
+                'segments': [],
+                'total_segments': 0
+            })
+        
+        # Get all 1-minute segment files (format: HHMM.mp4)
+        segments = []
+        for file in os.listdir(segment_dir):
+            if file.endswith('.mp4') and len(file) == 8:  # HHMM.mp4 format
+                file_path = os.path.join(segment_dir, file)
+                file_stat = os.stat(file_path)
+                
+                # Check if this is a 1-minute segment (not an hourly file)
+                if file[:4].isdigit():  # HHMM format
+                    segments.append({
+                        'filename': file,
+                        'size': file_stat.st_size,
+                        'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                        'path': file_path,
+                        'hour': file[:2],
+                        'minute': file[2:4],
+                        'segment_type': '1-minute'
+                    })
+        
+        # Sort segments by filename (chronological order)
+        segments.sort(key=lambda x: x['filename'])
+        
+        return jsonify({
+            'camera_id': camera_id,
+            'camera_name': camera['name'],
+            'directory': segment_dir,
+            'exists': True,
+            'segments': segments,
+            'total_segments': len(segments),
+            'total_size': sum(s['size'] for s in segments)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error getting camera segments: {str(e)}'}), 500
+
+def start_hourly_merging(camera_guid):
+    """Start the hourly merging task for a camera"""
+    def merging_worker():
+        while True:
+            try:
+                # Wait until the next hour starts
+                now = datetime.now()
+                next_hour = now.replace(minute=0, second=0, microsecond=0)
+                if next_hour <= now:
+                    next_hour = next_hour.replace(hour=next_hour.hour + 1)
+                
+                # Calculate seconds to wait
+                wait_seconds = (next_hour - now).total_seconds()
+                print(f"Next merging task for camera {camera_guid} in {wait_seconds:.0f} seconds")
+                
+                # Wait until next hour
+                time.sleep(wait_seconds)
+                
+                # Get the hour that just completed (previous hour)
+                completed_hour = (next_hour.replace(hour=next_hour.hour - 1)).strftime("%H")
+                
+                # Merge segments for the completed hour
+                merge_hourly_segments(camera_guid, completed_hour)
+                
+            except Exception as e:
+                print(f"Error in merging worker for camera {camera_guid}: {e}")
+                time.sleep(60)  # Wait a minute before retrying
+    
+    # Start merging thread
+    merging_thread = threading.Thread(target=merging_worker)
+    merging_thread.daemon = True
+    merging_tasks[camera_guid] = merging_thread
+    merging_thread.start()
+    print(f"Started hourly merging task for camera {camera_guid}")
+
+def cleanup_all_orphaned_segments():
+    """Clean up any orphaned segments for all cameras"""
+    def cleanup_worker():
+        try:
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            segment_dir = os.path.join(base_video_path, current_date)
+            
+            if not os.path.exists(segment_dir):
+                print(f"No segment directory found for date {current_date}")
+                return
+            
+            # Find all camera directories
+            camera_dirs = [d for d in os.listdir(segment_dir) if os.path.isdir(os.path.join(segment_dir, d))]
+            
+            if not camera_dirs:
+                print(f"No camera directories found for date {current_date}")
+                return
+            
+            # Clean up each camera
+            for camera_dir in camera_dirs:
+                camera_guid = camera_dir
+                cleanup_orphaned_segments(camera_guid)
+                
+        except Exception as e:
+            print(f"Error in cleanup_all_orphaned_segments: {e}")
+        finally:
+            print(f"Cleanup worker for all cameras completed")
+    
+    # Create and start cleanup thread
+    cleanup_thread = threading.Thread(target=cleanup_worker, name="cleanup_all_orphaned_segments")
+    cleanup_thread.daemon = True
+    cleanup_thread.start()
+    print(f"Started cleanup thread for all cameras")
 
 def main():
     """Main function"""
@@ -273,6 +1395,8 @@ def main():
         # Stop all active threads
         for camera_id in list(active_threads.keys()):
             stop_camera_thread(camera_id)
+        # Stop the merge worker thread
+        stop_merge_worker_thread()
         print("All threads stopped.")
 
 if __name__ == "__main__":
