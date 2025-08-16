@@ -1,61 +1,49 @@
 {
   "organization": {
-    "name": "cqube",
-    "description": "video management system",
-    "id": 11,
-    "address": "35 valkar",
-    "contact_email": "admin@gmail.com",
+    "name": "Quanto",
+    "description": null,
+    "id": 14,
+    "address": "velachery",
+    "contact_email": "quanto@gmail.com",
     "retention": 10,
-    "upload_username": "admin",
-    "upload_password": "admin",
-    "storage_provider": "firebase",
-    "server_video_path": "firebase://your-project/videos/",
-    "client_video_access_path": "https://firebasestorage.googleapis.com/v0/b/your-project/o/videos/",
-    "created_at": "2025-07-19T11:50:57.697866+05:30",
-    "updated_at": "2025-07-19T12:00:11.649676+05:30"
+    "upload_username": "quanto@gmaill.com",
+    "upload_password": "quanto",
+    "storage_provider": "box",
+    "server_video_path": "video/",
+    "client_video_access_path": "video/",
+    "created_at": "2025-08-09T11:59:45.174540+05:30",
+    "updated_at": null
   },
-  "server_video_path": "firebase://your-project/videos/",
-  "client_video_access_path": "https://firebasestorage.googleapis.com/v0/b/your-project/o/videos/",
+  "server_video_path": "video/",
+  "client_video_access_path": "video/",
   "retention": 10,
   "upload": {
-    "username": "admin",
-    "password": "admin"
+    "username": "quanto@gmaill.com",
+    "password": "quanto"
   },
   "users": [
     {
-      "name": "admin",
-      "email": "admin@gmail.com",
-      "role": "admin",
-      "isfactory": true,
-      "id": 10,
-      "organization_id": 11,
-      "created_at": "2025-07-19T11:50:57.731012+05:30",
-      "updated_at": "2025-07-19T11:54:55.338174+05:30"
+      "name": "quanto",
+      "email": "quanto@gmail.com",
+      "role": "Administrator",
+      "isfactory": false,
+      "id": 13,
+      "organization_id": 14,
+      "created_at": "2025-08-09T12:05:59.174678+05:30",
+      "updated_at": null
     }
   ],
   "cameras": [
     {
-      "name": "cam2",
-      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.0.119/axis-media/media.amp",
-      "location": "chennai",
-      "ip_address": "192.167.1.1",
-      "model": "cam",
+      "name": "cam1",
+      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.31.244/axis-media/media.amp",
+      "location": "hall ",
+      "ip_address": "192.168.31.244",
+      "model": "abc ",
       "status": "Active",
-      "detection_features": {
-        "people_detection": true,
-        "face_mask_compliance": true,
-        "fall_detection": true,
-        "object_removed": true,
-        "ppe_detection": true,
-        "speed_detection": true,
-        "wait_time_analysis": true,
-        "night_time_movement_detection": true,
-        "glass_break_detection": true,
-        "re_identification": true,
-        "zone_based_alerts": true
-      },
+      "detection_features": {},
       "alert_settings": {
-        "real_time_alerts": true,
+        "real_time_alerts": false,
         "sms_alerts": false,
         "email_alerts": false,
         "in_app_alerts": true,
@@ -72,13 +60,14 @@
       "preset": "medium",
       "crf": 23,
       "segment_time": 60,
-      "id": 3,
-      "organization_id": 11,
-      "created_at": "2025-07-19T12:28:04.147971+05:30",
+      "id": 5,
+      "guid": "6a3ec0f0-3183-4396-af67-2c0f97a43dd4",
+      "organization_id": 14,
+      "created_at": "2025-08-09T12:03:53.466407+05:30",
       "updated_at": null,
-      "GUID": "bf971549-38b8-4fa4-85d8-beb2aede9b87",
-      "description": "cam2 - chennai",
-      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.0.119/axis-media/media.amp",
+      "GUID": "6a3ec0f0-3183-4396-af67-2c0f97a43dd4",
+      "description": "cam1 - hall ",
+      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.31.244/axis-media/media.amp",
       "is_recording": true,
       "camera_settings": {
         "frame_rate": 30,
@@ -92,26 +81,15 @@
       }
     },
     {
-      "name": "home ",
-      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.0.119/axis-media/media.amp",
-      "location": "chennai",
-      "ip_address": "192.168.1.1",
-      "model": "model 1",
+      "name": "cm2",
+      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.31.244/axis-media/media.amp",
+      "location": "hall clone",
+      "ip_address": "192.168.31.244",
+      "model": "cma",
       "status": "Active",
-      "detection_features": {
-        "people_detection": true,
-        "face_detection": true,
-        "intrusion_detection": true,
-        "object_left_behind": true,
-        "helmet_detection": true,
-        "license_plate_recognition": true,
-        "queue_monitoring": true,
-        "flood_water_level_detection": true,
-        "re_identification": true,
-        "zone_based_alerts": true
-      },
+      "detection_features": {},
       "alert_settings": {
-        "real_time_alerts": true,
+        "real_time_alerts": false,
         "sms_alerts": false,
         "email_alerts": false,
         "in_app_alerts": true,
@@ -128,13 +106,14 @@
       "preset": "medium",
       "crf": 23,
       "segment_time": 60,
-      "id": 2,
-      "organization_id": 11,
-      "created_at": "2025-07-19T11:53:42.619935+05:30",
-      "updated_at": "2025-07-19T12:23:41.250133+05:30",
-      "GUID": "46a77a07-6f77-427c-8492-66fb0bd55914",
-      "description": "home  - chennai",
-      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.0.119/axis-media/media.amp",
+      "id": 6,
+      "guid": "fca0e663-80bb-4920-846c-3420603fa5ab",
+      "organization_id": 14,
+      "created_at": "2025-08-09T12:04:27.818758+05:30",
+      "updated_at": null,
+      "GUID": "fca0e663-80bb-4920-846c-3420603fa5ab",
+      "description": "cm2 - hall clone",
+      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.31.244/axis-media/media.amp",
       "is_recording": true,
       "camera_settings": {
         "frame_rate": 30,
@@ -151,35 +130,16 @@
   "multi_camera_selections": [
     {
       "camera_ids": [
-        3,
-        2
+        5,
+        6
       ],
       "detection_sync": true,
       "shared_analytics": true
     }
   ],
   "detection_analytics": {
-    "total_active_detections": 21,
-    "total_alert_configurations": 2,
-    "detection_breakdown": {
-      "people_detection": 2,
-      "face_mask_compliance": 1,
-      "fall_detection": 1,
-      "object_removed": 1,
-      "ppe_detection": 1,
-      "speed_detection": 1,
-      "wait_time_analysis": 1,
-      "night_time_movement_detection": 1,
-      "glass_break_detection": 1,
-      "re_identification": 2,
-      "zone_based_alerts": 2,
-      "face_detection": 1,
-      "intrusion_detection": 1,
-      "object_left_behind": 1,
-      "helmet_detection": 1,
-      "license_plate_recognition": 1,
-      "queue_monitoring": 1,
-      "flood_water_level_detection": 1
-    }
+    "total_active_detections": 0,
+    "total_alert_configurations": 0,
+    "detection_breakdown": {}
   }
 }

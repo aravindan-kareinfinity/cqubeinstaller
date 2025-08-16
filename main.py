@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 import threading
 import time
 import subprocess
@@ -9,6 +10,7 @@ import queue
 import requests
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, Response
+import urllib
 
 app = Flask(__name__)
 
@@ -66,18 +68,7 @@ def mp4_to_bytes(file_path):
         
         
 def generate_thumbnail(mp4_path, thumbnail_path=None, quality=2):
-    """
-    Creates a thumbnail from an MP4 video file
-    
-    Args:
-        mp4_path (str): Full path to the MP4 file
-        thumbnail_path (str, optional): Custom path for thumbnail. 
-                                      If None, will be created in same directory as video.
-        quality (int): Thumbnail quality (1-31, lower is better)
-    
-    Returns:
-        str: Path to created thumbnail or None if failed
-    """
+
     try:
         # Validate input path
         if not os.path.exists(mp4_path):
@@ -91,7 +82,7 @@ def generate_thumbnail(mp4_path, thumbnail_path=None, quality=2):
         if thumbnail_path is None:
             video_dir = os.path.dirname(mp4_path)
             video_name = os.path.splitext(os.path.basename(mp4_path))[0]
-            thumbnail_path = os.path.join(video_dir, f"{video_name}_thumb.jpg")
+            thumbnail_path = os.path.join(video_dir, f"{video_name}.jpg")
         
         # FFmpeg command to extract thumbnail at 1 second mark
         ffmpeg_cmd = [
@@ -128,10 +119,6 @@ def generate_thumbnail(mp4_path, thumbnail_path=None, quality=2):
         print(f"Error creating thumbnail: {e}")
         return None
     
-
-
-
-
 
 def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
     """Upload video to API and always attempt thumbnail generation"""
@@ -190,43 +177,6 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
         print(f"Error uploading video: {e}")
         return False
 
-def upload_image_to_api(image_file_path, organization_id=None, camera_guid=None):
-    """Upload image to API"""
-    try:
-        api_url = "http://127.0.0.1:8000/api/image/upload"  # Adjust this URL as needed
-        
-        # Check if file exists
-        if not os.path.exists(image_file_path):
-            print(f"Error: Image file not found: {image_file_path}")
-            return False
-        
-        # Prepare files for upload
-        files = {
-            'image_file': (os.path.basename(image_file_path), open(image_file_path, 'rb'), 'image/jpeg')
-        }
-        
-        data = {
-            'organization_id': str(organization_id or api_organization_id),
-        }
-        if camera_guid:
-            data['guid'] = camera_guid
-        
-        # Upload with timeout
-        response = requests.post(api_url, files=files, data=data, timeout=300)
-        
-        # Close file handle
-        files['image_file'][1].close()
-        
-        if response.status_code == 200:
-            print(f"✅ Image upload successful: {os.path.basename(image_file_path)}")
-            return True
-        else:
-            print(f"❌ Image upload failed (HTTP {response.status_code}): {os.path.basename(image_file_path)}")
-            return False
-            
-    except Exception as e:
-        print(f"Error uploading image: {e}")
-        return False
 
 def merge_worker_thread_function():
     """Global worker thread that processes all merge operations from the queue"""
@@ -557,16 +507,7 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                                                                   name=f"upload_{camera_name}_{completed_file}")
                                     upload_thread.daemon = True
                                     upload_thread.start()
-                                elif completed_file.endswith('.jpg'):
-                                    def upload_still():
-                                        try:
-                                            upload_image_to_api(file_path, camera_guid=camera_guid)
-                                        except Exception as e:
-                                            print(f"Upload error: {completed_file} - {e}")
-                                    upload_thread = threading.Thread(target=upload_still, 
-                                                                  name=f"upload_{camera_name}_{completed_file}")
-                                    upload_thread.daemon = True
-                                    upload_thread.start()
+                              
                             
                             last_files = current_files
                             time.sleep(2)
@@ -1620,65 +1561,6 @@ def get_camera_segments(camera_id):
     except Exception as e:
         return jsonify({'error': f'Error getting camera segments: {str(e)}'}), 500
 
-@app.route('/api/image/upload/<camera_id>/<filename>', methods=['POST'])
-def trigger_image_upload(camera_id, filename):
-    """API endpoint to manually trigger upload of a specific image file"""
-    # Convert camera_id to int for comparison since your config uses numeric IDs
-    try:
-        camera_id_int = int(camera_id)
-    except ValueError:
-        return jsonify({'error': 'Invalid camera ID format'}), 400
-    
-    # Find the camera
-    camera = None
-    for cam in cameras_data:
-        if cam['id'] == camera_id_int:
-            camera = cam
-            break
-    
-    if not camera:
-        return jsonify({'error': 'Camera not found'}), 404
-    
-    try:
-        camera_guid = camera.get('GUID', str(camera_id_int))
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        image_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", filename)
-        
-        if not os.path.exists(image_file_path):
-            return jsonify({
-                'error': f'Image file not found: {image_file_path}',
-                'camera_name': camera['name'],
-                'file_path': image_file_path
-            }), 404
-        
-        # Validate filename format (should be HHMM.jpg)
-        if not (filename.endswith('.jpg') and len(filename) == 8 and filename[:4].isdigit()):
-            return jsonify({
-                'error': f'Invalid filename format. Expected HHMM.jpg format, got: {filename}',
-                'camera_name': camera['name']
-            }), 400
-        
-        # Upload the image
-        upload_success = upload_image_to_api(image_file_path, camera_guid=camera_guid)
-        
-        if upload_success:
-            return jsonify({
-                'success': True,
-                'message': f'Image uploaded successfully: {filename}',
-                'camera_name': camera['name'],
-                'file_path': image_file_path,
-                'organization_id': api_organization_id,
-                'image_type': 'still'
-            })
-        else:
-            return jsonify({
-                'error': f'Failed to upload image: {filename}',
-                'camera_name': camera['name'],
-                'file_path': image_file_path
-            }), 500
-        
-    except Exception as e:
-        return jsonify({'error': f'Error uploading image: {str(e)}'}), 500
 
 @app.route('/api/images/<camera_id>')
 def get_camera_images(camera_id):
@@ -1864,19 +1746,144 @@ def cleanup_all_orphaned_segments():
     cleanup_thread.daemon = True
     cleanup_thread.start()
     print(f"Started cleanup thread for all cameras")
+def run_mediamtx():
+    """Run MediaMTX with robust path handling"""
+    script_dir = Path(__file__).parent
+    
+    # Check possible locations (add more if needed)
+    possible_paths = [
+        script_dir / "mediamtx.exe",               # Same directory
+        script_dir / "mediamtx" / "mediamtx.exe",  # Subdirectory
+        Path("E:/bala/installer/mediamtx.exe"),   # Absolute path
+        Path("E:/bala/installer/mediamtx/mediamtx.exe")
+    ]
+    
+    # Find the first valid path
+    mediamtx_path = None
+    for path in possible_paths:
+        if path.exists():
+            mediamtx_path = path
+            break
+    
+    if not mediamtx_path:
+        raise FileNotFoundError(
+            "MediaMTX executable not found. Tried:\n" +
+            "\n".join(f"- {p}" for p in possible_paths)
+        )
+
+    # Config file path (same directory as executable)
+    config_path = mediamtx_path.parent / "mediamtx.yml"
+    
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found at {config_path}")
+
+    try:
+        print(f"Starting MediaMTX from: {mediamtx_path}")
+        process = subprocess.Popen(
+            [str(mediamtx_path), str(config_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=mediamtx_path.parent  # Run from mediamtx's directory
+        )
+        print(f"✅ MediaMTX started (PID: {process.pid})")
+        return process
+    except Exception as e:
+        print(f"❌ Failed to start MediaMTX: {str(e)}")
+        raise
+
+
+def generate_mediamtx_config(cameras_data):
+    """Generate MediaMTX configuration from camera data."""
+    config = """# Auto-generated MediaMTX configuration
+# https://github.com/bluenviron/mediamtx
+
+paths:
+"""
+    
+    for camera in cameras_data['cameras']:
+        # Clean camera name for path
+        path_name = camera['name'].strip().replace(' ', '_').lower()
+        
+        # Get RTSP URL (prioritize 'URL' field, fall back to 'url')
+        rtsp_url = camera.get('URL') or camera.get('url')
+        
+        if not rtsp_url:
+            print(f"⚠️ Skipping camera '{camera['name']}' - no RTSP URL found")
+            continue
+            
+        # Decode URL-encoded characters
+        decoded_url = urllib.parse.unquote(rtsp_url)
+        
+        # Add camera configuration
+        config += f"""  {path_name}:
+    source: "{decoded_url}"
+ 
+"""
+    
+    # Add default configuration
+    config += """  all_others:
+    source: discard
+    sourceOnDemand: true
+"""
+    return config
+
+def load_camera_data(file_path):
+    """Load camera data from JSON file with error handling."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+        # Validate required fields
+        if 'cameras' not in data:
+            raise ValueError("JSON missing 'cameras' array")
+            
+        return data
+        
+    except json.JSONDecodeError as e:
+        print(f"❌ Invalid JSON format: {e}")
+        return None
+    except Exception as e:
+        print(f"❌ Error loading camera data: {e}")
+        return None
+    
 
 def main():
     """Main function"""
     # Load cameras first
     load_cameras()
+    config_path = Path("config.json")
+    output_path = Path("mediamtx/mediamtx.yml")
+    
+    # Load camera data from config.json
+    print(f"📂 Loading camera data from: {config_path}")
+    cameras_data = load_camera_data(config_path)
+    
+    if not cameras_data:
+        print("❌ No valid camera data loaded - exiting")
+        return
+    
+    # Generate the MediaMTX configuration
+    config_content = generate_mediamtx_config(cameras_data)
     
     # Start the Flask server
     print("Starting Camera Management System...")
     print("Web interface available at: http://localhost:5000")
     print("Press Ctrl+C to stop the server")
+
+    try:
+        # Ensure output directory exists
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(config_content)
+        print(f"✅ Configuration saved to: {output_path}")
+    except Exception as e:
+        print(f"❌ Failed to write config file: {e}")
+        return
     
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False)  # Set debug=False for production
+        mediamtx_process = run_mediamtx()
+        app.run(host='192.168.31.122', port=5000, debug=False)  # Set debug=False for production
     except KeyboardInterrupt:
         print("\nShutting down...")
         # Stop all active threads
@@ -1884,7 +1891,10 @@ def main():
             stop_camera_thread(camera_id)
         # Stop the merge worker thread
         stop_merge_worker_thread()
+        # Terminate MediaMTX process if it exists
+        if 'mediamtx_process' in locals():
+            mediamtx_process.terminate()
         print("All threads stopped.")
-
+        
 if __name__ == "__main__":
     main() 
