@@ -218,6 +218,17 @@
             border-radius: 5px;
             color: #495057;
         }
+        
+        .live-url-link {
+            color: #28a745;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        
+        .live-url-link:hover {
+            color: #1e7e34;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -279,7 +290,7 @@
                 const card = document.createElement('div');
                 card.className = 'camera-card';
                 
-                const statusClass = camera.status === 'Active' ? 'status-active' : 'status-maintenance';
+                const statusClass = (camera.status === 'Active') ? 'status-active' : 'status-maintenance';
                 const recordingClass = camera.is_recording ? 'recording-on' : 'recording-off';
                 const recordingText = camera.is_recording ? 'Recording' : 'Not Recording';
 
@@ -287,9 +298,9 @@
                     <div class="camera-name">${camera.name}</div>
                     <div class="camera-info">
                         <p><strong>ID:</strong> ${camera.id}</p>
-                        <p><strong>Location:</strong> ${camera.location}</p>
-                        <p><strong>IP:</strong> ${camera.ip_address}</p>
-                        <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${camera.status}</span></p>
+                        <p><strong>Location:</strong> ${camera.location || 'N/A'}</p>
+                        <p><strong>IP:</strong> ${camera.ip_address || 'N/A'}</p>
+                        <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${camera.status || 'Unknown'}</span></p>
                     </div>
                     <div class="recording-toggle">
                         <label class="toggle-switch">
@@ -333,63 +344,98 @@
                 liveCard.innerHTML = `
                     <div class="live-camera-header">${camera.name}</div>
                     <div class="live-camera-feed" id="feed-${camera.id}">
-                        <img src="/api/cameras/${camera.id}/stream" alt="Live feed from ${camera.name}" 
-                             onerror="handleStreamError('${camera.id}')" 
-                             onload="handleStreamLoad('${camera.id}')">
-                        <div id="error-${camera.id}" style="display: none; color: #ff6b6b;">Stream not available</div>
                         <div id="loading-${camera.id}" style="display: block; color: #666;">Loading live feed...</div>
+                        <div id="error-${camera.id}" style="display: none; color: #ff6b6b;">Stream not available</div>
+                        <div id="info-${camera.id}" style="display: none; color: #28a745;">
+                            Camera: ${camera.name}<br>
+                            RTSP: ${camera.rtsp_url || 'N/A'}<br>
+                            Live URL: <span id="live-url-${camera.id}">Loading...</span>
+                        </div>
                     </div>
                 `;
                 liveGrid.appendChild(liveCard);
                 
                 // Start polling for frame updates as fallback
                 startFramePolling(camera.id);
+                
+                // Immediately fetch and display the live URL
+                fetchLiveUrl(camera.id);
             });
         }
 
-        // Handle stream load
-        function handleStreamLoad(cameraId) {
-            const loadingDiv = document.getElementById(`loading-${cameraId}`);
-            const errorDiv = document.getElementById(`error-${cameraId}`);
-            if (loadingDiv) loadingDiv.style.display = 'none';
-            if (errorDiv) errorDiv.style.display = 'none';
-        }
 
-        // Handle stream error
-        function handleStreamError(cameraId) {
-            const errorDiv = document.getElementById(`error-${cameraId}`);
-            const loadingDiv = document.getElementById(`loading-${cameraId}`);
-            if (errorDiv) errorDiv.style.display = 'block';
-            if (loadingDiv) loadingDiv.style.display = 'none';
-        }
 
         // Start frame polling for cameras
         function startFramePolling(cameraId) {
             // Wait 2 seconds before starting to poll to allow camera threads to start
             setTimeout(() => {
-                // Poll every 500ms for frame updates
+                // Poll every 2 seconds for status updates
                 setInterval(async () => {
                     try {
                         const response = await fetch(`/api/cameras/${cameraId}/frame`);
                         const data = await response.json();
                         
                         if (data.status === 'live') {
-                            const img = document.querySelector(`#feed-${cameraId} img`);
-                            if (img) {
-                                img.src = 'data:image/jpeg;base64,' + data.frame_data;
-                                handleStreamLoad(cameraId);
+                            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+                            const errorDiv = document.getElementById(`error-${cameraId}`);
+                            const infoDiv = document.getElementById(`info-${cameraId}`);
+                            const liveUrlSpan = document.getElementById(`live-url-${cameraId}`);
+                            
+                            if (loadingDiv) loadingDiv.style.display = 'none';
+                            if (errorDiv) errorDiv.style.display = 'none';
+                            if (infoDiv) infoDiv.style.display = 'block';
+                            
+                            // Update the live URL display
+                            if (liveUrlSpan && data.live_url) {
+                                liveUrlSpan.innerHTML = `<a href="${data.live_url}" target="_blank" class="live-url-link">${data.live_url}</a>`;
                             }
+                        } else {
+                            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+                            const errorDiv = document.getElementById(`error-${cameraId}`);
+                            const infoDiv = document.getElementById(`info-${cameraId}`);
+                            
+                            if (loadingDiv) loadingDiv.style.display = 'none';
+                            if (errorDiv) errorDiv.style.display = 'block';
+                            if (infoDiv) infoDiv.style.display = 'none';
                         }
                     } catch (error) {
                         console.error(`Error polling frame for camera ${cameraId}:`, error);
+                        const loadingDiv = document.getElementById(`loading-${cameraId}`);
+                        const errorDiv = document.getElementById(`error-${cameraId}`);
+                        const infoDiv = document.getElementById(`info-${cameraId}`);
+                        
+                        if (loadingDiv) loadingDiv.style.display = 'none';
+                        if (errorDiv) errorDiv.style.display = 'block';
+                        if (infoDiv) infoDiv.style.display = 'none';
                     }
-                }, 500);
+                }, 2000);
             }, 2000);
+        }
+
+        // Fetch and display live URL for a specific camera
+        async function fetchLiveUrl(cameraId) {
+            try {
+                const response = await fetch(`/api/cameras/${cameraId}/frame`);
+                const data = await response.json();
+                
+                const liveUrlSpan = document.getElementById(`live-url-${cameraId}`);
+                if (liveUrlSpan && data.live_url) {
+                    liveUrlSpan.innerHTML = `<a href="${data.live_url}" target="_blank" class="live-url-link">${data.live_url}</a>`;
+                }
+            } catch (error) {
+                console.error(`Error fetching live URL for camera ${cameraId}:`, error);
+            }
         }
 
         // Refresh live view
         function refreshLiveView() {
             updateLiveView();
+            
+            // Also refresh live URLs for all active cameras
+            const recordingCameras = cameras.filter(c => c.is_recording);
+            recordingCameras.forEach(camera => {
+                fetchLiveUrl(camera.id);
+            });
         }
 
         // Toggle recording status

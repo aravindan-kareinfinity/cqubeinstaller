@@ -29,7 +29,7 @@ merge_queue = queue.Queue()
 merge_worker_thread = None
 merge_worker_stop_flag = False
 # Global variable for API configuration
-api_organization_id = 11  # Default to match your config.json organization ID
+api_organization_id = 14  # Default to match your config.json organization ID
 
 
 import os
@@ -127,37 +127,46 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
         
         # Check if file exists (don't check size)
         if not os.path.exists(video_file_path):
-            print(f"Error: Video file not found: {video_file_path}")
+            print(f"❌ Error: Video file not found: {video_file_path}")
             return False
         
         # Always attempt thumbnail generation
         video_dir = os.path.dirname(video_file_path)
         video_name = os.path.splitext(os.path.basename(video_file_path))[0]
-        thumbnail_path = os.path.join(video_dir, f"{video_name}_thumb.jpg")
+        thumbnail_path = os.path.join(video_dir, f"{video_name}.jpg")
         
-        print(f"Generating thumbnail for: {os.path.basename(video_file_path)}")
-        thumbnail_path = generate_thumbnail(video_file_path, thumbnail_path)
+        print(f"🔄 Generating thumbnail for: {os.path.basename(video_file_path)}")
+        generated_thumbnail_path = generate_thumbnail(video_file_path, thumbnail_path)
         
-        # Prepare files for upload
+        # Retry thumbnail generation if first attempt failed
+        if not generated_thumbnail_path:
+            print(f"🔄 Retrying thumbnail generation for: {os.path.basename(video_file_path)}")
+            generated_thumbnail_path = generate_thumbnail(video_file_path, thumbnail_path)
+        
+        # Prepare files for upload - always include video
         files = {
             'video_file': (os.path.basename(video_file_path), open(video_file_path, 'rb'), 'video/mp4')
         }
         
         # Add thumbnail if generated successfully
-        if thumbnail_path and os.path.exists(thumbnail_path):
+        if generated_thumbnail_path and os.path.exists(generated_thumbnail_path):
             try:
-                files['thumbnail_file'] = (os.path.basename(thumbnail_path), open(thumbnail_path, 'rb'), 'image/jpeg')
-                print(f"Thumbnail included: {os.path.basename(thumbnail_path)}")
+                files['thumbnail_file'] = (os.path.basename(generated_thumbnail_path), open(generated_thumbnail_path, 'rb'), 'image/jpeg')
+                print(f"✅ Thumbnail included: {os.path.basename(generated_thumbnail_path)}")
             except Exception as e:
-                print(f"Error adding thumbnail: {e}")
+                print(f"❌ Error adding thumbnail: {e}")
         else:
-            print(f"No thumbnail available for: {os.path.basename(video_file_path)}")
+            print(f"⚠️ No thumbnail available for: {os.path.basename(video_file_path)}")
         
         data = {
             'organization_id': str(organization_id or api_organization_id),
         }
         if camera_guid:
             data['guid'] = camera_guid
+        
+        print(f"📤 Uploading {len(files)} files to API:")
+        for file_key, file_info in files.items():
+            print(f"  - {file_key}: {file_info[0]} ({file_info[2]})")
         
         # Upload with timeout
         response = requests.post(api_url, files=files, data=data, timeout=300)
@@ -167,14 +176,15 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
             file_info[1].close()
         
         if response.status_code == 200:
-            print(f"✅ Upload successful: {os.path.basename(video_file_path)}")
+            print(f"✅ Upload successful: {os.path.basename(video_file_path)} with {len(files)} files")
             return True
         else:
             print(f"❌ Upload failed (HTTP {response.status_code}): {os.path.basename(video_file_path)}")
+            print(f"Response: {response.text}")
             return False
             
     except Exception as e:
-        print(f"Error uploading video: {e}")
+        print(f"❌ Error uploading video: {e}")
         return False
 
 
@@ -270,13 +280,13 @@ def stop_merge_worker_thread():
         merge_worker_thread.join(timeout=10)
         print("Stopped global merge worker thread")
 
-def test_rtsp_stream(camera_url, camera_name):
+def test_rtsp_stream(camera_rtsp_url, camera_name):
     """Test if RTSP stream is accessible"""
     try:
-        print(f"Testing RTSP stream for {camera_name}: {camera_url}")
+        print(f"Testing RTSP stream for {camera_name}: {camera_rtsp_url}")
         
         # Try to open the stream with OpenCV
-        cap = cv2.VideoCapture(camera_url)
+        cap = cv2.VideoCapture(camera_rtsp_url)
         if not cap.isOpened():
             print(f"Error: Could not open RTSP stream for {camera_name}")
             return False
@@ -297,7 +307,7 @@ def test_rtsp_stream(camera_url, camera_name):
         return False
 
 
-def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
+def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid):
     """Function that runs in each camera thread - creates video recordings using ffmpeg"""
     print(f"Thread started for camera: {camera_name} ({camera_id})")
     
@@ -316,8 +326,8 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
         # Keep trying to start FFmpeg until stop flag is set
         while not stop_flags.get(camera_id, False):
             try:
-                # Test RTSP stream
-                if not test_rtsp_stream(camera_url, camera_name):
+                        # Test RTSP stream
+                if not test_rtsp_stream(camera_rtsp_url, camera_name):
                     print(f"RTSP stream test failed for camera: {camera_name} ({camera_id}). Skipping recording.")
                     break
                 
@@ -367,7 +377,7 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                 video_ffmpeg_cmd = [
                     "ffmpeg",
                     "-rtsp_transport", "tcp",
-                    "-i", camera_url,
+                    "-i", camera_rtsp_url,
                     "-c:v", "libx264",
                     "-b:v", video_bitrate,
                     "-maxrate", video_bitrate,
@@ -400,7 +410,7 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
                 image_ffmpeg_cmd = [
                     "ffmpeg",
                     "-rtsp_transport", "tcp",
-                    "-i", camera_url,
+                    "-i", camera_rtsp_url,
                     "-vf", f"scale={resolution},fps=1/{stills_interval}",
                     "-f", "image2",
                     "-strftime", "1",
@@ -586,12 +596,12 @@ def start_camera_thread(camera):
     camera_id = camera['id']
     camera_name = camera['name']
     
-    # Try to get URL from camera config - check both 'URL' and 'url' fields
-    camera_url = camera.get('URL', camera.get('url', ''))
-    camera_guid = camera.get('GUID', str(camera_id))  # Get GUID from camera config, fallback to ID as string
+    # Try to get RTSP URL from camera config - use 'rtsp_url' field
+    camera_rtsp_url = camera.get('rtsp_url', '')
+    camera_guid = camera.get('guid', str(camera_id))  # Get GUID from camera config, fallback to ID as string
     
-    if not camera_url:
-        print(f"No URL found for camera: {camera_name} ({camera_id})")
+    if not camera_rtsp_url:
+        print(f"No RTSP URL found for camera: {camera_name} ({camera_id})")
         return
     
     # If thread already exists, stop it first
@@ -602,7 +612,7 @@ def start_camera_thread(camera):
     stop_flags[camera_id] = False
     
     # Create and start new thread
-    thread = threading.Thread(target=camera_thread_function, args=(camera_id, camera_name, camera_url, camera_guid))
+    thread = threading.Thread(target=camera_thread_function, args=(camera_id, camera_name, camera_rtsp_url, camera_guid))
     thread.daemon = True  # Make thread daemon so it stops when main program exits
     active_threads[camera_id] = thread
     thread.start()
@@ -623,7 +633,7 @@ def stop_camera_thread(camera_id):
         camera_guid = None
         for cam in cameras_data:
             if cam['id'] == camera_id:
-                camera_guid = cam.get('GUID', camera_id)
+                camera_guid = cam.get('guid', camera_id)
                 break
         
         if camera_guid and camera_guid in merging_tasks:
@@ -647,7 +657,7 @@ def merge_existing_segments():
         # Get all camera GUIDs
         camera_guids = set()
         for camera in cameras_data:
-            camera_guid = camera.get('GUID', camera['id'])
+            camera_guid = camera.get('guid', camera['id'])
             camera_guids.add(camera_guid)
         
         # Add merge tasks to the global queue
@@ -700,10 +710,17 @@ def load_cameras():
                     # For cloud storage, use local videos directory
                     base_video_path = './videos'
         
+        # Also check the root level server_video_path
+        if base_video_path == './videos':
+            root_server_path = config.get('server_video_path')
+            if root_server_path and not root_server_path.startswith(('http://', 'https://', 'firebase://')):
+                base_video_path = root_server_path
+        
         # Get organization ID from config
         org = config.get('organization', {})
         if org and 'id' in org:
             api_organization_id = org['id']
+            print(f"Organization ID loaded from config: {api_organization_id}")
         
         # Create base video directory if it doesn't exist
         os.makedirs(base_video_path, exist_ok=True)
@@ -833,7 +850,7 @@ def get_thread_status():
 
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
-    """API endpoint to get camera RTSP URL for direct streaming"""
+    """API endpoint to get camera HTTP URL for live viewing"""
     # Convert camera_id to int for comparison since your config uses numeric IDs
     try:
         camera_id_int = int(camera_id)
@@ -850,18 +867,23 @@ def get_camera_frame(camera_id):
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
     
-    # Return the RTSP URL for direct streaming - check both URL and url fields
-    camera_url = camera.get('URL', camera.get('url', ''))
+    # Generate HTTP URL for live viewing
+    live_url = get_camera_live_url(camera_id_int)
+    
+    # Get RTSP URL for reference (used for recording)
+    camera_rtsp_url = camera.get('rtsp_url', '')
+    
     return jsonify({
         'camera_id': camera_id,
         'camera_name': camera['name'],
-        'rtsp_url': camera_url,
-        'status': 'live' if camera_url else 'no_url'
+        'live_url': live_url,
+        'rtsp_url': camera_rtsp_url,
+        'status': 'live' if live_url else 'no_url'
     })
 
 @app.route('/api/cameras/<camera_id>/stream')
 def stream_camera(camera_id):
-    """Direct RTSP streaming endpoint - returns RTSP URL for browser streaming"""
+    """HTTP streaming endpoint - returns HTTP URL for browser streaming"""
     # Find the camera
     camera = None
     for cam in cameras_data:
@@ -872,13 +894,18 @@ def stream_camera(camera_id):
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
     
-    # Return the RTSP URL for direct streaming
-    camera_url = camera.get('URL', '')
+    # Generate HTTP URL for live viewing
+    live_url = get_camera_live_url(camera_id)
+    
+    # Get RTSP URL for reference (used for recording)
+    camera_rtsp_url = camera.get('rtsp_url', '')
+    
     return jsonify({
         'camera_id': camera_id,
         'camera_name': camera['name'],
-        'rtsp_url': camera_url,
-        'stream_type': 'rtsp_direct'
+        'live_url': live_url,
+        'rtsp_url': camera_rtsp_url,
+        'stream_type': 'http_stream'
     })
 
 @app.route('/api/cameras/<camera_id>/files')
@@ -901,7 +928,7 @@ def get_camera_files(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', str(camera_id_int))
+        camera_guid = camera.get('guid', str(camera_id_int))
         current_date = datetime.now().strftime("%Y-%m-%d")
         segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
         
@@ -957,11 +984,11 @@ def get_frame_status(camera_id):
     
     try:
         is_recording = camera.get('is_recording', False)
-        camera_url = camera.get('URL', '')
+        camera_url = camera.get('rtsp_url', '')
         
         return jsonify({
             'camera_id': camera_id,
-            'camera_name': camera['name'],
+            'name': camera['name'],
             'rtsp_url': camera_url,
             'is_recording': is_recording,
             'has_active_thread': camera_id in active_threads,
@@ -1024,7 +1051,7 @@ def trigger_merge(camera_id, hour_str):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('guid', camera_id)
         
         # Add merge task to the global queue
         merge_queue.put((camera_guid, hour_str, "manual"))
@@ -1221,7 +1248,7 @@ def trigger_cleanup(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('guid', camera_id)
         
         # Trigger cleanup in individual thread
         cleanup_orphaned_segments(camera_guid)
@@ -1249,7 +1276,7 @@ def get_camera_files_status(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('guid', camera_id)
         current_date = datetime.now().strftime("%Y-%m-%d")
         segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
         
@@ -1386,7 +1413,7 @@ def trigger_video_upload(camera_id, hour_str):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', str(camera_id_int))
+        camera_guid = camera.get('guid', str(camera_id_int))
         current_date = datetime.now().strftime("%Y-%m-%d")
         video_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", f"{hour_str}.mp4")
         
@@ -1457,7 +1484,7 @@ def trigger_segment_upload(camera_id, filename):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', str(camera_id_int))
+        camera_guid = camera.get('guid', str(camera_id_int))
         current_date = datetime.now().strftime("%Y-%m-%d")
         video_file_path = os.path.join(base_video_path, current_date, camera_guid, "mp4", filename)
         
@@ -1512,7 +1539,7 @@ def get_camera_segments(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('guid', camera_id)
         current_date = datetime.now().strftime("%Y-%m-%d")
         segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
         
@@ -1576,7 +1603,7 @@ def get_camera_images(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
     
     try:
-        camera_guid = camera.get('GUID', camera_id)
+        camera_guid = camera.get('guid', camera_id)
         current_date = datetime.now().strftime("%Y-%m-%d")
         segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
         
@@ -1804,8 +1831,8 @@ paths:
         # Clean camera name for path
         path_name = camera['name'].strip().replace(' ', '_').lower()
         
-        # Get RTSP URL (prioritize 'URL' field, fall back to 'url')
-        rtsp_url = camera.get('URL') or camera.get('url')
+        # Get RTSP URL from 'rtsp_url' field
+        rtsp_url = camera.get('rtsp_url')
         
         if not rtsp_url:
             print(f"⚠️ Skipping camera '{camera['name']}' - no RTSP URL found")
@@ -1826,6 +1853,13 @@ paths:
     sourceOnDemand: true
 """
     return config
+
+def get_camera_live_url(camera_id):
+    """Generate HTTP URL for live viewing based on camera ID"""
+    # Generate HTTP URL pattern: http://localhost/cam1, cam2, etc.
+    live_url = f"http://localhost/cam{camera_id}"
+    
+    return live_url
 
 def load_camera_data(file_path):
     """Load camera data from JSON file with error handling."""
@@ -1867,6 +1901,7 @@ def main():
     
     # Start the Flask server
     print("Starting Camera Management System...")
+    print(f"Organization ID: {api_organization_id}")
     print("Web interface available at: http://localhost:5000")
     print("Press Ctrl+C to stop the server")
 
