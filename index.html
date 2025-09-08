@@ -8,19 +8,78 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
             color: #333;
+        }
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar .nav-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        .sidebar .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar .nav-list li { 
+            margin: 10px 0; 
+        }
+        .sidebar .nav-link {
+            display: block;
+            padding: 10px 15px;
+            border-radius: 6px;
+            color: #495057;
+            text-decoration: none;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+        .sidebar .nav-link:hover { 
+            background: #e9ecef; 
+            color: #007bff;
+        }
+        .content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
         .main-container {
             display: flex;
             gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
         }
         .camera-list-section {
             flex: 1;
@@ -193,6 +252,7 @@
             cursor: pointer;
             font-size: 14px;
             margin-bottom: 20px;
+            transition: background 0.2s ease;
         }
         .refresh-button:hover {
             background: #0056b3;
@@ -209,43 +269,229 @@
             border-radius: 5px;
             color: #495057;
         }
+        .discovered-section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 16px 0 8px 0;
+            color: #333;
+        }
+        .discovered-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid #17a2b8;
+            color: #333;
+            font-size: 14px;
+        }
+        .discovered-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .discovered-item:last-child { border-bottom: none; }
+        .discovered-meta { color: #666; font-size: 12px; }
+        .group-controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0 16px 0;
+        }
+        .group-select {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            font-size: 14px;
+        }
+        .inline-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+        .inline-btn:hover { background: #138496; }
+        .group-form { 
+            display: none; 
+            margin: 8px 0 16px 0; 
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+        .group-form input { 
+            padding: 8px; 
+            border: 1px solid #ced4da; 
+            border-radius: 6px; 
+            width: 100%; 
+            margin-bottom: 8px; 
+            box-sizing: border-box;
+        }
+        .camera-checkboxes { 
+            max-height: 140px; 
+            overflow: auto; 
+            background: white; 
+            border: 1px solid #e9ecef; 
+            padding: 8px; 
+            border-radius: 6px; 
+        }
+        .camera-checkboxes label { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            padding: 4px 0; 
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .main-wrapper {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: static;
+                margin-bottom: 20px;
+            }
+            .group-controls {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>📹 Camera Management System</h1>
-        <p>Monitor and control your surveillance cameras with live view</p>
-    </div>
-    
-    <div class="main-container">
-        <!-- Camera List Section -->
-        <div class="camera-list-section">
-            <div class="section-title">📋 Camera List</div>
-            <div class="stats">
-                <div class="stat-item">Total: <span id="totalCameras">0</span></div>
-                <div class="stat-item">Active: <span id="activeCameras">0</span></div>
-                <div class="stat-item">Recording: <span id="recordingCameras">0</span></div>
-            </div>
-            <div class="camera-grid" id="cameraGrid">
-                <!-- Cameras will be loaded here -->
-            </div>
-        </div>
+ 
+
+    <div class="main-wrapper">
+        <aside class="sidebar">
+            <div class="nav-title">Navigation</div>
+            <ul class="nav-list">
+                <li><a class="nav-link" href="#camera-section">Camera List</a></li>
+                <li><a class="nav-link" href="#live-section">Live View</a></li>
+                <li><a class="nav-link" href="#groups-section">Groups</a></li>
+                <li><a class="nav-link" href="#discovery-section">Discovery</a></li>
+                <li><a class="nav-link" href="#analytics-section">Analytics</a></li>
+                <li><a class="nav-link" href="#settings-section">Settings</a></li>
+            </ul>
+        </aside>
         
-        <!-- Live View Section -->
-        <div class="live-view-section">
-            <div class="section-title">🎥 Live View</div>
-            <button class="refresh-button" onclick="refreshLiveView()">🔄 Refresh Live View</button>
-            <div class="live-view-grid" id="liveViewGrid">
-                <div class="no-active-cameras">
-                    No active cameras. Turn on recording to see live feeds.
+        <div class="content-container">
+            <div class="main-container">
+                <!-- Camera List Section -->
+                <div class="camera-list-section" id="camera-section">
+                    <div class="section-title">📋 Camera List</div>
+                    <div class="stats">
+                        <div class="stat-item">Total: <span id="totalCameras">0</span></div>
+                        <div class="stat-item">Active: <span id="activeCameras">0</span></div>
+                        <div class="stat-item">Recording: <span id="recordingCameras">0</span></div>
+                    </div>
+                    <div id="discovery-section">
+                        <button class="refresh-button" id="searchButton" onclick="searchCameras()">🔍 Search Cameras</button>
+                        <div class="discovered-section-title">Discovered Cameras</div>
+                        <div id="discoverResults" class="discovered-list">
+                            Press "Search Cameras" to discover cameras on your network.
+                        </div>
+                        <div id="discoveryAddForm" class="group-form" style="display:none; margin-top:10px;">
+                            <div class="discovered-section-title">Add Camera</div>
+                            <input id="discName" type="text" placeholder="Camera name" />
+                            <input id="discIP" type="text" placeholder="IP address" readonly />
+                            <input id="discLocation" type="text" placeholder="Location" />
+                            <input id="discModel" type="text" placeholder="Model (optional)" />
+                            <input id="discOrganization" type="text" placeholder="Organization ID (optional)" />
+                            <select id="discStatus" class="group-select" style="width:100%">
+                                <option value="Active" selected>Active</option>
+                                <option value="Maintenance">Maintenance</option>
+                            </select>
+                            <textarea id="discDescription" placeholder="Description (optional)" style="padding:8px; border:1px solid #ced4da; border-radius:6px; width:100%; box-sizing:border-box; min-height:60px;"></textarea>
+                            <div class="discovered-section-title" style="margin-top:8px;">RTSP Details</div>
+                            <input id="discUsername" type="text" placeholder="Username (optional)" />
+                            <input id="discPassword" type="password" placeholder="Password (optional)" />
+                            <input id="discPort" type="text" placeholder="Port (optional, e.g. 554)" />
+                            <input id="discPath" type="text" placeholder="Path (optional, e.g. /axis-media/media.amp)" />
+                            <input id="discURL" type="text" placeholder="Or paste full RTSP URL (overrides above)" />
+                            <label style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+                                <input id="discRecord" type="checkbox" />
+                                <span>Start recording now</span>
+                            </label>
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="inline-btn" onclick="submitDiscoveryAddForm()">Save</button>
+                                <button class="inline-btn" style="background:#6c757d" onclick="cancelDiscoveryAddForm()">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="groups-section">
+                        <div class="discovered-section-title">Groups</div>
+                        <div class="group-controls">
+                            <select id="groupSelect" class="group-select" onchange="onGroupChange()">
+                                <option value="__all__">All cameras</option>
+                            </select>
+                            <button class="inline-btn" onclick="startCreateGroup()">➕ Create Group</button>
+                            <button class="inline-btn" id="editGroupBtn" style="background:#6f42c1" onclick="startEditGroup()" disabled>✏️ Edit Group</button>
+                            <button class="inline-btn" id="deleteGroupBtn" style="background:#dc3545" onclick="deleteGroup()" disabled>🗑️ Delete</button>
+                        </div>
+                        <div id="groupMembers" class="discovered-list" style="display:none; margin-top:8px;"></div>
+                        <div id="groupForm" class="group-form">
+                            <div id="groupFormTitle" class="discovered-section-title">Create Group</div>
+                            <input id="groupName" type="text" placeholder="Group name" />
+                            <div class="camera-checkboxes" id="groupCameraList"></div>
+                            <div style="display:flex; gap:8px; margin-top:8px;">
+                                <button class="inline-btn" onclick="saveGroup()">Save</button>
+                                <button class="inline-btn" style="background:#6c757d" onclick="toggleGroupForm()">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="camera-grid" id="cameraGrid">
+                        <!-- Cameras will be loaded here -->
+                    </div>
                 </div>
+                
+                <!-- Live View Section -->
+                <div class="live-view-section" id="live-section">
+                    <div class="section-title">🎥 Live View</div>
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:10px;">
+                        <select id="groupSelectLive" class="group-select" onchange="onLiveGroupChange()">
+                            <option value="__all__">All cameras</option>
+                        </select>
+                        <button class="refresh-button" onclick="refreshLiveView()">🔄 Refresh Live View</button>
+                    </div>
+                    <div class="live-view-grid" id="liveViewGrid">
+                        <div class="no-active-cameras">
+                            No active cameras. Turn on recording to see live feeds.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional sections -->
+            <div class="camera-list-section" id="analytics-section">
+                <div class="section-title">📊 Analytics</div>
+                <div class="camera-info">Analytics dashboard coming soon.</div>
+            </div>
+            
+            <div class="camera-list-section" id="settings-section">
+                <div class="section-title">⚙️ Settings</div>
+                <div class="camera-info">Adjust application settings here.</div>
             </div>
         </div>
     </div>
 
     <script>
+        // All JavaScript code remains exactly the same as in the original
         let cameras = [];
         let activeCameras = new Set();
+        let groups = [];
+        let selectedGroupId = '__all__';
+        let editingGroupId = null;
 
         // Load cameras from the server
         async function loadCameras() {
@@ -255,10 +501,189 @@
                 displayCameras(cameras);
                 updateStats();
                 updateLiveView();
+                await loadGroups();
             } catch (error) {
                 console.error('Error loading cameras:', error);
                 document.getElementById('cameraGrid').innerHTML = '<p>Error loading cameras</p>';
             }
+        }
+
+        // Load groups
+        async function loadGroups() {
+            try {
+                const res = await fetch('/api/groups');
+                groups = await res.json();
+                const select = document.getElementById('groupSelect');
+                const selectLive = document.getElementById('groupSelectLive');
+                const current = selectedGroupId;
+                select.innerHTML = '<option value="__all__">All cameras</option>' +
+                    groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+                if (selectLive) {
+                    selectLive.innerHTML = '<option value="__all__">All cameras</option>' +
+                        groups.map(g => `<option value="${g.id}">${g.name}</option>`).join('');
+                }
+                if (["__all__", ...groups.map(g => g.id)].includes(current)) {
+                    selectedGroupId = current;
+                } else {
+                    selectedGroupId = '__all__';
+                }
+                select.value = selectedGroupId;
+                if (selectLive) selectLive.value = selectedGroupId;
+                populateGroupCameraList();
+                renderGroupMembers();
+            } catch (e) {
+                console.error('Error loading groups', e);
+            }
+        }
+
+        function onGroupChange() {
+            const select = document.getElementById('groupSelect');
+            selectedGroupId = select.value;
+            // Enable/disable edit/delete buttons
+            const isAll = selectedGroupId === '__all__';
+            document.getElementById('editGroupBtn').disabled = isAll;
+            document.getElementById('deleteGroupBtn').disabled = isAll;
+            const selectLive = document.getElementById('groupSelectLive');
+            if (selectLive) selectLive.value = selectedGroupId;
+            updateLiveView();
+            displayCameras(cameras);
+            renderGroupMembers();
+        }
+
+        function onLiveGroupChange() {
+            const selectLive = document.getElementById('groupSelectLive');
+            selectedGroupId = selectLive.value;
+            const select = document.getElementById('groupSelect');
+            if (select) select.value = selectedGroupId;
+            updateLiveView();
+            displayCameras(cameras);
+            renderGroupMembers();
+        }
+
+        function toggleGroupForm() {
+            const form = document.getElementById('groupForm');
+            form.style.display = form.style.display === 'none' || form.style.display === '' ? 'block' : 'none';
+            if (form.style.display === 'block') populateGroupCameraList();
+        }
+
+        function startCreateGroup() {
+            editingGroupId = null;
+            document.getElementById('groupFormTitle').textContent = 'Create Group';
+            document.getElementById('groupName').value = '';
+            toggleGroupForm();
+            // Clear checks
+            setTimeout(() => populateGroupCameraList(), 0);
+        }
+
+        function startEditGroup() {
+            if (selectedGroupId === '__all__') return;
+            editingGroupId = selectedGroupId;
+            const group = groups.find(g => g.id === editingGroupId);
+            if (!group) return;
+            document.getElementById('groupFormTitle').textContent = 'Edit Group';
+            document.getElementById('groupName').value = group.name || '';
+            toggleGroupForm();
+            setTimeout(() => populateGroupCameraList(group.camera_ids || []), 0);
+        }
+
+        function populateGroupCameraList(precheckedIds = []) {
+            const list = document.getElementById('groupCameraList');
+            const checked = new Set(precheckedIds);
+            list.innerHTML = cameras.map(c => `
+                <label>
+                    <input type="checkbox" value="${c.id}" ${checked.has(c.id) ? 'checked' : ''} />
+                    <span>${c.name} (${c.ip_address})</span>
+                </label>
+            `).join('');
+        }
+
+        async function saveGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            const cameraIds = Array.from(document.querySelectorAll('#groupCameraList input[type="checkbox"]:checked')).map(i => i.value);
+            if (!name) { alert('Enter a group name'); return; }
+            try {
+                if (!editingGroupId) {
+                    // create
+                    const res = await fetch('/api/groups', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, camera_ids: cameraIds })
+                    });
+                    if (!res.ok) throw new Error('Failed to create group');
+                } else {
+                    // update
+                    const res = await fetch('/api/groups/' + editingGroupId, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, camera_ids: cameraIds })
+                    });
+                    if (!res.ok) throw new Error('Failed to update group');
+                }
+                document.getElementById('groupName').value = '';
+                toggleGroupForm();
+                await loadGroups();
+                // keep selection
+                if (editingGroupId) {
+                    selectedGroupId = editingGroupId;
+                    document.getElementById('groupSelect').value = selectedGroupId;
+                }
+                editingGroupId = null;
+                updateLiveView();
+                displayCameras(cameras);
+                renderGroupMembers();
+            } catch (e) {
+                console.error('Save group error', e);
+                alert('Failed to save group');
+            }
+        }
+
+        async function deleteGroup() {
+            if (selectedGroupId === '__all__') return;
+            if (!confirm('Delete this group?')) return;
+            try {
+                const res = await fetch('/api/groups/' + selectedGroupId, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete group');
+                selectedGroupId = '__all__';
+                document.getElementById('groupSelect').value = selectedGroupId;
+                await loadGroups();
+                updateLiveView();
+                displayCameras(cameras);
+                renderGroupMembers();
+            } catch (e) {
+                console.error('Delete group error', e);
+                alert('Failed to delete group');
+            }
+        }
+
+        function renderGroupMembers() {
+            const container = document.getElementById('groupMembers');
+            if (!container) return;
+            const isAll = selectedGroupId === '__all__';
+            const group = groups.find(g => g.id === selectedGroupId);
+            if (!group && !isAll) {
+                container.style.display = 'none';
+                container.innerHTML = '';
+                return;
+            }
+            let members = [];
+            if (isAll) {
+                members = cameras.slice();
+            } else {
+                const ids = new Set(group.camera_ids || []);
+                members = cameras.filter(c => ids.has(c.id));
+            }
+            if (members.length === 0) {
+                container.style.display = 'block';
+                container.innerHTML = '<div class="discovered-item" style="font-style:italic;">No cameras in this group</div>';
+                return;
+            }
+            let header = isAll ? 'All Cameras' : 'Group Cameras';
+            let html = `<div class="discovered-item" style="font-weight:bold;">${header}</div>`;
+            members.forEach(c => {
+                html += `<div class="discovered-item"><div>${c.name}</div><div class="discovered-meta">${c.ip_address}</div></div>`;
+            });
+            container.style.display = 'block';
+            container.innerHTML = html;
         }
 
         // Display cameras in the grid
@@ -266,7 +691,15 @@
             const grid = document.getElementById('cameraGrid');
             grid.innerHTML = '';
 
-            cameras.forEach(camera => {
+            // Optionally filter by selected group for list as well
+            let visible = cameras;
+            if (selectedGroupId !== '__all__') {
+                const group = groups.find(g => g.id === selectedGroupId);
+                const ids = new Set((group && group.camera_ids) || []);
+                visible = visible.filter(c => ids.has(c.id));
+            }
+
+            visible.forEach(camera => {
                 const card = document.createElement('div');
                 card.className = 'camera-card';
                 
@@ -289,6 +722,8 @@
                             <span class="slider"></span>
                         </label>
                         <span class="toggle-label ${recordingClass}" id="label-${camera.id}">${recordingText}</span>
+                        <button class="inline-btn" style="margin-left:8px;" onclick="promptEditCamera('${camera.id}')">Edit</button>
+                        <button class="inline-btn" style="margin-left:8px;background:#dc3545" onclick="deleteCamera('${camera.id}')">Delete</button>
                     </div>
                 `;
                 
@@ -310,7 +745,12 @@
         // Update live view
         function updateLiveView() {
             const liveGrid = document.getElementById('liveViewGrid');
-            const recordingCameras = cameras.filter(c => c.is_recording);
+            let recordingCameras = cameras.filter(c => c.is_recording);
+            if (selectedGroupId !== '__all__') {
+                const group = groups.find(g => g.id === selectedGroupId);
+                const ids = new Set((group && group.camera_ids) || []);
+                recordingCameras = recordingCameras.filter(c => ids.has(c.id));
+            }
             
             if (recordingCameras.length === 0) {
                 liveGrid.innerHTML = '<div class="no-active-cameras">No active cameras. Turn on recording to see live feeds.</div>';
@@ -336,6 +776,158 @@
         // Refresh live view
         function refreshLiveView() {
             updateLiveView();
+        }
+
+        // Search for cameras (LAN discovery)
+        async function searchCameras() {
+            const button = document.getElementById('searchButton');
+            const container = document.getElementById('discoverResults');
+            try {
+                button.disabled = true;
+                button.textContent = '🔎 Searching...';
+                container.innerHTML = 'Searching your network for cameras...';
+
+                const res = await fetch('/api/discover/cameras');
+                if (!res.ok) throw new Error('Discovery failed');
+                const devices = await res.json();
+
+                if (!Array.isArray(devices) || devices.length === 0) {
+                    container.innerHTML = '<div class="no-active-cameras">No cameras found.</div>';
+                    return;
+                }
+
+                let html = '<div class="discovered-item" style="font-weight:bold;">Cameras</div>';
+                devices.forEach(d => {
+                    html += `<div class="discovered-item">
+                        <div>${d.ip_address}</div>
+                        <div>
+                            <span class="discovered-meta">${d.vendor || 'Unknown'} • ${d.mac_address || ''}</span>
+                            <button class="inline-btn" style="margin-left:8px;" onclick="openDiscoveryAddForm('${d.ip_address}', '${(d.vendor||'').replace(/'/g, "&#39;")}')">Add</button>
+                        </div>
+                    </div>`;
+                });
+
+                container.innerHTML = html;
+            } catch (e) {
+                console.error('Discovery error:', e);
+                container.innerHTML = '<div class="no-active-cameras">Error during discovery.</div>';
+            } finally {
+                button.disabled = false;
+                button.textContent = '🔍 Search Cameras';
+            }
+        }
+
+        function openDiscoveryAddForm(ip, vendor) {
+            const form = document.getElementById('discoveryAddForm');
+            document.getElementById('discName').value = vendor ? vendor + ' Camera' : '';
+            document.getElementById('discIP').value = ip || '';
+            document.getElementById('discLocation').value = '';
+            document.getElementById('discURL').value = '';
+            form.style.display = 'block';
+            form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function cancelDiscoveryAddForm() {
+            const form = document.getElementById('discoveryAddForm');
+            form.style.display = 'none';
+        }
+
+        async function submitDiscoveryAddForm() {
+            const name = document.getElementById('discName').value.trim();
+            const ip = document.getElementById('discIP').value.trim();
+            const location = document.getElementById('discLocation').value.trim();
+            const model = document.getElementById('discModel').value.trim();
+            const organization_id = document.getElementById('discOrganization').value.trim();
+            const status = document.getElementById('discStatus').value;
+            const description = document.getElementById('discDescription').value.trim();
+            const username = document.getElementById('discUsername').value.trim();
+            const password = document.getElementById('discPassword').value.trim();
+            const port = document.getElementById('discPort').value.trim();
+            const path = document.getElementById('discPath').value.trim();
+            let url = document.getElementById('discURL').value.trim();
+            const is_recording = document.getElementById('discRecord').checked;
+
+            if (!name || !ip) { alert('Name and IP are required'); return; }
+            // Build URL if not provided
+            if (!url) {
+                const auth = username && password ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@` : '';
+                const host = ip + (port ? `:${port}` : '');
+                const p = path ? (path.startsWith('/') ? path : `/${path}`) : '';
+                url = `rtsp://${auth}${host}${p}`;
+            }
+
+            await addCamera({ 
+                name, ip_address: ip, location, url, model, organization_id, status, description, is_recording 
+            });
+            cancelDiscoveryAddForm();
+        }
+
+        async function addCamera(payload) {
+            try {
+                const res = await fetch('/api/cameras', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to add camera');
+                }
+                await loadCameras();
+                alert('Camera added');
+            } catch (e) {
+                console.error('Add camera error', e);
+                alert('Failed to add camera');
+            }
+        }
+
+        function promptEditCamera(cameraId) {
+            const cam = cameras.find(c => c.id === cameraId);
+            if (!cam) return;
+            const name = prompt('Camera name:', cam.name);
+            if (name === null) return;
+            const location = prompt('Location:', cam.location || '');
+            if (location === null) return;
+            const ip = prompt('IP address:', cam.ip_address || '');
+            if (ip === null) return;
+            const url = prompt('RTSP URL:', cam.URL || cam.url || '');
+            if (url === null) return;
+            updateCamera(cameraId, { name, location, ip_address: ip, url });
+        }
+
+        async function updateCamera(cameraId, payload) {
+            try {
+                const res = await fetch('/api/cameras/' + cameraId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to update camera');
+                }
+                await loadCameras();
+                alert('Camera updated');
+            } catch (e) {
+                console.error('Update camera error', e);
+                alert('Failed to update camera');
+            }
+        }
+
+        async function deleteCamera(cameraId) {
+            if (!confirm('Delete this camera?')) return;
+            try {
+                const res = await fetch('/api/cameras/' + cameraId, { method: 'DELETE' });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || 'Failed to delete camera');
+                }
+                await loadCameras();
+                alert('Camera deleted');
+            } catch (e) {
+                console.error('Delete camera error', e);
+                alert('Failed to delete camera');
+            }
         }
 
         // Toggle recording status
@@ -385,7 +977,68 @@
         }, 5000);
 
         // Load cameras when page loads
-        document.addEventListener('DOMContentLoaded', loadCameras);
+        document.addEventListener('DOMContentLoaded', () => {
+            loadCameras();
+            // Sidebar navigation: show only selected area
+            function showOnlySection(sectionKey) {
+                const cameraSec = document.getElementById('camera-section');
+                const liveSec = document.getElementById('live-section');
+                const analyticsSec = document.getElementById('analytics-section');
+                const settingsSec = document.getElementById('settings-section');
+                const discoverySec = document.getElementById('discovery-section');
+                const groupsSec = document.getElementById('groups-section');
+                const statsEl = cameraSec ? cameraSec.querySelector('.stats') : null;
+                const gridEl = document.getElementById('cameraGrid');
+
+                // Hide all top-level sections first
+                if (cameraSec) cameraSec.style.display = 'none';
+                if (liveSec) liveSec.style.display = 'none';
+                if (analyticsSec) analyticsSec.style.display = 'none';
+                if (settingsSec) settingsSec.style.display = 'none';
+
+                if (sectionKey === 'camera') {
+                    if (cameraSec) cameraSec.style.display = 'block';
+                    if (discoverySec) discoverySec.style.display = 'block';
+                    if (groupsSec) groupsSec.style.display = 'none';
+                    if (statsEl) statsEl.style.display = '';
+                    if (gridEl) gridEl.style.display = '';
+                } else if (sectionKey === 'live') {
+                    if (liveSec) liveSec.style.display = 'block';
+                } else if (sectionKey === 'groups') {
+                    // Show camera container but only groups UI
+                    if (cameraSec) cameraSec.style.display = 'block';
+                    if (discoverySec) discoverySec.style.display = 'none';
+                    if (groupsSec) groupsSec.style.display = 'block';
+                    if (statsEl) statsEl.style.display = 'none';
+                    if (gridEl) gridEl.style.display = 'none';
+                } else if (sectionKey === 'discovery') {
+                    if (cameraSec) cameraSec.style.display = 'block';
+                    if (discoverySec) discoverySec.style.display = 'block';
+                    if (groupsSec) groupsSec.style.display = 'none';
+                    // Hide stats and camera list while in discovery-only view
+                    if (statsEl) statsEl.style.display = 'none';
+                    if (gridEl) gridEl.style.display = 'none';
+                } else if (sectionKey === 'analytics') {
+                    if (analyticsSec) analyticsSec.style.display = 'block';
+                } else if (sectionKey === 'settings') {
+                    if (settingsSec) settingsSec.style.display = 'block';
+                }
+            }
+
+            document.querySelectorAll('.sidebar .nav-link').forEach(a => {
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const href = a.getAttribute('href') || '';
+                    const key = href.replace('#', '').replace('-section', '');
+                    showOnlySection(key);
+                    const target = document.querySelector(href);
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
+            // Default view: Camera List only (list + discovery)
+            showOnlySection('camera');
+        });
     </script>
 </body>
-</html> 
+</html>

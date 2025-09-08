@@ -166,6 +166,20 @@
         "alert_sensitivity": "Medium",
         "notification_cooldown": 5
       }
+    },
+    {
+      "id": "cam_b0e9e957",
+      "name": "New Camera",
+      "location": "abc",
+      "ip_address": "192.168.31.244",
+      "model": "",
+      "organization_id": "",
+      "status": "Active",
+      "url": "jkkj",
+      "URL": "jkkj",
+      "GUID": "55df18b8-932b-4599-b6e9-41f48aed3ebe",
+      "description": "New Camera",
+      "is_recording": false
     }
   ],
   "multi_camera_selections": [
@@ -193,5 +207,14 @@
       "license_plate_recognition": 2,
       "zone_based_alerts": 2
     }
-  }
+  },
+  "groups": [
+    {
+      "id": "grp_cb1904f8",
+      "name": "abc",
+      "camera_ids": [
+        "cam_001"
+      ]
+    }
+  ]
 }
