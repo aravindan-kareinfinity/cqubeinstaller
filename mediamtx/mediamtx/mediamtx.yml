@@ -1,0 +1,7 @@
+# Auto-generated MediaMTX configuration
+# https://github.com/bluenviron/mediamtx
+
+paths:
+  all_others:
+    source: discard
+    sourceOnDemand: true
