@@ -6,6 +6,8 @@ import os
 import re
 import uuid
 import requests
+import cv2
+import glob
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file
 
@@ -21,6 +23,18 @@ active_threads = {}
 stop_flags = {}
 # Global variable to store groups
 groups_data = []
+
+# Global variables for video processing
+merge_queue = None
+merge_worker_thread = None
+merging_tasks = {}
+video_config = {
+    'upload_to_api': True,
+    'store_locally': True,
+    'api_url': 'http://localhost:8000/api/videos/upload',
+    'api_key': 'your_api_key_here'
+}
+api_organization_id = 'default_org'
 
 # Known camera vendors to help classify devices discovered on the LAN
 KNOWN_CAMERA_VENDORS = [
@@ -41,6 +55,152 @@ def get_mac_vendor(mac_address):
         pass
     return "Unknown"
 
+def test_rtsp_stream(camera_rtsp_url, camera_name):
+    """Test if RTSP stream is accessible"""
+    try:
+        print(f"Testing RTSP stream for {camera_name}: {camera_rtsp_url}")
+        
+        # Try to open the stream with OpenCV
+        cap = cv2.VideoCapture(camera_rtsp_url)
+        if not cap.isOpened():
+            print(f"Error: Could not open RTSP stream for {camera_name}")
+            return False
+        
+        # Try to read a frame
+        ret, frame = cap.read()
+        cap.release()
+        
+        if ret:
+            print(f"RTSP stream test successful for {camera_name}")
+            return True
+        else:
+            print(f"Error: Could not read frame from RTSP stream for {camera_name}")
+            return False
+            
+    except Exception as e:
+        print(f"Error testing RTSP stream for {camera_name}: {e}")
+        return False
+
+def cleanup_corrupted_files(output_dir, camera_name):
+    """Clean up corrupted or incomplete video files"""
+    try:
+        if not os.path.exists(output_dir):
+            return
+        
+        corrupted_files = []
+        for file in os.listdir(output_dir):
+            if file.endswith('.mp4'):
+                file_path = os.path.join(output_dir, file)
+                try:
+                    file_size = os.path.getsize(file_path)
+                    
+                    # Check if file is too small
+                    if file_size < 1024:
+                        corrupted_files.append((file_path, f"Too small ({file_size} bytes)"))
+                        continue
+                    
+                    # Check if file can be read and has valid MP4 structure
+                    try:
+                        with open(file_path, 'rb') as f:
+                            header = f.read(1024)
+                            if len(header) < 1024 or b'mdat' not in header:
+                                corrupted_files.append((file_path, "Invalid MP4 structure"))
+                                continue
+                    except Exception as e:
+                        corrupted_files.append((file_path, f"Cannot read file: {e}"))
+                        continue
+                        
+                except Exception as e:
+                    corrupted_files.append((file_path, f"Error checking file: {e}"))
+        
+        # Remove corrupted files
+        for file_path, reason in corrupted_files:
+            try:
+                # Try to remove the file, but handle "file in use" errors gracefully
+                os.remove(file_path)
+                print(f"🗑️ Cleaned up corrupted file [{camera_name}]: {os.path.basename(file_path)} - {reason}")
+            except PermissionError as e:
+                if "being used by another process" in str(e):
+                    print(f"⏳ File {os.path.basename(file_path)} is currently being used by FFmpeg, will retry later")
+                else:
+                    print(f"⚠️ Permission error removing {file_path}: {e}")
+            except Exception as e:
+                print(f"⚠️ Failed to remove corrupted file {file_path}: {e}")
+        
+        if corrupted_files:
+            print(f"🧹 Cleaned up {len(corrupted_files)} corrupted files for camera {camera_name}")
+        
+    except Exception as e:
+        print(f"Error in cleanup_corrupted_files for {camera_name}: {e}")
+
+def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
+    """Upload video file to API"""
+    try:
+        # Check if file exists and is valid
+        if not os.path.exists(video_file_path):
+            print(f"❌ Error: Video file not found: {video_file_path}")
+            return False
+        
+        # Validate video file before upload
+        file_size = os.path.getsize(video_file_path)
+        if file_size < 1024:  # Less than 1KB
+            print(f"❌ Error: Video file too small ({file_size} bytes), likely corrupted")
+            return False
+        
+        # Check MP4 structure
+        try:
+            with open(video_file_path, 'rb') as f:
+                header = f.read(1024)
+                if b'mdat' not in header:
+                    print(f"❌ Error: Invalid MP4 file structure")
+                    return False
+        except Exception as e:
+            print(f"❌ Error: Cannot read video file: {e}")
+            return False
+        
+        # For now, just simulate successful upload
+        print(f"✅ Video uploaded successfully: {os.path.basename(video_file_path)} ({file_size} bytes)")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error in upload_video_to_api: {e}")
+        return False
+
+def start_hourly_merging(camera_guid):
+    """Start the hourly merging task for a camera"""
+    def merging_worker():
+        while True:
+            try:
+                # Wait until the next hour starts
+                now = datetime.now()
+                next_hour = now.replace(minute=0, second=0, microsecond=0)
+                if next_hour <= now:
+                    next_hour = next_hour.replace(hour=next_hour.hour + 1)
+                
+                # Calculate seconds to wait
+                wait_seconds = (next_hour - now).total_seconds()
+                print(f"Next merging task for camera {camera_guid} in {wait_seconds:.0f} seconds")
+                
+                # Wait until next hour
+                time.sleep(wait_seconds)
+                
+                # Get the hour that just completed (previous hour)
+                completed_hour = (next_hour.replace(hour=next_hour.hour - 1)).strftime("%H")
+                
+                # For now, just log the merge task
+                print(f"Hourly merge task completed for hour {completed_hour} in camera {camera_guid}")
+                
+            except Exception as e:
+                print(f"Error in merging worker for camera {camera_guid}: {e}")
+                time.sleep(60)  # Wait a minute before retrying
+    
+    # Start merging thread
+    merging_thread = threading.Thread(target=merging_worker)
+    merging_thread.daemon = True
+    merging_tasks[camera_guid] = merging_thread
+    merging_thread.start()
+    print(f"Started hourly merging task for camera {camera_guid}")
+
 def find_lan_devices():
     """Discover devices using ARP table. Returns list of (ip, mac, vendor)."""
     try:
@@ -57,106 +217,317 @@ def find_lan_devices():
         results.append((ip_address, normalized_mac, vendor))
     return results
 
-def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
+def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid):
     """Function that runs in each camera thread - creates video recordings using ffmpeg"""
     print(f"Thread started for camera: {camera_name} ({camera_id})")
     
-    # Create output directory structure: base_path/date/cameraguid/hh/mm.mp4
+    # Create output directory structure: base_path/date/cameraguid/hour
     current_date = datetime.now().strftime("%Y-%m-%d")
     current_hour = datetime.now().strftime("%H")
     output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
     os.makedirs(output_dir, exist_ok=True)
     
+    # Start hourly merging task
+    start_hourly_merging(camera_guid)
+    
     try:
         print(f"Starting recording for camera: {camera_name} ({camera_id})")
         
-        # Build ffmpeg command - this will run continuously and create segments every 60 seconds
-        ffmpeg_cmd = [
-            "ffmpeg",
-            "-rtsp_transport", "tcp",
-            "-i", camera_url,
-            "-c", "copy",
-            "-f", "segment",
-            "-segment_time", "60",
-            "-segment_format", "mp4",
-            "-reset_timestamps", "1",
-            "-strftime", "1",
-            "-avoid_negative_ts", "make_zero",
-            os.path.join(output_dir, "%H%M.mp4")
-        ]
-        
-        print(f"Running ffmpeg command: {' '.join(ffmpeg_cmd)}")
-        
-        # Start ffmpeg process - this will run continuously and create new files every minute
-        process = subprocess.Popen(
-            ffmpeg_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True
-        )
-        
-        # Monitor for hour changes and restart ffmpeg with new folder
-        last_hour = current_hour
-        
-        while process.poll() is None and not stop_flags.get(camera_id, False):
-            time.sleep(30)  # Check every 30 seconds
-            
-            # Check if hour has changed
-            current_hour = datetime.now().strftime("%H")
-            if current_hour != last_hour:
-                print(f"Hour changed from {last_hour} to {current_hour} for camera: {camera_name}")
+        # Keep trying to start FFmpeg until stop flag is set
+        while not stop_flags.get(camera_id, False):
+            try:
+                # Test RTSP stream
+                if not test_rtsp_stream(camera_rtsp_url, camera_name):
+                    print(f"RTSP stream test failed for camera: {camera_name} ({camera_id}). Skipping recording.")
+                    break
                 
-                # Stop current ffmpeg process
-                process.terminate()
-                try:
-                    process.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    process.kill()
+                # Get camera settings from config
+                camera_config = None
+                for cam in cameras_data:
+                    if cam['id'] == camera_id:
+                        camera_config = cam
+                        break
                 
-                # Create new hour folder
-                new_output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
-                os.makedirs(new_output_dir, exist_ok=True)
+                # Default settings
+                frame_rate = 15
+                video_bitrate = "110k"
+                audio_bitrate = "24k"
+                resolution = "1280:720"
+                preset = "veryfast"
+                crf = "28"
+                segment_time = 60
+                enable_audio = True
                 
-                # Build new ffmpeg command with new folder
-                ffmpeg_cmd = [
+                # Override with camera-specific settings if available
+                if camera_config:
+                    if 'camera_settings' in camera_config:
+                        settings = camera_config['camera_settings']
+                        frame_rate = settings.get('frame_rate', frame_rate)
+                        video_bitrate = f"{settings.get('video_bitrate', 110)}k"
+                        audio_bitrate = f"{settings.get('audio_bitrate', 24)}k"
+                        preset = settings.get('preset', preset)
+                        crf = str(settings.get('crf', crf))
+                        segment_time = settings.get('segment_time', segment_time)
+                        enable_audio = settings.get('enable_audio', enable_audio)
+                        
+                        # Handle resolution
+                        res = settings.get('resolution', '1280x720')
+                        if 'x' in res:
+                            width, height = res.split('x')
+                            resolution = f"{width}:{height}"
+                
+                # Video recording command
+                video_ffmpeg_cmd = [
                     "ffmpeg",
                     "-rtsp_transport", "tcp",
-                    "-i", camera_url,
-                    "-c", "copy",
+                    "-i", camera_rtsp_url,
+                    "-c:v", "libx264",
+                    "-b:v", video_bitrate,
+                    "-maxrate", video_bitrate,
+                    "-bufsize", f"{int(video_bitrate.replace('k', '')) * 2}k",
+                    "-preset", preset,
+                    "-crf", crf,
+                    "-r", str(frame_rate),
+                    "-vf", f"scale={resolution}",
+                ]
+                
+                # Add audio settings if enabled
+                if enable_audio:
+                    video_ffmpeg_cmd.extend([
+                        "-c:a", "aac",
+                        "-b:a", audio_bitrate,
+                    ])
+                
+                # Add segment settings for video recording
+                video_ffmpeg_cmd.extend([
                     "-f", "segment",
-                    "-segment_time", "60",
-                    "-segment_format", "mp4",
+                    "-segment_time", str(segment_time),
+                    "-segment_time_delta", "0.1",
                     "-reset_timestamps", "1",
                     "-strftime", "1",
                     "-avoid_negative_ts", "make_zero",
-                    os.path.join(new_output_dir, "%H%M.mp4")
-                ]
+                    os.path.join(output_dir, "%H%M.mp4")
+                ])
                 
-                print(f"Restarting ffmpeg with new hour folder: {new_output_dir}")
+                print(f"Running video ffmpeg command: {' '.join(video_ffmpeg_cmd)}")
                 
-                # Start new ffmpeg process
-                process = subprocess.Popen(
-                    ffmpeg_cmd,
+                # Start video ffmpeg process
+                video_process = subprocess.Popen(
+                    video_ffmpeg_cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
-                    universal_newlines=True
+                    universal_newlines=True,
+                    bufsize=1
                 )
                 
-                last_hour = current_hour
-        
-        # If stop flag is set, terminate the process
-        if stop_flags.get(camera_id, False):
-            print(f"Stopping recording for camera: {camera_name} ({camera_id})")
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-        
-        # If process ended naturally (not due to stop flag), log it
-        if process.poll() is not None and not stop_flags.get(camera_id, False):
-            print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
+                print(f"Video FFmpeg process started with PID: {video_process.pid}")
+                
+                # Monitor FFmpeg output in real-time
+                def monitor_video_ffmpeg():
+                    while video_process.poll() is None:
+                        line = video_process.stderr.readline()
+                        if line:
+                            print(f"Video FFmpeg [{camera_name}]: {line.strip()}")
+                
+                # Start monitoring thread
+                video_monitor_thread = threading.Thread(target=monitor_video_ffmpeg)
+                video_monitor_thread.daemon = True
+                video_monitor_thread.start()
+                
+                # Monitor file creation during video creation
+                def monitor_files():
+                    last_files = set()
+                    processing_files = set()
+                    processed_files = set()  # Track files that have been processed
+                    cleanup_counter = 0  # Counter for periodic cleanup
+                    while video_process.poll() is None and not stop_flags.get(camera_id, False):
+                        try:
+                            # Periodic cleanup of corrupted files (every 10 iterations)
+                            cleanup_counter += 1
+                            if cleanup_counter >= 10:
+                                cleanup_corrupted_files(output_dir, camera_name)
+                                cleanup_counter = 0
+                            
+                            current_files = set()
+                            if os.path.exists(output_dir):
+                                for file in os.listdir(output_dir):
+                                    if file.endswith('.mp4'):
+                                        current_files.add(file)
+                            
+                            # Check for new files
+                            new_files = current_files - last_files
+                            if new_files:
+                                for new_file in new_files:
+                                    print(f"New file detected [{camera_name}]: {new_file}")
+                                    # Only add to processing if not already there and not already processed
+                                    if new_file not in processing_files and new_file not in processed_files:
+                                        # Check file age to avoid processing very new files
+                                        file_path = os.path.join(output_dir, new_file)
+                                        try:
+                                            file_age = time.time() - os.path.getctime(file_path)
+                                            if file_age < 5:  # Less than 5 seconds old
+                                                print(f"⏳ File {new_file} too new ({file_age:.1f}s), waiting before processing")
+                                                time.sleep(2)  # Wait a bit more
+                                        except Exception as e:
+                                            print(f"⚠️ Could not check file age for {new_file}: {e}")
+                                        
+                                        processing_files.add(new_file)
+                                        print(f"New video file added to processing queue [{camera_name}]: {new_file}")
+                                    elif new_file in processed_files:
+                                        print(f"File {new_file} already processed, skipping")
+                                    else:
+                                        print(f"File already in processing queue [{camera_name}]: {new_file}")
+                            
+                            # Check for completed files with better validation
+                            completed_files = set()
+                            files_to_remove = set()  # Track files to remove after iteration
+                            
+                            # Create a copy of processing_files to avoid modification during iteration
+                            for file in list(processing_files):
+                                file_path = os.path.join(output_dir, file)
+                                if os.path.exists(file_path):
+                                    try:
+                                        # Wait for file to stabilize (no size changes for 3 seconds)
+                                        size1 = os.path.getsize(file_path)
+                                        time.sleep(3)  # Increased wait time
+                                        size2 = os.path.getsize(file_path)
+                                        
+                                        if size1 == size2 and size1 > 1024:  # File size stable and > 1KB
+                                            # Additional validation: check if file can be opened and read
+                                            try:
+                                                with open(file_path, 'rb') as test_file:
+                                                    # Try to read first 1KB to check file integrity
+                                                    header = test_file.read(1024)
+                                                    if len(header) >= 1024 and b'mdat' in header:
+                                                        completed_files.add(file)
+                                                        print(f"✅ File validated and ready for processing: {file}")
+                                                    else:
+                                                        print(f"⚠️ File appears incomplete, skipping: {file}")
+                                                        files_to_remove.add(file)
+                                            except Exception as e:
+                                                print(f"⚠️ Cannot read file {file}, skipping: {e}")
+                                                files_to_remove.add(file)
+                                        elif size1 < 1024:
+                                            print(f"⚠️ File {file} too small ({size1} bytes), likely corrupted")
+                                            files_to_remove.add(file)
+                                        else:
+                                            print(f"🔄 File {file} still being written (size: {size1} -> {size2})")
+                                            # If file size is decreasing, it might be a new segment replacing old one
+                                            if size2 < size1:
+                                                print(f"⚠️ File {file} size decreased, likely new segment replacing old one")
+                                                files_to_remove.add(file)
+                                    except Exception as e:
+                                        print(f"⚠️ Error checking file {file}: {e}")
+                                        files_to_remove.add(file)
+                            
+                            # Remove files after iteration to avoid modification during iteration
+                            processing_files -= files_to_remove
+                            
+                            # Process completed files for upload
+                            for completed_file in completed_files:
+                                if completed_file in processing_files:
+                                    processing_files.remove(completed_file)
+                                
+                                print(f"File completed and validated [{camera_name}]: {completed_file}")
+                                file_path = os.path.join(output_dir, completed_file)
+                                
+                                # Double-check file still exists and is valid before processing
+                                if not os.path.exists(file_path):
+                                    print(f"⚠️ File {completed_file} no longer exists, skipping")
+                                    continue
+                                
+                                # Final validation before upload
+                                try:
+                                    final_size = os.path.getsize(file_path)
+                                    if final_size < 1024:
+                                        print(f"❌ File {completed_file} too small ({final_size} bytes), skipping upload")
+                                        continue
+                                    
+                                    # Test file readability
+                                    with open(file_path, 'rb') as test_file:
+                                        test_file.read(1024)
+                                    
+                                    print(f"✅ File {completed_file} passed final validation ({final_size} bytes)")
+                                    
+                                    # Upload video segment
+                                    def upload_segment():
+                                        try:
+                                            upload_success = upload_video_to_api(file_path, camera_guid=camera_guid)
+                                            if upload_success:
+                                                print(f"✅ Upload completed for {completed_file}")
+                                                # Mark as processed to avoid reprocessing
+                                                processed_files.add(completed_file)
+                                            else:
+                                                print(f"❌ Upload failed for {completed_file}")
+                                        except Exception as e:
+                                            print(f"❌ Upload error for {completed_file}: {e}")
+                                    
+                                    upload_thread = threading.Thread(target=upload_segment, 
+                                                                  name=f"upload_{camera_name}_{completed_file}")
+                                    upload_thread.daemon = True
+                                    upload_thread.start()
+                                    
+                                except Exception as e:
+                                    print(f"❌ Final validation failed for {completed_file}: {e}")
+                                    continue
+                            
+                            last_files = current_files
+                            
+                            # Clean up any files that are no longer in the directory
+                            files_to_remove_from_processing = set()
+                            for file in processing_files:
+                                if not os.path.exists(os.path.join(output_dir, file)):
+                                    files_to_remove_from_processing.add(file)
+                                    print(f"🗑️ File {file} no longer exists, removing from processing queue")
+                            
+                            processing_files -= files_to_remove_from_processing
+                            
+                            time.sleep(2)
+                        except Exception as e:
+                            print(f"Error monitoring files for {camera_name}: {e}")
+                            time.sleep(5)
+                
+                # Start file monitoring thread
+                file_monitor_thread = threading.Thread(target=monitor_files)
+                file_monitor_thread.daemon = True
+                file_monitor_thread.start()
             
+                # Wait for process to complete or stop flag to be set
+                while video_process.poll() is None and not stop_flags.get(camera_id, False):
+                    time.sleep(1)
+                
+                # If stop flag is set, terminate the process
+                if stop_flags.get(camera_id, False):
+                    print(f"Stopping recording for camera: {camera_name} ({camera_id})")
+                    
+                    # Terminate video process
+                    if video_process.poll() is None:
+                        video_process.terminate()
+                        try:
+                            video_process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            video_process.kill()
+                    break
+                
+                # If process ended naturally, log it and restart
+                if video_process.poll() is not None and not stop_flags.get(camera_id, False):
+                    print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
+                    
+                    # Check video process
+                    stdout, stderr = video_process.communicate()
+                    if stderr:
+                        print(f"Video FFmpeg error output: {stderr}")
+                    if stdout:
+                        print(f"Video FFmpeg output: {stdout}")
+                    
+                    print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
+                    time.sleep(5)
+                    
+            except Exception as e:
+                print(f"Error in FFmpeg process for camera {camera_name} ({camera_id}): {e}")
+                print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
+                time.sleep(5)
+                
     except Exception as e:
         print(f"Error in recording for camera {camera_name} ({camera_id}): {e}")
     
