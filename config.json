@@ -52,8 +52,8 @@
       "serial_number": "",
       "organization_id": "",
       "status": "Active",
-      "url": "rtsp://root:k2bseucre%253F%253F%253F@192.168.1.14:554/axis-media/media.amp",
-      "URL": "rtsp://root:k2bseucre%253F%253F%253F@192.168.1.14:554/axis-media/media.amp",
+      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
+      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
       "GUID": "990ea75c-f1f0-43bd-99c2-0591f09fea3e",
       "description": "",
       "is_recording": true,
@@ -174,6 +174,22 @@
       "id": "grp_cb1904f8",
       "name": "abc",
       "camera_ids": []
+    }
+  ],
+  "organizations": [
+    {
+      "id": "org_001",
+      "name": "Smart Security Solutions Ltd",
+      "address": "123 Security Boulevard, Tech City, TC 12345",
+      "contact_email": "admin@smartsecurity.com",
+      "storage_provider": "aws-s3",
+      "server_video_path": "s3://smartsecurity-videos/org_001/",
+      "client_video_access_path": "https://smartsecurity-videos.s3.amazonaws.com/org_001/",
+      "retention": 30,
+      "upload_username": "admin_org001",
+      "upload_password": "SecurePass123!",
+      "created_at": "2024-01-15T08:00:00Z",
+      "updated_at": "2024-06-27T10:30:00Z"
     }
   ]
 }

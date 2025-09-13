@@ -10,9 +10,10 @@ import cv2
 import glob
 import urllib.parse
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_from_directory, send_file
+from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, session, redirect, url_for
 
 app = Flask(__name__)
+app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
 
 # Global variable to store camera data
 cameras_data = []
@@ -1318,6 +1319,234 @@ def download_video(filename):
     except Exception as e:
         print(f"Error downloading video: {e}")
         return jsonify({'error': 'Failed to download video'}), 500
+
+# Authentication Routes
+@app.route('/login')
+def login_page():
+    """Serve the login page"""
+    return send_file('login.html')
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Handle user login"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'message': 'Username and password are required'}), 400
+        
+        # Simple authentication - in production, use proper password hashing
+        # For demo purposes, accept any username/password or admin/admin123
+        if (username == 'admin' and password == 'admin123') or (username and password):
+            # Create user session
+            user = {
+                'id': f"user_{str(uuid.uuid4())[:8]}",
+                'username': username,
+                'name': username.title(),
+                'role': 'Admin' if username == 'admin' else 'User',
+                'organization_id': 'org_001',
+                'isfactory': True,
+                'login_time': datetime.now().isoformat()
+            }
+            
+            session['user'] = user
+            session['is_authenticated'] = True
+            
+            return jsonify({
+                'message': 'Login successful',
+                'user': user
+            })
+        else:
+            return jsonify({'message': 'Invalid username or password'}), 401
+            
+    except Exception as e:
+        print(f"Login error: {e}")
+        return jsonify({'message': 'Login failed'}), 500
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """Handle user logout"""
+    try:
+        session.clear()
+        return jsonify({'message': 'Logout successful'})
+    except Exception as e:
+        print(f"Logout error: {e}")
+        return jsonify({'message': 'Logout failed'}), 500
+
+@app.route('/api/auth/status')
+def auth_status():
+    """Check authentication status"""
+    if session.get('is_authenticated'):
+        return jsonify({
+            'authenticated': True,
+            'user': session.get('user')
+        })
+    return jsonify({'authenticated': False})
+
+# Static file routes
+@app.route('/<path:filename>')
+def serve_static(filename):
+    """Serve static files like images, CSS, JS"""
+    try:
+        return send_file(filename)
+    except FileNotFoundError:
+        return "File not found", 404
+
+# Organization Management Routes
+@app.route('/organizations')
+def organizations_page():
+    """Serve the organizations page"""
+    return send_file('organizations.html')
+
+@app.route('/api/organizations', methods=['GET'])
+def get_organizations():
+    """Get all organizations"""
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Return organizations array if it exists, otherwise return current organization as single item
+        if 'organizations' in config:
+            return jsonify(config['organizations'])
+        else:
+            # Convert single organization to array format
+            org = config.get('organization', {})
+            if org:
+                return jsonify([org])
+            return jsonify([])
+    except Exception as e:
+        print(f"Error loading organizations: {e}")
+        return jsonify({'error': 'Failed to load organizations'}), 500
+
+@app.route('/api/organizations', methods=['POST'])
+def create_organization():
+    """Create a new organization"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['name', 'contact_email', 'address']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'error': f'{field} is required'}), 400
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Create new organization
+        new_org = {
+            'id': f"org_{str(uuid.uuid4())[:8]}",
+            'name': data['name'],
+            'address': data['address'],
+            'contact_email': data['contact_email'],
+            'storage_provider': data.get('storage_provider', ''),
+            'server_video_path': data.get('server_video_path', ''),
+            'client_video_access_path': data.get('client_video_access_path', ''),
+            'retention': data.get('retention', 10),
+            'upload_username': data.get('upload_username', 'admin'),
+            'upload_password': data.get('upload_password', 'admin'),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Initialize organizations array if it doesn't exist
+        if 'organizations' not in config:
+            config['organizations'] = []
+        
+        # Add new organization
+        config['organizations'].append(new_org)
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify(new_org), 201
+        
+    except Exception as e:
+        print(f"Error creating organization: {e}")
+        return jsonify({'error': 'Failed to create organization'}), 500
+
+@app.route('/api/organizations/<org_id>', methods=['PUT'])
+def update_organization(org_id):
+    """Update an existing organization"""
+    try:
+        data = request.get_json()
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Find organization to update
+        organizations = config.get('organizations', [])
+        org_index = None
+        
+        for i, org in enumerate(organizations):
+            if org['id'] == org_id:
+                org_index = i
+                break
+        
+        if org_index is None:
+            return jsonify({'error': 'Organization not found'}), 404
+        
+        # Update organization
+        organizations[org_index].update({
+            'name': data.get('name', organizations[org_index]['name']),
+            'address': data.get('address', organizations[org_index]['address']),
+            'contact_email': data.get('contact_email', organizations[org_index]['contact_email']),
+            'storage_provider': data.get('storage_provider', organizations[org_index].get('storage_provider', '')),
+            'server_video_path': data.get('server_video_path', organizations[org_index].get('server_video_path', '')),
+            'client_video_access_path': data.get('client_video_access_path', organizations[org_index].get('client_video_access_path', '')),
+            'retention': data.get('retention', organizations[org_index].get('retention', 10)),
+            'upload_username': data.get('upload_username', organizations[org_index].get('upload_username', 'admin')),
+            'upload_password': data.get('upload_password', organizations[org_index].get('upload_password', 'admin')),
+            'updated_at': datetime.now().isoformat()
+        })
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify(organizations[org_index])
+        
+    except Exception as e:
+        print(f"Error updating organization: {e}")
+        return jsonify({'error': 'Failed to update organization'}), 500
+
+@app.route('/api/organizations/<org_id>', methods=['DELETE'])
+def delete_organization(org_id):
+    """Delete an organization"""
+    try:
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Find organization to delete
+        organizations = config.get('organizations', [])
+        org_index = None
+        
+        for i, org in enumerate(organizations):
+            if org['id'] == org_id:
+                org_index = i
+                break
+        
+        if org_index is None:
+            return jsonify({'error': 'Organization not found'}), 404
+        
+        # Remove organization
+        deleted_org = organizations.pop(org_index)
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify({'message': 'Organization deleted successfully'})
+        
+    except Exception as e:
+        print(f"Error deleting organization: {e}")
+        return jsonify({'error': 'Failed to delete organization'}), 500
 
 def main():
     """Main function"""

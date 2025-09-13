@@ -17,7 +17,7 @@
             flex-direction: column;
             min-height: 100vh;
         }
-        
+
         .header {
             text-align: center;
             padding: 20px;
@@ -26,56 +26,55 @@
             margin-bottom: 20px;
             color: #333;
         }
-        
+
         .main-wrapper {
             display: flex;
             flex: 1;
-            gap: 20px;
+            gap: 0px;
             max-width: 1600px;
             margin: 0 auto;
             width: 100%;
-            padding: 0px 20px 20px 20px;
+            padding: 0px 0px 0px 0px;
             box-sizing: border-box;
         }
-        
+
         .sidebar {
             width: 250px;
             background: white;
-            border-radius: 10px;
-          
+            /* border-radius: 10px; */
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            height: fit-content;
+            /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); */
+            height: auto;
             position: sticky;
             top: 20px;
         }
-        
+
         .sidebar .nav-title {
             font-weight: bold;
             color: #333;
             margin-bottom: 15px;
             font-size: 18px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #e6ebf2;
         }
-        
+
         .sidebar .nav-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        
+
         .sidebar .nav-list li {
             margin: 10px 0;
         }
-        
+
         .nav-link {
             opacity: 0;
             /* hidden by default */
             transform: translateX(-20px);
             /* shifted left */
         }
-        
+
         .sidebar .nav-link {
             display: block;
             padding: 10px 15px;
@@ -85,36 +84,38 @@
             background: #f8f9fa;
             transition: all 0.2s ease;
         }
-        
+
         .sidebar .nav-link:hover {
             background: #e9ecef;
             color: #007bff;
         }
-        
+
         .content-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            /* gap: 20px; */
         }
-        
+
         .main-container {
             display: flex;
             gap: 20px;
+            padding: 10px;
         }
-        
+
         .main-container>.camera-list-section:first-child {
-            margin-top: 20px;
+            margin-top: 10px;
         }
-        
+
         .camera-list-section {
             flex: 1;
             background: white;
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin: 10px;
         }
-        
+
         .live-view-section {
             flex: 3;
             background: white;
@@ -123,22 +124,22 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             min-height: 80vh;
         }
-        
+
         .section-title {
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 20px;
             color: #333;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #e6ebf2;
             padding-bottom: 10px;
         }
-        
+
         .camera-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 15px;
         }
-        
+
         .camera-card {
             background: #f8f9fa;
             border-radius: 8px;
@@ -146,29 +147,29 @@
             border-left: 4px solid #007bff;
             transition: all 0.3s ease;
         }
-        
+
         .camera-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
-        
+
         .camera-name {
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 8px;
             color: #333;
         }
-        
+
         .camera-info {
             margin-bottom: 12px;
             color: #666;
             font-size: 14px;
         }
-        
+
         .camera-info p {
             margin: 3px 0;
         }
-        
+
         .status-badge {
             display: inline-block;
             padding: 3px 8px;
@@ -177,36 +178,36 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        
+
         .status-active {
             background-color: #d4edda;
             color: #155724;
         }
-        
+
         .status-maintenance {
             background-color: #fff3cd;
             color: #856404;
         }
-        
+
         .recording-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
+
         .toggle-switch {
             position: relative;
             display: inline-block;
             width: 50px;
             height: 24px;
         }
-        
+
         .toggle-switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
-        
+
         .slider {
             position: absolute;
             cursor: pointer;
@@ -218,7 +219,7 @@
             transition: 0.4s;
             border-radius: 24px;
         }
-        
+
         .slider:before {
             position: absolute;
             content: "";
@@ -230,42 +231,42 @@
             transition: 0.4s;
             border-radius: 50%;
         }
-        
+
         input:checked+.slider {
             background-color: #2196f3;
         }
-        
+
         input:checked+.slider:before {
             transform: translateX(26px);
         }
-        
+
         .toggle-label {
             font-weight: bold;
             color: #333;
             font-size: 12px;
         }
-        
+
         .recording-on {
             color: #28a745;
         }
-        
+
         .recording-off {
             color: #dc3545;
         }
-        
+
         .live-view-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
         }
-        
+
         .live-camera-card {
             background: #000;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
         }
-        
+
         .live-camera-header {
             background: rgba(0, 0, 0, 0.8);
             color: white;
@@ -273,7 +274,7 @@
             font-weight: bold;
             font-size: 14px;
         }
-        
+
         .live-camera-feed {
             width: 100%;
             height: 200px;
@@ -284,20 +285,20 @@
             color: #666;
             font-size: 14px;
         }
-        
+
         .live-camera-feed img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        
+
         .no-active-cameras {
             text-align: center;
             color: #666;
             font-style: italic;
             padding: 40px;
         }
-        
+
         .refresh-button {
             background: #007bff;
             color: white;
@@ -309,17 +310,17 @@
             margin-bottom: 20px;
             transition: background 0.2s ease;
         }
-        
+
         .refresh-button:hover {
             background: #0056b3;
         }
-        
+
         .stats {
             display: flex;
             gap: 20px;
             margin-bottom: 20px;
         }
-        
+
         .stat-item {
             flex: 1;
             /* makes all cards equal width */
@@ -332,26 +333,26 @@
             flex-direction: column;
             align-items: center;
         }
-        
+
         .stat-value {
             font-size: 24px;
             font-weight: bold;
             color: #212529;
             margin-bottom: 6px;
         }
-        
+
         .stat-label {
             font-size: 14px;
             color: #6c757d;
         }
-        
+
         .discovered-section-title {
             font-size: 16px;
             font-weight: bold;
             margin: 16px 0 8px 0;
             color: #333;
         }
-        
+
         .discovered-list {
             background: #f8f9fa;
             border-radius: 8px;
@@ -360,7 +361,7 @@
             color: #333;
             font-size: 14px;
         }
-        
+
         .discovered-item {
             padding: 6px 0;
             border-bottom: 1px solid #e9ecef;
@@ -368,16 +369,16 @@
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .discovered-item:last-child {
             border-bottom: none;
         }
-        
+
         .discovered-meta {
             color: #666;
             font-size: 12px;
         }
-        
+
         .group-controls {
             display: grid;
             grid-template-columns: 1fr auto auto auto;
@@ -385,14 +386,14 @@
             align-items: center;
             margin: 10px 0 16px 0;
         }
-        
+
         .group-select {
             padding: 8px 10px;
             border-radius: 6px;
             border: 1px solid #ced4da;
             font-size: 14px;
         }
-        
+
         .inline-btn {
             background: #17a2b8;
             color: white;
@@ -403,11 +404,11 @@
             font-size: 14px;
             transition: background 0.2s ease;
         }
-        
+
         .inline-btn:hover {
             background: #138496;
         }
-        
+
         .group-form {
             display: none;
             margin: 8px 0 16px 0;
@@ -416,7 +417,7 @@
             border-radius: 8px;
             border-left: 4px solid #17a2b8;
         }
-        
+
         .group-form input {
             padding: 8px;
             border: 1px solid #ced4da;
@@ -425,7 +426,7 @@
             margin-bottom: 8px;
             box-sizing: border-box;
         }
-        
+
         .camera-checkboxes {
             max-height: 140px;
             overflow: auto;
@@ -434,14 +435,14 @@
             padding: 8px;
             border-radius: 6px;
         }
-        
+
         .camera-checkboxes label {
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 4px 0;
         }
-        
+
         .section-title,
         .camera-list-section,
         .live-view-section {
@@ -450,42 +451,44 @@
             transform: translateY(20px);
             /* slightly pushed down */
         }
+
         /* Responsive adjustments */
-        
+
         @media (max-width: 1200px) {
             .main-container {
                 flex-direction: column;
             }
         }
-        
+
         @media (max-width: 900px) {
             .main-wrapper {
                 flex-direction: column;
             }
+
             .sidebar {
                 width: 100%;
                 position: static;
                 margin-bottom: 20px;
             }
+
             .group-controls {
                 grid-template-columns: 1fr;
             }
         }
+
         /* menu active */
-        
+
         .sidebar .nav-link.active {
-            border-left: 4px solid #007bff;
-            /* blue highlight bar */
-            background: #e9ecef;
-            /* subtle background */
-            color: #007bff;
-            /* highlight text */
+            /* border-left: 4px solid #007bff; */
+            background: #0f172a;
+            color: #fff;
             font-weight: 600;
             transform: scale(1.03);
             /* small emphasis */
         }
 
         /* Camera Modal Styles */
+
         .modal {
             display: none;
             position: fixed;
@@ -765,6 +768,7 @@
         }
 
         /* Video Playback Styles */
+
         .video-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -884,6 +888,7 @@
         }
 
         /* Live Stream Styles */
+
         .live-camera-header {
             display: flex;
             justify-content: space-between;
@@ -1009,6 +1014,7 @@
         }
 
         /* Live View Controls */
+
         .live-view-controls {
             display: flex;
             justify-content: space-between;
@@ -1096,6 +1102,7 @@
         }
 
         /* Single camera view - larger display */
+
         .live-camera-grid:has(.live-camera-card:only-child) .live-camera-card {
             max-width: 800px;
             margin: 0 auto;
@@ -1106,6 +1113,7 @@
         }
 
         /* Hour-based Video Organization */
+
         .hour-section {
             margin-bottom: 30px;
             border: 1px solid #e9ecef;
@@ -1260,13 +1268,26 @@
             background: #dc3545;
             color: white;
         }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+        }
     </style>
 </head>
 
 <body>
+
     <div class="main-wrapper">
         <aside class="sidebar">
-            <div class="nav-title">Navigation</div>
+            
+            <div class="nav-title">
+                <img src="logo.jpg" alt="cqube" width="200" height="65">
+            </div>
+         
             <ul class="nav-list">
                 <li>
                     <a class="nav-link active" href="#camera-section">📋 Camera List</a>
@@ -1280,11 +1301,24 @@
                 <li>
                     <a class="nav-link" href="#analytics-section">📊 Analytics</a>
                 </li>
+                <li><a class="nav-link" href="organizations.html">🏢 Organizations</a></li>
                 <li><a class="nav-link" href="#settings-section">⚙️ Settings</a></li>
             </ul>
         </aside>
 
         <div class="content-container">
+            <div class="navbar">
+                <div>
+                    <h6 id="user-info">Loading...</h6>
+                </div>
+
+                <div>
+                    <div class="stat-link" id="auth-link" onclick="handleAuth()">
+                        <i class="fas fa-sign-in-alt"></i> <span id="auth-text">Sign In</span>
+                    </div>
+                </div>
+
+            </div>
             <div class="main-container">
                 <!-- Camera List Section -->
                 <div class="camera-list-section" id="camera-section">
@@ -3533,6 +3567,78 @@
                 navLinks.forEach((l) => l.classList.remove("active"));
                 link.classList.add("active");
             });
+        });
+
+        // Authentication functions
+        let currentUser = null;
+        let isAuthenticated = false;
+
+        // Check authentication status on page load
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    isAuthenticated = true;
+                    updateNavbar(true);
+                } else {
+                    updateNavbar(false);
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                updateNavbar(false);
+            }
+        }
+
+        // Update navbar based on authentication status
+        function updateNavbar(authenticated) {
+            const userInfo = document.getElementById('user-info');
+            const authLink = document.getElementById('auth-link');
+            const authText = document.getElementById('auth-text');
+            const authIcon = authLink.querySelector('i');
+
+            if (authenticated && currentUser) {
+                userInfo.textContent = `${currentUser.name} - ${currentUser.username} (Org: ${currentUser.organization_id}) (${currentUser.role})`;
+                authText.textContent = 'Logout';
+                authIcon.className = 'fas fa-sign-out-alt';
+            } else {
+                userInfo.textContent = 'Please sign in to continue';
+                authText.textContent = 'Sign In';
+                authIcon.className = 'fas fa-sign-in-alt';
+            }
+        }
+
+        // Handle authentication action
+        async function handleAuth() {
+            if (isAuthenticated) {
+                // Logout
+                try {
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        currentUser = null;
+                        isAuthenticated = false;
+                        updateNavbar(false);
+                        // Clear session storage
+                        sessionStorage.removeItem('user');
+                        sessionStorage.removeItem('isAuthenticated');
+                    }
+                } catch (error) {
+                    console.error('Logout failed:', error);
+                }
+            } else {
+                // Redirect to login
+                window.location.href = '/login';
+            }
+        }
+
+        // Initialize authentication check
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
         });
     </script>
 </body>
