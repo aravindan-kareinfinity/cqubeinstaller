@@ -6,6 +6,9 @@ import os
 import re
 import uuid
 import requests
+import cv2
+import glob
+import queue
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file
 
@@ -21,6 +24,23 @@ active_threads = {}
 stop_flags = {}
 # Global variable to store groups
 groups_data = []
+# Dictionary to store merging tasks for each camera
+merging_tasks = {}
+# Global merge queue and worker thread
+merge_queue = queue.Queue()
+merge_worker_thread = None
+merge_worker_stop_flag = False
+# Global variable for API configuration
+api_organization_id = 14  # Default organization ID
+# Configuration for video storage and upload
+video_config = {
+    'store_locally': True,  # Store videos locally
+    'upload_to_api': True,  # Upload videos to FastAPI server
+    'api_url': 'http://127.0.0.1:8000/api/video/upload',
+    'local_storage_path': './local_videos',  # Local storage path
+    'keep_local_copies': True,  # Keep local copies after API upload
+    'cleanup_after_upload': False  # Delete local files after successful upload
+}
 
 # Known camera vendors to help classify devices discovered on the LAN
 KNOWN_CAMERA_VENDORS = [
@@ -57,7 +77,276 @@ def find_lan_devices():
         results.append((ip_address, normalized_mac, vendor))
     return results
 
-def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
+def test_rtsp_stream(camera_rtsp_url, camera_name):
+    """Test if RTSP stream is accessible"""
+    try:
+        print(f"Testing RTSP stream for {camera_name}: {camera_rtsp_url}")
+        
+        # Try to open the stream with OpenCV
+        cap = cv2.VideoCapture(camera_rtsp_url)
+        if not cap.isOpened():
+            print(f"Error: Could not open RTSP stream for {camera_name}")
+            return False
+        
+        # Try to read a frame
+        ret, frame = cap.read()
+        cap.release()
+        
+        if ret:
+            print(f"RTSP stream test successful for {camera_name}")
+            return True
+        else:
+            print(f"Error: Could not read frame from RTSP stream for {camera_name}")
+            return False
+            
+    except Exception as e:
+        print(f"Error testing RTSP stream for {camera_name}: {e}")
+        return False
+
+def generate_thumbnail(mp4_path, thumbnail_path=None, quality=2):
+    """Generate thumbnail from MP4 file with better error handling for corrupted files"""
+    try:
+        # Validate input path
+        if not os.path.exists(mp4_path):
+            print(f"Error: MP4 file not found at {mp4_path}")
+            return None
+        
+        # Check file size - reject files that are too small
+        file_size = os.path.getsize(mp4_path)
+        if file_size < 1024:
+            print(f"Error: MP4 file too small ({file_size} bytes), likely corrupted")
+            return None
+        
+        print(f"Generating thumbnail for {mp4_path} (size: {file_size} bytes)")
+        
+        # Set default thumbnail path if not provided
+        if thumbnail_path is None:
+            video_dir = os.path.dirname(mp4_path)
+            video_name = os.path.splitext(os.path.basename(mp4_path))[0]
+            thumbnail_path = os.path.join(video_dir, f"{video_name}.jpg")
+        
+        # FFmpeg command to extract thumbnail at 1 second mark
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-i", mp4_path,
+            "-ss", "00:00:01",  # Seek to 1 second
+            "-vframes", "1",     # Capture 1 frame
+            "-q:v", str(quality), # Quality (2 is good)
+            "-y",                # Overwrite if exists
+            thumbnail_path
+        ]
+        
+        print(f"Creating thumbnail for {mp4_path}")
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=30)
+        
+        # Verify thumbnail was created
+        if os.path.exists(thumbnail_path) and os.path.getsize(thumbnail_path) > 0:
+            thumbnail_size = os.path.getsize(thumbnail_path)
+            print(f"Successfully created thumbnail at {thumbnail_path} (size: {thumbnail_size} bytes)")
+            return thumbnail_path
+        
+        return None
+        
+    except subprocess.TimeoutExpired:
+        print(f"Error: FFmpeg thumbnail generation timed out")
+        return None
+    except Exception as e:
+        print(f"Error creating thumbnail: {e}")
+        return None
+
+def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
+    """Upload video to API and optionally store locally with better error handling and validation"""
+    try:
+        # Check if file exists and is valid
+        if not os.path.exists(video_file_path):
+            print(f"❌ Error: Video file not found: {video_file_path}")
+            return False
+        
+        # Validate video file before upload
+        file_size = os.path.getsize(video_file_path)
+        if file_size < 1024:  # Less than 1KB
+            print(f"❌ Error: Video file too small ({file_size} bytes), likely corrupted")
+            return False
+        
+        # Step 1: Store locally if configured
+        local_copy_path = None
+        if video_config['store_locally']:
+            try:
+                # Create local storage directory structure
+                local_dir = os.path.join(
+                    video_config['local_storage_path'],
+                    str(organization_id or api_organization_id),
+                    camera_guid or 'unknown',
+                    datetime.now().strftime("%Y-%m-%d"),
+                    datetime.now().strftime("%H")
+                )
+                os.makedirs(local_dir, exist_ok=True)
+                
+                # Copy video file to local storage
+                local_filename = os.path.basename(video_file_path)
+                local_copy_path = os.path.join(local_dir, local_filename)
+                
+                import shutil
+                shutil.copy2(video_file_path, local_copy_path)
+                print(f"✅ Video stored locally: {local_copy_path}")
+                
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to store video locally: {e}")
+                local_copy_path = None
+        
+        # Step 2: Generate thumbnail if configured
+        thumbnail_path = None
+        if video_config['upload_to_api']:
+            try:
+                # Always attempt thumbnail generation for API upload
+                video_dir = os.path.dirname(video_file_path)
+                video_name = os.path.splitext(os.path.basename(video_file_path))[0]
+                thumbnail_path = os.path.join(video_dir, f"{video_name}.jpg")
+                
+                print(f"🔄 Generating thumbnail for: {os.path.basename(video_file_path)}")
+                generated_thumbnail_path = generate_thumbnail(video_file_path, thumbnail_path)
+                    
+            except Exception as e:
+                print(f"⚠️ Warning: Failed to generate thumbnail: {e}")
+                thumbnail_path = None
+        
+        # Step 3: Upload to API with better error handling
+        api_upload_success = False
+        if video_config['upload_to_api']:
+            print("🚀 Proceeding with video upload to API...")
+            try:
+                # Use context managers to ensure files are properly closed
+                with open(video_file_path, 'rb') as video_file:
+                    files = {
+                        'video_file': (os.path.basename(video_file_path), video_file, 'video/mp4')
+                    }
+                    
+                    # Add thumbnail if available
+                    if thumbnail_path and os.path.exists(thumbnail_path):
+                        with open(thumbnail_path, 'rb') as thumb_file:
+                            files['thumbnail_file'] = (os.path.basename(thumbnail_path), thumb_file, 'image/jpeg')
+                    
+                    # Prepare form data
+                    data = {
+                        'organization_id': str(organization_id or api_organization_id),
+                    }
+                    if camera_guid:
+                        data['guid'] = camera_guid
+                    
+                    print(f"📤 Uploading video: {os.path.basename(video_file_path)} ({file_size} bytes)")
+                    
+                    # Upload with retry logic
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        try:
+                            response = requests.post(
+                                video_config['api_url'], 
+                                files=files, 
+                                data=data, 
+                                timeout=300
+                            )
+                            
+                            if response.status_code == 200:
+                                print(f"✅ API upload successful on attempt {attempt + 1}")
+                                api_upload_success = True
+                                break
+                            else:
+                                print(f"⚠️ Upload attempt {attempt + 1} failed: HTTP {response.status_code}")
+                                if attempt < max_retries - 1:
+                                    print(f"🔄 Retrying in 5 seconds...")
+                                    time.sleep(5)
+                                    
+                        except requests.exceptions.Timeout:
+                            print(f"⚠️ Upload attempt {attempt + 1} timed out")
+                            if attempt < max_retries - 1:
+                                print(f"🔄 Retrying in 5 seconds...")
+                                time.sleep(5)
+                        except Exception as e:
+                            print(f"❌ Upload attempt {attempt + 1} failed: {e}")
+                            if attempt < max_retries - 1:
+                                print(f"🔄 Retrying in 5 seconds...")
+                                time.sleep(5)
+                    
+                    if not api_upload_success:
+                        print(f"❌ All upload attempts failed")
+                        
+            except Exception as e:
+                print(f"❌ Error uploading to API: {e}")
+                api_upload_success = False
+        
+        # Step 4: Summary and return
+        if video_config['store_locally'] and video_config['upload_to_api']:
+            if api_upload_success:
+                print(f"✅ Video processed successfully: Local storage + API upload")
+                return True
+            else:
+                print(f"⚠️ Video partially processed: Local storage only (API upload failed)")
+                return True  # Still consider it successful since we have a local copy
+        elif video_config['store_locally']:
+            print(f"✅ Video stored locally only")
+            return True
+        elif video_config['upload_to_api']:
+            if api_upload_success:
+                print(f"✅ Video uploaded to API successfully")
+                return True
+            else:
+                print(f"❌ Video upload to API failed")
+                return False
+        else:
+            print(f"⚠️ Warning: No storage method configured")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error in upload_video_to_api: {e}")
+        return False
+
+def cleanup_corrupted_files(output_dir, camera_name):
+    """Clean up corrupted or incomplete video files"""
+    try:
+        if not os.path.exists(output_dir):
+            return
+        
+        corrupted_files = []
+        for file in os.listdir(output_dir):
+            if file.endswith('.mp4'):
+                file_path = os.path.join(output_dir, file)
+                try:
+                    file_size = os.path.getsize(file_path)
+                    
+                    # Check if file is too small
+                    if file_size < 1024:
+                        corrupted_files.append((file_path, f"Too small ({file_size} bytes)"))
+                        continue
+                    
+                    # Check if file can be read and has valid MP4 structure
+                    try:
+                        with open(file_path, 'rb') as f:
+                            header = f.read(1024)
+                            if len(header) < 1024 or b'mdat' not in header:
+                                corrupted_files.append((file_path, "Invalid MP4 structure"))
+                                continue
+                    except Exception as e:
+                        corrupted_files.append((file_path, f"Cannot read file: {e}"))
+                        continue
+                        
+                except Exception as e:
+                    corrupted_files.append((file_path, f"Error checking file: {e}"))
+        
+        # Remove corrupted files
+        for file_path, reason in corrupted_files:
+            try:
+                os.remove(file_path)
+                print(f"🗑️ Cleaned up corrupted file [{camera_name}]: {os.path.basename(file_path)} - {reason}")
+            except Exception as e:
+                print(f"⚠️ Failed to remove corrupted file {file_path}: {e}")
+        
+        if corrupted_files:
+            print(f"🧹 Cleaned up {len(corrupted_files)} corrupted files for camera {camera_name}")
+        
+    except Exception as e:
+        print(f"Error in cleanup_corrupted_files for {camera_name}: {e}")
+
+def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid):
     """Function that runs in each camera thread - creates video recordings using ffmpeg"""
     print(f"Thread started for camera: {camera_name} ({camera_id})")
     
@@ -162,11 +451,11 @@ def start_camera_thread(camera):
     """Start a thread for a specific camera"""
     camera_id = camera['id']
     camera_name = camera['name']
-    camera_url = camera.get('URL', '')  # Get URL from camera config
+    camera_rtsp_url = camera.get('URL', '')  # Get URL from camera config
     camera_guid = camera.get('GUID', camera_id)  # Get GUID from camera config, fallback to ID
     
-    if not camera_url:
-        print(f"No URL found for camera: {camera_name} ({camera_id})")
+    if not camera_rtsp_url:
+        print(f"No RTSP URL found for camera: {camera_name} ({camera_id})")
         return
     
     # If thread already exists, stop it first
@@ -177,7 +466,7 @@ def start_camera_thread(camera):
     stop_flags[camera_id] = False
     
     # Create and start new thread
-    thread = threading.Thread(target=camera_thread_function, args=(camera_id, camera_name, camera_url, camera_guid))
+    thread = threading.Thread(target=camera_thread_function, args=(camera_id, camera_name, camera_rtsp_url, camera_guid))
     thread.daemon = True  # Make thread daemon so it stops when main program exits
     active_threads[camera_id] = thread
     thread.start()
@@ -203,7 +492,7 @@ def stop_camera_thread(camera_id):
 
 def load_cameras():
     """Load cameras from config.json"""
-    global cameras_data, base_video_path, groups_data
+    global cameras_data, base_video_path, groups_data, api_organization_id, video_config
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)
@@ -212,11 +501,30 @@ def load_cameras():
         base_video_path = config.get('base_video_path', './videos')
         groups_data = config.get('groups', [])
         
+        # Get organization ID from config
+        org = config.get('organization', {})
+        if org and 'id' in org:
+            api_organization_id = org['id']
+            print(f"Organization ID loaded from config: {api_organization_id}")
+        
+        # Load video configuration from config
+        if 'video_config' in config:
+            video_config.update(config['video_config'])
+            print("Video configuration loaded from config.json")
+        
         # Create base video directory if it doesn't exist
         os.makedirs(base_video_path, exist_ok=True)
         
+        # Create local storage directory if enabled
+        if video_config['store_locally']:
+            os.makedirs(video_config['local_storage_path'], exist_ok=True)
+            print(f"Local storage directory created: {video_config['local_storage_path']}")
+        
         print(f"Loaded {len(cameras_data)} cameras from config.json")
         print(f"Base video path: {base_video_path}")
+        print(f"Organization ID: {api_organization_id}")
+        print(f"Local storage: {'Enabled' if video_config['store_locally'] else 'Disabled'}")
+        print(f"API upload: {'Enabled' if video_config['upload_to_api'] else 'Disabled'}")
         print(f"Loaded {len(groups_data)} groups from config.json")
         
         # Start recording for cameras that were already recording
@@ -231,11 +539,16 @@ def load_cameras():
         groups_data = []
         os.makedirs(base_video_path, exist_ok=True)
         
+        # Create local storage directory if enabled
+        if video_config['store_locally']:
+            os.makedirs(video_config['local_storage_path'], exist_ok=True)
+        
         # Create default config
         default_config = {
             'base_video_path': base_video_path,
             'cameras': [],
-            'groups': []
+            'groups': [],
+            'video_config': video_config
         }
         
         with open('config.json', 'w') as f:
@@ -254,6 +567,7 @@ def save_cameras():
         
         config['cameras'] = cameras_data
         config['groups'] = groups_data
+        config['video_config'] = video_config
         
         with open('config.json', 'w') as f:
             json.dump(config, f, indent=2)
@@ -902,6 +1216,125 @@ def download_video(filename):
     except Exception as e:
         print(f"Error downloading video: {e}")
         return jsonify({'error': 'Failed to download video'}), 500
+
+@app.route('/api/video/upload/status')
+def get_upload_status():
+    """API endpoint to get video upload configuration and status"""
+    try:
+        return jsonify({
+            'api_url': video_config['api_url'],
+            'organization_id': api_organization_id,
+            'upload_enabled': video_config['upload_to_api'],
+            'local_storage_enabled': video_config['store_locally'],
+            'local_storage_path': video_config['local_storage_path'],
+            'keep_local_copies': video_config['keep_local_copies'],
+            'cleanup_after_upload': video_config['cleanup_after_upload'],
+            'timeout_seconds': 300,
+            'upload_types': {
+                '1_minute_segments': 'Automatically uploaded when created',
+                'hourly_videos': 'Automatically uploaded after merging'
+            },
+            'message': f"Videos are {'stored locally and ' if video_config['store_locally'] else ''}{'uploaded to API' if video_config['upload_to_api'] else 'not uploaded'}"
+        })
+    except Exception as e:
+        return jsonify({'error': f'Error getting upload status: {str(e)}'}), 500
+
+@app.route('/api/video/config', methods=['GET', 'POST'])
+def manage_video_config():
+    """API endpoint to get and update video configuration"""
+    global video_config
+    
+    if request.method == 'GET':
+        return jsonify({
+            'video_config': video_config,
+            'message': 'Current video storage and upload configuration'
+        })
+    
+    elif request.method == 'POST':
+        try:
+            data = request.get_json()
+            
+            # Update configuration fields
+            if 'store_locally' in data:
+                video_config['store_locally'] = bool(data['store_locally'])
+            if 'upload_to_api' in data:
+                video_config['upload_to_api'] = bool(data['upload_to_api'])
+            if 'api_url' in data:
+                video_config['api_url'] = str(data['api_url'])
+            if 'local_storage_path' in data:
+                video_config['local_storage_path'] = str(data['local_storage_path'])
+            if 'keep_local_copies' in data:
+                video_config['keep_local_copies'] = bool(data['keep_local_copies'])
+            if 'cleanup_after_upload' in data:
+                video_config['cleanup_after_upload'] = bool(data['cleanup_after_upload'])
+
+            # Create local storage directory if enabled
+            if video_config['store_locally']:
+                os.makedirs(video_config['local_storage_path'], exist_ok=True)
+            
+            return jsonify({
+                'success': True,
+                'video_config': video_config,
+                'message': 'Video configuration updated successfully'
+            })
+            
+        except Exception as e:
+            return jsonify({'error': f'Error updating video configuration: {str(e)}'}), 500
+
+@app.route('/api/cameras/<camera_id>/files')
+def get_camera_files(camera_id):
+    """API endpoint to get current video files for a camera"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    try:
+        camera_guid = camera.get('GUID', camera_id)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        segment_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+        
+        if not os.path.exists(segment_dir):
+            return jsonify({
+                'camera_id': camera_id,
+                'camera_name': camera['name'],
+                'files': [],
+                'directory': segment_dir,
+                'exists': False
+            })
+        
+        # Get all mp4 files in the directory
+        files = []
+        for file in os.listdir(segment_dir):
+            if file.endswith('.mp4'):
+                file_path = os.path.join(segment_dir, file)
+                file_stat = os.stat(file_path)
+                files.append({
+                    'name': file,
+                    'size': file_stat.st_size,
+                    'modified': datetime.fromtimestamp(file_stat.st_mtime).isoformat(),
+                    'path': file_path
+                })
+        
+        # Sort files by name
+        files.sort(key=lambda x: x['name'])
+        
+        return jsonify({
+            'camera_id': camera_id,
+            'camera_name': camera['name'],
+            'files': files,
+            'directory': segment_dir,
+            'exists': True,
+            'total_files': len(files)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Error getting files: {str(e)}'}), 500
 
 def main():
     """Main function"""
