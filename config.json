@@ -47,18 +47,20 @@
       "name": "Axis Communications AB Camera",
       "location": "abc",
       "ip_address": "192.168.1.14",
+      "mac_address": "00:17:88:12:34:56",
       "model": "Axis Communications AB",
+      "serial_number": "",
       "organization_id": "",
       "status": "Active",
-      "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
-      "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
+      "url": "rtsp://root:k2bseucre%253F%253F%253F@192.168.1.14:554/axis-media/media.amp",
+      "URL": "rtsp://root:k2bseucre%253F%253F%253F@192.168.1.14:554/axis-media/media.amp",
       "GUID": "990ea75c-f1f0-43bd-99c2-0591f09fea3e",
       "description": "",
       "is_recording": true,
       "frame_rate": 30,
       "camera_settings": {
         "frame_rate": 30,
-        "resolution": "1920x1080",
+        "resolution": "640x480",
         "video_bitrate": 4000,
         "enable_audio": true,
         "audio_bitrate": 128,
@@ -66,7 +68,7 @@
         "crf": 23,
         "segment_time": 10
       },
-      "resolution": "1920x1080",
+      "resolution": "640x480",
       "video_bitrate": 4000,
       "enable_audio": true,
       "audio_bitrate": 128,
@@ -138,7 +140,7 @@
           "admin@gmail.com"
         ]
       },
-      "updated_at": "2025-09-13T11:16:41.926987"
+      "updated_at": "2025-09-13T14:01:01.165236"
     }
   ],
   "multi_camera_selections": [
@@ -173,5 +175,12 @@
       "name": "abc",
       "camera_ids": []
     }
-  ]
+  ],
+  "video_upload_config": {
+    "upload_to_api": true,
+    "store_locally": true,
+    "api_url": "http://localhost:8000/api/videos/upload",
+    "api_key": "your_api_key_here",
+    "organization_id": "org_001"
+  }
 }

@@ -8,6 +8,7 @@ import uuid
 import requests
 import cv2
 import glob
+import urllib.parse
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file
 
@@ -158,9 +159,49 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
             print(f"❌ Error: Cannot read video file: {e}")
             return False
         
-        # For now, just simulate successful upload
-        print(f"✅ Video uploaded successfully: {os.path.basename(video_file_path)} ({file_size} bytes)")
-        return True
+        # Upload to API
+        if not video_config.get('upload_to_api', True):
+            print(f"📁 Video upload disabled, storing locally only: {os.path.basename(video_file_path)}")
+            return True
+        
+        api_url = video_config.get('api_url', 'http://localhost:8000/api/videos/upload')
+        api_key = video_config.get('api_key', '')
+        
+        # Prepare headers
+        headers = {
+            'Authorization': f'Bearer {api_key}' if api_key else '',
+            'X-Organization-ID': organization_id or api_organization_id,
+            'X-Camera-GUID': camera_guid or '',
+        }
+        
+        # Prepare files for upload
+        with open(video_file_path, 'rb') as video_file:
+            files = {
+                'video': (os.path.basename(video_file_path), video_file, 'video/mp4')
+            }
+            
+            # Additional metadata
+            data = {
+                'organization_id': organization_id or api_organization_id,
+                'camera_guid': camera_guid or '',
+                'file_size': file_size,
+                'upload_timestamp': datetime.now().isoformat()
+            }
+            
+            try:
+                print(f"📤 Uploading video to: {api_url}")
+                response = requests.post(api_url, files=files, data=data, headers=headers, timeout=300)
+                
+                if response.status_code == 200:
+                    print(f"✅ Video uploaded successfully: {os.path.basename(video_file_path)} ({file_size} bytes)")
+                    return True
+                else:
+                    print(f"❌ Upload failed with status {response.status_code}: {response.text}")
+                    return False
+                    
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Upload request failed: {e}")
+                return False
         
     except Exception as e:
         print(f"❌ Error in upload_video_to_api: {e}")
@@ -576,6 +617,35 @@ def stop_camera_thread(camera_id):
         
         print(f"Stopped recording thread for camera ID: {camera_id}")
 
+def validate_camera_credentials(camera):
+    """Validate that camera credentials match the RTSP URL"""
+    try:
+        username = camera.get('username', 'root')
+        password = camera.get('password', '')
+        ip_address = camera.get('ip_address', '')
+        port = camera.get('port', '554')
+        path = camera.get('path', '/axis-media/media.amp')
+        
+        # Construct expected RTSP URL
+        if username and password and ip_address:
+            encoded_password = urllib.parse.quote(password, safe='')
+            expected_url = f"rtsp://{username}:{encoded_password}@{ip_address}:{port}{path}"
+            
+            # Check if the stored URL matches the constructed one
+            stored_url = camera.get('url') or camera.get('URL', '')
+            if stored_url and stored_url != expected_url:
+                print(f"Warning: RTSP URL mismatch for camera {camera.get('name', 'Unknown')}")
+                print(f"Expected: {expected_url}")
+                print(f"Stored: {stored_url}")
+                # Update the stored URL to match credentials
+                camera['url'] = expected_url
+                camera['URL'] = expected_url
+                return True
+        return True
+    except Exception as e:
+        print(f"Error validating credentials for camera {camera.get('name', 'Unknown')}: {e}")
+        return False
+
 def load_cameras():
     """Load cameras from config.json"""
     global cameras_data, base_video_path, groups_data
@@ -587,8 +657,18 @@ def load_cameras():
         base_video_path = config.get('base_video_path', './videos')
         groups_data = config.get('groups', [])
         
+        # Load video upload configuration
+        upload_config = config.get('video_upload_config', {})
+        if upload_config:
+            video_config.update(upload_config)
+            api_organization_id = upload_config.get('organization_id', api_organization_id)
+        
         # Create base video directory if it doesn't exist
         os.makedirs(base_video_path, exist_ok=True)
+        
+        # Validate and sync camera credentials
+        for camera in cameras_data:
+            validate_camera_credentials(camera)
         
         print(f"Loaded {len(cameras_data)} cameras from config.json")
         print(f"Base video path: {base_video_path}")
@@ -778,9 +858,15 @@ def create_camera():
         'name': name,
         'location': location or 'Unassigned',
         'ip_address': ip_address,
+        'mac_address': data.get('mac_address', ''),
         'model': data.get('model', ''),
+        'serial_number': data.get('serial_number', ''),
         'organization_id': data.get('organization_id', ''),
         'status': status,
+        'username': data.get('username', 'root'),
+        'password': data.get('password', ''),
+        'port': data.get('port', '554'),
+        'path': data.get('path', '/axis-media/media.amp'),
         'url': url_value,
         'URL': url_value,
         'GUID': guid,
@@ -834,7 +920,7 @@ def update_camera(camera_id):
         camera['ip_address'] = new_ip
 
     # Update simple fields
-    for field in ['name', 'location', 'model', 'organization_id', 'status', 'description']:
+    for field in ['name', 'location', 'model', 'serial_number', 'mac_address', 'organization_id', 'status', 'description', 'username', 'password', 'port', 'path']:
         if field in data and isinstance(data[field], str):
             camera[field] = data[field].strip()
 
@@ -1052,6 +1138,56 @@ def get_thread_status():
         }
     return jsonify(thread_status)
 
+@app.route('/api/config/upload', methods=['GET', 'POST'])
+def config_upload():
+    """Get or update video upload configuration"""
+    global video_config, api_organization_id
+    
+    if request.method == 'GET':
+        return jsonify({
+            'upload_to_api': video_config.get('upload_to_api', True),
+            'store_locally': video_config.get('store_locally', True),
+            'api_url': video_config.get('api_url', 'http://localhost:8000/api/videos/upload'),
+            'api_key': video_config.get('api_key', ''),
+            'organization_id': api_organization_id
+        })
+    
+    elif request.method == 'POST':
+        data = request.get_json() or {}
+        
+        # Update configuration
+        if 'upload_to_api' in data:
+            video_config['upload_to_api'] = bool(data['upload_to_api'])
+        if 'store_locally' in data:
+            video_config['store_locally'] = bool(data['store_locally'])
+        if 'api_url' in data:
+            video_config['api_url'] = str(data['api_url']).strip()
+        if 'api_key' in data:
+            video_config['api_key'] = str(data['api_key']).strip()
+        if 'organization_id' in data:
+            api_organization_id = str(data['organization_id']).strip()
+        
+        # Save to config file
+        try:
+            with open('config.json', 'r') as f:
+                config = json.load(f)
+            
+            config['video_upload_config'] = {
+                'upload_to_api': video_config['upload_to_api'],
+                'store_locally': video_config['store_locally'],
+                'api_url': video_config['api_url'],
+                'api_key': video_config['api_key'],
+                'organization_id': api_organization_id
+            }
+            
+            with open('config.json', 'w') as f:
+                json.dump(config, f, indent=2)
+            
+            return jsonify({'message': 'Upload configuration updated successfully'})
+            
+        except Exception as e:
+            return jsonify({'error': f'Failed to save configuration: {str(e)}'}), 500
+
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
     """API endpoint to get camera frame as MJPEG stream"""
@@ -1065,8 +1201,12 @@ def get_camera_frame(camera_id):
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
     
-    camera_url = camera.get('URL', '')
-    if not camera_url:
+    # Get RTSP URL from query parameter or camera config
+    rtsp_url = request.args.get('rtsp_url')
+    if not rtsp_url:
+        rtsp_url = camera.get('URL', '') or camera.get('url', '')
+    
+    if not rtsp_url:
         return jsonify({'error': 'Camera URL not configured'}), 400
     
     try:
@@ -1074,7 +1214,7 @@ def get_camera_frame(camera_id):
         ffmpeg_cmd = [
             "ffmpeg",
             "-rtsp_transport", "tcp",
-            "-i", camera_url,
+            "-i", rtsp_url,
             "-f", "mjpeg",
             "-q:v", "5",  # Quality level (1-31, lower is better)
             "-r", "10",   # Frame rate

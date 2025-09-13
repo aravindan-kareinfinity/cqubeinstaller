@@ -1538,8 +1538,18 @@
                                     <input type="text" id="cameraIP" name="ip_address" required>
                                 </div>
                                 <div class="form-group">
+                                    <label for="cameraMAC">MAC Address</label>
+                                    <input type="text" id="cameraMAC" name="mac_address" placeholder="00:17:88:12:34:56">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
                                     <label for="cameraModel">Model</label>
                                     <input type="text" id="cameraModel" name="model">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraSerial">Serial Number</label>
+                                    <input type="text" id="cameraSerial" name="serial_number" placeholder="Optional">
                                 </div>
                             </div>
                             <div class="form-row">
@@ -1558,8 +1568,28 @@
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label for="cameraURL">RTSP URL</label>
-                                    <input type="text" id="cameraURL" name="url" placeholder="rtsp://username:password@ip:port/path">
+                                    <label for="cameraUsername">Username</label>
+                                    <input type="text" id="cameraUsername" name="username" placeholder="root">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraPassword">Password</label>
+                                    <input type="password" id="cameraPassword" name="password" placeholder="password">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraPort">Port</label>
+                                    <input type="number" id="cameraPort" name="port" placeholder="554" value="554">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraPath">Path</label>
+                                    <input type="text" id="cameraPath" name="path" placeholder="/axis-media/media.amp" value="/axis-media/media.amp">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraURL">RTSP URL (Auto-generated)</label>
+                                    <input type="text" id="cameraURL" name="url" placeholder="rtsp://username:password@ip:port/path" readonly>
                                 </div>
                             </div>
                             <div class="form-row">
@@ -2333,6 +2363,7 @@
                         <p><strong>ID:</strong> ${camera.id}</p>
                         <p><strong>Location:</strong> ${camera.location}</p>
                         <p><strong>IP:</strong> ${camera.ip_address}</p>
+                        <p><strong>MAC:</strong> ${camera.mac_address || 'Not specified'}</p>
                         <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${
             camera.status
           }</span></p>
@@ -2495,9 +2526,12 @@
                 streamBtn.className = 'btn-stream';
             } else {
                 // Start stream
+                const camera = cameras.find(c => c.id === cameraId);
+                const rtspURL = camera?.url || camera?.URL;
+                
                 feedDiv.innerHTML = `
-                    <img src="/api/cameras/${cameraId}/frame" 
-                         alt="Live feed from ${cameras.find(c => c.id === cameraId)?.name}" 
+                    <img src="/api/cameras/${cameraId}/frame?rtsp_url=${encodeURIComponent(rtspURL || '')}" 
+                         alt="Live feed from ${camera?.name}" 
                          onerror="handleStreamError('${cameraId}')"
                          onload="handleStreamLoad('${cameraId}')">
                     <div class="stream-loading" id="loading-${cameraId}">
@@ -2572,7 +2606,7 @@
                             }', '${(d.vendor || "").replace(
               /'/g,
               "&#39;"
-            )}')">Add</button>
+            )}', '${d.mac_address || ''}')">Add</button>
                         </div>
                     </div>`;
                 });
@@ -2588,7 +2622,7 @@
             }
         }
 
-        function openDiscoveryAddForm(ip, vendor) {
+        function openDiscoveryAddForm(ip, vendor, macAddress = '') {
             // Open the camera modal and populate with discovered camera data
             openCameraModal();
             
@@ -2596,9 +2630,17 @@
             setTimeout(() => {
                 document.getElementById("cameraName").value = vendor ? vendor + " Camera" : "";
                 document.getElementById("cameraIP").value = ip || "";
+                document.getElementById("cameraMAC").value = macAddress || "";
                 document.getElementById("cameraLocation").value = "";
-                document.getElementById("cameraURL").value = "";
                 document.getElementById("cameraModel").value = vendor || "";
+                document.getElementById("cameraSerial").value = "";
+                document.getElementById("cameraUsername").value = "root";
+                document.getElementById("cameraPassword").value = "";
+                document.getElementById("cameraPort").value = "554";
+                document.getElementById("cameraPath").value = "/axis-media/media.amp";
+                
+                // Update RTSP URL
+                updateRTSPURL();
             }, 100);
         }
 
@@ -2646,15 +2688,44 @@
             await addCamera({
                 name,
                 ip_address: ip,
+                mac_address: '', // Will be populated from discovery if available
                 location,
+                username,
+                password,
+                port,
+                path,
                 url,
                 model,
+                serial_number: '',
                 organization_id,
                 status,
                 description,
                 is_recording,
             });
             cancelDiscoveryAddForm();
+        }
+
+        // Function to construct RTSP URL from components
+        function constructRTSPURL(username, password, ip, port, path) {
+            if (!username || !password || !ip) return '';
+            
+            const encodedPassword = encodeURIComponent(password);
+            const portStr = port ? `:${port}` : '';
+            const pathStr = path ? (path.startsWith('/') ? path : `/${path}`) : '';
+            
+            return `rtsp://${username}:${encodedPassword}@${ip}${portStr}${pathStr}`;
+        }
+
+        // Function to update RTSP URL when fields change
+        function updateRTSPURL() {
+            const username = document.getElementById('cameraUsername').value;
+            const password = document.getElementById('cameraPassword').value;
+            const ip = document.getElementById('cameraIP').value;
+            const port = document.getElementById('cameraPort').value;
+            const path = document.getElementById('cameraPath').value;
+            
+            const rtspURL = constructRTSPURL(username, password, ip, port, path);
+            document.getElementById('cameraURL').value = rtspURL;
         }
 
         function collectFormData() {
@@ -2665,9 +2736,15 @@
             data.name = formData.get('name');
             data.location = formData.get('location');
             data.ip_address = formData.get('ip_address');
+            data.mac_address = formData.get('mac_address');
             data.model = formData.get('model');
+            data.serial_number = formData.get('serial_number');
             data.status = formData.get('status');
             data.organization_id = formData.get('organization_id');
+            data.username = formData.get('username');
+            data.password = formData.get('password');
+            data.port = formData.get('port');
+            data.path = formData.get('path');
             data.url = formData.get('url');
             data.description = formData.get('description');
             
@@ -2838,6 +2915,11 @@
             console.log('Title element:', title);
             console.log('Form element:', form);
             
+            if (!modal) {
+                console.error('Modal element not found!');
+                return;
+            }
+            
             if (cameraId) {
                 // Edit mode
                 editingCameraId = cameraId;
@@ -2845,6 +2927,7 @@
                 console.log('Camera found for editing:', camera);
                 if (!camera) {
                     console.error('Camera not found for ID:', cameraId);
+                    alert('Camera not found!');
                     return;
                 }
                 
@@ -2908,8 +2991,28 @@
             document.getElementById('notificationCooldown').value = '5';
         }
 
+        // Function to parse RTSP URL and extract components
+        function parseRTSPURL(rtspUrl) {
+            if (!rtspUrl) return { username: 'root', password: '', port: '554', path: '/axis-media/media.amp' };
+            
+            try {
+                const url = new URL(rtspUrl);
+                const username = url.username || 'root';
+                const password = url.password || '';
+                const port = url.port || '554';
+                const path = url.pathname || '/axis-media/media.amp';
+                
+                return { username, password, port, path };
+            } catch (e) {
+                console.warn('Failed to parse RTSP URL:', rtspUrl, e);
+                return { username: 'root', password: '', port: '554', path: '/axis-media/media.amp' };
+            }
+        }
+
         function populateCameraForm(camera) {
             try {
+                console.log('Populating form with camera data:', camera);
+                
                 // Basic info
                 const nameEl = document.getElementById('cameraName');
                 if (nameEl) nameEl.value = camera.name || '';
@@ -2920,8 +3023,14 @@
                 const ipEl = document.getElementById('cameraIP');
                 if (ipEl) ipEl.value = camera.ip_address || '';
                 
+                const macEl = document.getElementById('cameraMAC');
+                if (macEl) macEl.value = camera.mac_address || '';
+                
                 const modelEl = document.getElementById('cameraModel');
                 if (modelEl) modelEl.value = camera.model || '';
+                
+                const serialEl = document.getElementById('cameraSerial');
+                if (serialEl) serialEl.value = camera.serial_number || '';
                 
                 const statusEl = document.getElementById('cameraStatus');
                 if (statusEl) statusEl.value = camera.status || 'Active';
@@ -2929,11 +3038,32 @@
                 const orgEl = document.getElementById('cameraOrganization');
                 if (orgEl) orgEl.value = camera.organization_id || '';
                 
+                // Parse RTSP URL to extract components
+                const rtspUrl = camera.url || camera.URL || '';
+                const rtspComponents = parseRTSPURL(rtspUrl);
+                
+                // RTSP URL components
+                const usernameEl = document.getElementById('cameraUsername');
+                if (usernameEl) usernameEl.value = camera.username || rtspComponents.username;
+                
+                const passwordEl = document.getElementById('cameraPassword');
+                if (passwordEl) passwordEl.value = camera.password || rtspComponents.password;
+                
+                const portEl = document.getElementById('cameraPort');
+                if (portEl) portEl.value = camera.port || rtspComponents.port;
+                
+                const pathEl = document.getElementById('cameraPath');
+                if (pathEl) pathEl.value = camera.path || rtspComponents.path;
+                
                 const urlEl = document.getElementById('cameraURL');
-                if (urlEl) urlEl.value = camera.url || camera.URL || '';
+                if (urlEl) urlEl.value = rtspUrl;
                 
                 const descEl = document.getElementById('cameraDescription');
                 if (descEl) descEl.value = camera.description || '';
+                
+                console.log('Form fields populated, updating RTSP URL');
+                // Update RTSP URL after populating fields
+                updateRTSPURL();
                 
                 // Camera settings
                 const frameRateEl = document.getElementById('frameRate');
@@ -3287,6 +3417,15 @@
         // Load cameras when page loads
         document.addEventListener("DOMContentLoaded", () => {
             loadCameras();
+            
+            // Add event listeners for RTSP URL construction
+            const rtspFields = ['cameraUsername', 'cameraPassword', 'cameraIP', 'cameraPort', 'cameraPath'];
+            rtspFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', updateRTSPURL);
+                }
+            });
             // Sidebar navigation: show only selected area
             function showOnlySection(sectionKey) {
                 const cameraSec = document.getElementById("camera-section");
