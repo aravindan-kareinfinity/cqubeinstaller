@@ -11,6 +11,7 @@ import glob
 import urllib.parse
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, session, redirect, url_for, make_response
+from PIL import Image
 
 app = Flask(__name__)
 app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
@@ -41,6 +42,12 @@ video_config = {
 }
 api_organization_id = 'default_org'
 
+# Global variables for dedicated upload thread
+upload_thread = None
+upload_thread_running = False
+upload_queue = []  # Queue of videos waiting to be uploaded
+uploaded_files = set()  # Set of files that have been uploaded
+
 # Known camera vendors to help classify devices discovered on the LAN
 KNOWN_CAMERA_VENDORS = [
     'axis', 'hikvision', 'dahua', 'uniview', 'cp plus',
@@ -59,6 +66,204 @@ def get_mac_vendor(mac_address):
     except Exception:
         pass
     return "Unknown"
+
+def generate_video_thumbnail(video_path, thumbnail_path, timestamp_seconds=5):
+    """Generate a thumbnail from video at specified timestamp"""
+    try:
+        # Use OpenCV to capture frame at specified timestamp
+        cap = cv2.VideoCapture(video_path)
+        
+        if not cap.isOpened():
+            print(f"❌ Could not open video for thumbnail: {video_path}")
+            return False
+        
+        # Get video properties
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Calculate frame number for the timestamp
+        frame_number = min(int(timestamp_seconds * fps), total_frames - 1)
+        
+        # Set frame position
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        
+        # Read frame
+        ret, frame = cap.read()
+        cap.release()
+        
+        if not ret or frame is None:
+            print(f"❌ Could not read frame for thumbnail: {video_path}")
+            return False
+        
+        # Resize frame to thumbnail size (320x240)
+        height, width = frame.shape[:2]
+        aspect_ratio = width / height
+        new_width = 320
+        new_height = int(new_width / aspect_ratio)
+        
+        resized_frame = cv2.resize(frame, (new_width, new_height))
+        
+        # Convert BGR to RGB for PIL
+        rgb_frame = cv2.cvtColor(resized_frame, cv2.COLOR_BGR2RGB)
+        
+        # Convert to PIL Image and save
+        pil_image = Image.fromarray(rgb_frame)
+        pil_image.save(thumbnail_path, 'JPEG', quality=85)
+        
+        print(f"✅ Thumbnail generated: {os.path.basename(thumbnail_path)}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Error generating thumbnail for {video_path}: {e}")
+        return False
+
+def dedicated_upload_worker():
+    """Dedicated thread that continuously uploads videos to server"""
+    global upload_thread_running, upload_queue, uploaded_files
+    
+    print("🚀 Starting dedicated upload worker thread...")
+    
+    while upload_thread_running:
+        try:
+            # Scan for new video files in the videos directory
+            if os.path.exists(base_video_path):
+                for root, dirs, files in os.walk(base_video_path):
+                    for file in files:
+                        if file.endswith('.mp4'):
+                            file_path = os.path.join(root, file)
+                            
+                            # Skip if already uploaded
+                            if file_path in uploaded_files:
+                                continue
+                            
+                            # Check if file is ready for upload (older than 10 seconds and stable)
+                            try:
+                                file_age = time.time() - os.path.getctime(file_path)
+                                if file_age < 10:  # File too new
+                                    continue
+                                
+                                # Check if file is stable
+                                size1 = os.path.getsize(file_path)
+                                time.sleep(2)
+                                size2 = os.path.getsize(file_path)
+                                
+                                if size1 != size2 or size1 < 1024:  # File still being written or too small
+                                    continue
+                                
+                                # Validate MP4 structure
+                                with open(file_path, 'rb') as f:
+                                    header = f.read(1024)
+                                    if b'mdat' not in header:
+                                        print(f"⚠️ Invalid MP4 file, skipping: {file}")
+                                        uploaded_files.add(file_path)  # Mark as processed to avoid retry
+                                        continue
+                                
+                                # Extract camera GUID from path
+                                path_parts = file_path.replace('\\', '/').split('/')
+                                camera_guid = None
+                                organization_id = api_organization_id
+                                
+                                # Look for GUID in path (format: videos/date/guid/hour/file.mp4)
+                                for i, part in enumerate(path_parts):
+                                    if part == 'videos' and i + 3 < len(path_parts):
+                                        # Check if next part looks like a date (YYYY-MM-DD)
+                                        if len(path_parts[i + 1]) == 10 and '-' in path_parts[i + 1]:
+                                            camera_guid = path_parts[i + 2]
+                                            break
+                                
+                                if not camera_guid:
+                                    print(f"⚠️ Could not extract camera GUID from path: {file_path}")
+                                    uploaded_files.add(file_path)
+                                    continue
+                                
+                                # Find camera config to get organization_id
+                                camera_config = None
+                                for camera in cameras_data:
+                                    if camera.get('GUID') == camera_guid:
+                                        camera_config = camera
+                                        break
+                                
+                                if camera_config:
+                                    organization_id = camera_config.get('organization_id', api_organization_id)
+                                
+                                # Generate thumbnail
+                                thumbnail_path = None
+                                try:
+                                    thumbnail_filename = f"thumb_{os.path.splitext(file)[0]}.jpg"
+                                    thumbnail_path = os.path.join(os.path.dirname(file_path), thumbnail_filename)
+                                    
+                                    print(f"📷 Generating thumbnail for {file}...")
+                                    if generate_video_thumbnail(file_path, thumbnail_path, timestamp_seconds=5):
+                                        print(f"✅ Thumbnail generated: {thumbnail_filename}")
+                                    else:
+                                        print(f"⚠️ Thumbnail generation failed for {file}")
+                                        thumbnail_path = None
+                                except Exception as e:
+                                    print(f"⚠️ Error generating thumbnail for {file}: {e}")
+                                    thumbnail_path = None
+                                
+                                # Upload video
+                                print(f"🚀 Uploading {file} (GUID: {camera_guid}, Org: {organization_id})")
+                                upload_success = upload_video_to_api(
+                                    file_path,
+                                    organization_id=organization_id,
+                                    camera_guid=camera_guid,
+                                    thumbnail_path=thumbnail_path
+                                )
+                                
+                                if upload_success:
+                                    print(f"✅ Successfully uploaded {file}")
+                                    uploaded_files.add(file_path)
+                                    
+                                    # Clean up thumbnail
+                                    if thumbnail_path and os.path.exists(thumbnail_path):
+                                        try:
+                                            os.remove(thumbnail_path)
+                                            print(f"🗑️ Cleaned up thumbnail: {os.path.basename(thumbnail_path)}")
+                                        except Exception as e:
+                                            print(f"⚠️ Could not clean up thumbnail: {e}")
+                                else:
+                                    print(f"❌ Failed to upload {file}")
+                                
+                            except Exception as e:
+                                print(f"⚠️ Error processing file {file}: {e}")
+                                continue
+            
+            # Sleep before next scan
+            time.sleep(5)  # Scan every 5 seconds
+            
+        except Exception as e:
+            print(f"❌ Error in dedicated upload worker: {e}")
+            time.sleep(10)  # Wait longer on error
+    
+    print("🛑 Dedicated upload worker thread stopped")
+
+def start_dedicated_upload_thread():
+    """Start the dedicated upload thread"""
+    global upload_thread, upload_thread_running
+    
+    if upload_thread_running:
+        print("⚠️ Dedicated upload thread is already running")
+        return
+    
+    upload_thread_running = True
+    upload_thread = threading.Thread(target=dedicated_upload_worker, name="DedicatedUploadWorker")
+    upload_thread.daemon = True
+    upload_thread.start()
+    print("✅ Dedicated upload thread started")
+
+def stop_dedicated_upload_thread():
+    """Stop the dedicated upload thread"""
+    global upload_thread_running, upload_thread
+    
+    if not upload_thread_running:
+        print("⚠️ Dedicated upload thread is not running")
+        return
+    
+    upload_thread_running = False
+    if upload_thread and upload_thread.is_alive():
+        upload_thread.join(timeout=5)
+    print("✅ Dedicated upload thread stopped")
 
 def test_rtsp_stream(camera_rtsp_url, camera_name):
     """Test if RTSP stream is accessible"""
@@ -150,8 +355,8 @@ def cleanup_corrupted_files(output_dir, camera_name):
     except Exception as e:
         print(f"Error in cleanup_corrupted_files for {camera_name}: {e}")
 
-def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None):
-    """Upload video file to API"""
+def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None, thumbnail_path=None):
+    """Upload video file to API with optional thumbnail"""
     try:
         # Check if file exists and is valid
         if not os.path.exists(video_file_path):
@@ -183,6 +388,12 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
                     files = {
                         'video_file': (os.path.basename(video_file_path), video_file, 'video/mp4')
                     }
+                    
+                    # Add thumbnail if available
+                    if thumbnail_path and os.path.exists(thumbnail_path):
+                        with open(thumbnail_path, 'rb') as thumb_file:
+                            files['thumbnail_file'] = (os.path.basename(thumbnail_path), thumb_file, 'image/jpeg')
+                            print(f"📷 Including thumbnail: {os.path.basename(thumbnail_path)}")
                     
                     # Prepare form data
                     data = {
@@ -413,6 +624,7 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                     last_files = set()
                     processing_files = set()
                     processed_files = set()  # Track files that have been processed
+                    pending_files = {}  # Track files that are too new: {filename: {'added_time': time, 'retry_count': int}}
                     cleanup_counter = 0  # Counter for periodic cleanup
                     while video_process.poll() is None and not stop_flags.get(camera_id, False):
                         try:
@@ -434,23 +646,69 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                 for new_file in new_files:
                                     print(f"New file detected [{camera_name}]: {new_file}")
                                     # Only add to processing if not already there and not already processed
-                                    if new_file not in processing_files and new_file not in processed_files:
+                                    if new_file not in processing_files and new_file not in processed_files and new_file not in pending_files:
                                         # Check file age to avoid processing very new files
                                         file_path = os.path.join(output_dir, new_file)
                                         try:
                                             file_age = time.time() - os.path.getctime(file_path)
                                             if file_age < 5:  # Less than 5 seconds old
-                                                print(f"⏳ File {new_file} too new ({file_age:.1f}s), waiting before processing")
-                                                time.sleep(2)  # Wait a bit more
+                                                print(f"⏳ File {new_file} too new ({file_age:.1f}s), adding to pending queue")
+                                                pending_files[new_file] = {
+                                                    'added_time': time.time(),
+                                                    'retry_count': 0,
+                                                    'file_path': file_path
+                                                }
+                                            else:
+                                                processing_files.add(new_file)
+                                                print(f"New video file added to processing queue [{camera_name}]: {new_file}")
                                         except Exception as e:
                                             print(f"⚠️ Could not check file age for {new_file}: {e}")
-                                        
-                                        processing_files.add(new_file)
-                                        print(f"New video file added to processing queue [{camera_name}]: {new_file}")
+                                            processing_files.add(new_file)
                                     elif new_file in processed_files:
                                         print(f"File {new_file} already processed, skipping")
+                                    elif new_file in pending_files:
+                                        print(f"File {new_file} already in pending queue")
                                     else:
                                         print(f"File already in processing queue [{camera_name}]: {new_file}")
+                            
+                            # Check pending files to see if they're ready for processing
+                            current_time = time.time()
+                            files_to_move_from_pending = []
+                            
+                            for pending_file, pending_info in pending_files.items():
+                                file_age = current_time - pending_info['added_time']
+                                pending_info['retry_count'] += 1
+                                
+                                # Check if file is ready (older than 5 seconds) or max retries reached
+                                if file_age >= 5 or pending_info['retry_count'] >= 10:
+                                    file_path = pending_info['file_path']
+                                    
+                                    # Final check if file exists and is stable
+                                    if os.path.exists(file_path):
+                                        try:
+                                            # Check if file is stable (no size changes for 2 seconds)
+                                            size1 = os.path.getsize(file_path)
+                                            time.sleep(2)
+                                            size2 = os.path.getsize(file_path)
+                                            
+                                            if size1 == size2 and size1 > 1024:  # File is stable and has content
+                                                print(f"✅ Pending file {pending_file} is now ready for processing (age: {file_age:.1f}s)")
+                                                processing_files.add(pending_file)
+                                                files_to_move_from_pending.append(pending_file)
+                                            else:
+                                                print(f"⚠️ Pending file {pending_file} still unstable, will retry")
+                                        except Exception as e:
+                                            print(f"⚠️ Error checking pending file {pending_file}: {e}")
+                                            files_to_move_from_pending.append(pending_file)  # Remove from pending
+                                    else:
+                                        print(f"⚠️ Pending file {pending_file} no longer exists, removing from queue")
+                                        files_to_move_from_pending.append(pending_file)
+                                else:
+                                    print(f"⏳ File {pending_file} still too new ({file_age:.1f}s), retry {pending_info['retry_count']}/10")
+                            
+                            # Remove files that are no longer pending
+                            for file_to_remove in files_to_move_from_pending:
+                                del pending_files[file_to_remove]
                             
                             # Check for completed files with better validation
                             completed_files = set()
@@ -523,18 +781,52 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                     
                                     print(f"✅ File {completed_file} passed final validation ({final_size} bytes)")
                                     
-                                    # Upload video segment
+                                    # Upload video segment with thumbnail
                                     def upload_segment():
                                         try:
                                             print(f"🚀 Starting upload for {completed_file} from camera {camera_name}")
+                                            
+                                            # Generate thumbnail
+                                            thumbnail_path = None
+                                            try:
+                                                # Create thumbnail filename
+                                                thumbnail_filename = f"thumb_{os.path.splitext(completed_file)[0]}.jpg"
+                                                thumbnail_path = os.path.join(output_dir, thumbnail_filename)
+                                                
+                                                print(f"📷 Generating thumbnail for {completed_file}...")
+                                                if generate_video_thumbnail(file_path, thumbnail_path, timestamp_seconds=5):
+                                                    print(f"✅ Thumbnail generated: {thumbnail_filename}")
+                                                else:
+                                                    print(f"⚠️ Thumbnail generation failed for {completed_file}")
+                                                    thumbnail_path = None
+                                            except Exception as e:
+                                                print(f"⚠️ Error generating thumbnail for {completed_file}: {e}")
+                                                thumbnail_path = None
+                                            
                                             # Get organization_id from camera config or use default
                                             camera_org_id = camera_config.get('organization_id') if camera_config else api_organization_id
                                             print(f"📋 Using organization_id: {camera_org_id} for camera {camera_name}")
-                                            upload_success = upload_video_to_api(file_path, organization_id=camera_org_id, camera_guid=camera_guid)
+                                            
+                                            # Upload video with thumbnail
+                                            upload_success = upload_video_to_api(
+                                                file_path, 
+                                                organization_id=camera_org_id, 
+                                                camera_guid=camera_guid,
+                                                thumbnail_path=thumbnail_path
+                                            )
+                                            
                                             if upload_success:
                                                 print(f"✅ Upload completed for {completed_file} from camera {camera_name}")
                                                 # Mark as processed to avoid reprocessing
                                                 processed_files.add(completed_file)
+                                                
+                                                # Clean up thumbnail file after successful upload
+                                                if thumbnail_path and os.path.exists(thumbnail_path):
+                                                    try:
+                                                        os.remove(thumbnail_path)
+                                                        print(f"🗑️ Cleaned up thumbnail: {os.path.basename(thumbnail_path)}")
+                                                    except Exception as e:
+                                                        print(f"⚠️ Could not clean up thumbnail: {e}")
                                             else:
                                                 print(f"❌ Upload failed for {completed_file} from camera {camera_name}")
                                         except Exception as e:
@@ -1180,7 +1472,36 @@ def get_upload_status():
         'timeout': video_config.get('upload_timeout', 30),
         'delay_between_files': video_config.get('upload_delay_between_files', 0.5),
         'organization_id': api_organization_id,
-        'store_locally': video_config['store_locally']
+        'store_locally': video_config['store_locally'],
+        'dedicated_upload_thread_running': upload_thread_running,
+        'uploaded_files_count': len(uploaded_files)
+    })
+
+@app.route('/api/video/upload/thread/start', methods=['POST'])
+def start_upload_thread():
+    """Start the dedicated upload thread"""
+    try:
+        start_dedicated_upload_thread()
+        return jsonify({'message': 'Dedicated upload thread started successfully'})
+    except Exception as e:
+        return jsonify({'error': f'Failed to start upload thread: {str(e)}'}), 500
+
+@app.route('/api/video/upload/thread/stop', methods=['POST'])
+def stop_upload_thread():
+    """Stop the dedicated upload thread"""
+    try:
+        stop_dedicated_upload_thread()
+        return jsonify({'message': 'Dedicated upload thread stopped successfully'})
+    except Exception as e:
+        return jsonify({'error': f'Failed to stop upload thread: {str(e)}'}), 500
+
+@app.route('/api/video/upload/thread/status')
+def get_upload_thread_status():
+    """Get the status of the dedicated upload thread"""
+    return jsonify({
+        'running': upload_thread_running,
+        'uploaded_files_count': len(uploaded_files),
+        'uploaded_files': list(uploaded_files)[-10:] if uploaded_files else []  # Last 10 uploaded files
     })
 
 @app.route('/api/cameras/<camera_id>/frame')
@@ -2091,6 +2412,9 @@ def main():
     # Load cameras first
     load_cameras()
     
+    # Start the dedicated upload thread
+    start_dedicated_upload_thread()
+    
     # Start the Flask server
     print("Starting Camera Management System...")
     print("Web interface available at: http://localhost:5000")
@@ -2100,6 +2424,8 @@ def main():
         app.run(host='0.0.0.0', port=5000, debug=False)  # Set debug=False for production
     except KeyboardInterrupt:
         print("\nShutting down...")
+        # Stop dedicated upload thread
+        stop_dedicated_upload_thread()
         # Stop all active threads
         for camera_id in list(active_threads.keys()):
             stop_camera_thread(camera_id)
