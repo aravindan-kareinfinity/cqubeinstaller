@@ -10,7 +10,7 @@ import cv2
 import glob
 import urllib.parse
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, session, redirect, url_for
+from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, session, redirect, url_for, make_response
 
 app = Flask(__name__)
 app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
@@ -1385,6 +1385,98 @@ def auth_status():
         })
     return jsonify({'authenticated': False})
 
+@app.route('/signup')
+def signup_page():
+    """Serve the signup page"""
+    return send_file('signup.html')
+
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
+    """Handle user signup with organization creation"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        organization_data = data.get('organization', {})
+        
+        if not username or not email or not password:
+            return jsonify({'message': 'Username, email, and password are required'}), 400
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Check if user already exists
+        users = config.get('users', [])
+        if any(user.get('username') == username for user in users):
+            return jsonify({'message': 'Username already exists'}), 400
+        
+        if any(user.get('email') == email for user in users):
+            return jsonify({'message': 'Email already exists'}), 400
+        
+        # Create new organization
+        new_org = {
+            'id': f"org_{str(uuid.uuid4())[:8]}",
+            'name': organization_data.get('name', ''),
+            'address': organization_data.get('address', ''),
+            'contact_email': organization_data.get('contact_email', ''),
+            'description': organization_data.get('description', ''),
+            'retention': organization_data.get('retention', 30),
+            'upload_username': organization_data.get('upload_username', 'admin'),
+            'upload_password': organization_data.get('upload_password', 'admin123'),
+            'storage_provider': organization_data.get('storage_provider', ''),
+            'server_video_path': organization_data.get('server_video_path', ''),
+            'client_video_access_path': organization_data.get('client_video_access_path', ''),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Create new user
+        new_user = {
+            'id': f"user_{str(uuid.uuid4())[:8]}",
+            'username': username,
+            'email': email,
+            'password': password,  # In production, hash this password
+            'name': username.title(),
+            'role': 'Admin',
+            'login_role': 'Owner',
+            'organization_id': new_org['id'],
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Initialize arrays if they don't exist
+        if 'organizations' not in config:
+            config['organizations'] = []
+        if 'users' not in config:
+            config['users'] = []
+        
+        # Add new organization and user
+        config['organizations'].append(new_org)
+        config['users'].append(new_user)
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify({
+            'message': 'Account created successfully',
+            'user': {
+                'id': new_user['id'],
+                'username': new_user['username'],
+                'email': new_user['email'],
+                'name': new_user['name'],
+                'role': new_user['role'],
+                'organization_id': new_user['organization_id']
+            },
+            'organization': new_org
+        }), 201
+        
+    except Exception as e:
+        print(f"Signup error: {e}")
+        return jsonify({'message': 'Failed to create account'}), 500
+
 # Static file routes
 @app.route('/<path:filename>')
 def serve_static(filename):
@@ -1547,6 +1639,151 @@ def delete_organization(org_id):
     except Exception as e:
         print(f"Error deleting organization: {e}")
         return jsonify({'error': 'Failed to delete organization'}), 500
+
+@app.route('/api/organizations/export', methods=['GET'])
+def export_organizations():
+    """Export organizations data in various formats"""
+    try:
+        format_type = request.args.get('format', 'json').lower()
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        organizations = config.get('organizations', [])
+        
+        if format_type == 'csv':
+            import csv
+            import io
+            
+            output = io.StringIO()
+            if organizations:
+                fieldnames = organizations[0].keys()
+                writer = csv.DictWriter(output, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(organizations)
+            
+            response = make_response(output.getvalue())
+            response.headers['Content-Type'] = 'text/csv'
+            response.headers['Content-Disposition'] = 'attachment; filename=organizations.csv'
+            return response
+            
+        elif format_type == 'xlsx':
+            try:
+                import openpyxl
+                from openpyxl import Workbook
+                
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Organizations"
+                
+                if organizations:
+                    # Write headers
+                    headers = list(organizations[0].keys())
+                    for col, header in enumerate(headers, 1):
+                        ws.cell(row=1, column=col, value=header)
+                    
+                    # Write data
+                    for row, org in enumerate(organizations, 2):
+                        for col, header in enumerate(headers, 1):
+                            ws.cell(row=row, column=col, value=org.get(header, ''))
+                
+                # Save to bytes
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+                
+                response = make_response(output.getvalue())
+                response.headers['Content-Type'] = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                response.headers['Content-Disposition'] = 'attachment; filename=organizations.xlsx'
+                return response
+                
+            except ImportError:
+                return jsonify({'error': 'openpyxl library not installed for Excel export'}), 500
+                
+        else:  # Default to JSON
+            response = make_response(json.dumps(organizations, indent=2))
+            response.headers['Content-Type'] = 'application/json'
+            response.headers['Content-Disposition'] = 'attachment; filename=organizations.json'
+            return response
+            
+    except Exception as e:
+        print(f"Export error: {e}")
+        return jsonify({'error': 'Failed to export organizations'}), 500
+
+@app.route('/api/organizations/import', methods=['POST'])
+def import_organizations():
+    """Import organizations data from file"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Parse file based on extension
+        filename = file.filename.lower()
+        
+        if filename.endswith('.json'):
+            import_data = json.load(file)
+        elif filename.endswith('.csv'):
+            import csv
+            import io
+            
+            content = file.read().decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(content))
+            import_data = list(csv_reader)
+        else:
+            return jsonify({'error': 'Unsupported file format. Use JSON or CSV.'}), 400
+        
+        # Validate and process import data
+        if not isinstance(import_data, list):
+            return jsonify({'error': 'Invalid data format. Expected array of organizations.'}), 400
+        
+        # Initialize organizations array if it doesn't exist
+        if 'organizations' not in config:
+            config['organizations'] = []
+        
+        imported_count = 0
+        for org_data in import_data:
+            # Generate new ID if not provided
+            if 'id' not in org_data or not org_data['id']:
+                org_data['id'] = f"org_{str(uuid.uuid4())[:8]}"
+            
+            # Add timestamps if not provided
+            if 'created_at' not in org_data:
+                org_data['created_at'] = datetime.now().isoformat()
+            if 'updated_at' not in org_data:
+                org_data['updated_at'] = datetime.now().isoformat()
+            
+            # Check if organization already exists
+            existing_org = next((org for org in config['organizations'] if org['id'] == org_data['id']), None)
+            if existing_org:
+                # Update existing organization
+                existing_org.update(org_data)
+                existing_org['updated_at'] = datetime.now().isoformat()
+            else:
+                # Add new organization
+                config['organizations'].append(org_data)
+                imported_count += 1
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify({
+            'message': f'Successfully imported {imported_count} new organizations',
+            'total_organizations': len(config['organizations'])
+        })
+        
+    except Exception as e:
+        print(f"Import error: {e}")
+        return jsonify({'error': 'Failed to import organizations'}), 500
 
 def main():
     """Main function"""
