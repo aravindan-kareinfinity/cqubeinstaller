@@ -274,23 +274,17 @@
                     <h3 class="section-title">User Information</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="username">Username <span class="required">*</span></label>
-                            <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                            <label for="name">Full Name <span class="required">*</span></label>
+                            <input type="text" id="name" name="name" placeholder="Enter your full name" required>
                         </div>
                         <div class="form-group">
                             <label for="email">Email Address <span class="required">*</span></label>
                             <input type="email" id="email" name="email" placeholder="Enter your email" required>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="password">Password <span class="required">*</span></label>
-                            <input type="password" id="password" name="password" placeholder="Create a password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
-                            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
-                        </div>
+                    <div class="form-group">
+                        <label for="password">Password <span class="required">*</span></label>
+                        <input type="password" id="password" name="password" placeholder="Create a password" required>
                     </div>
                 </div>
 
@@ -298,68 +292,12 @@
                 <div class="form-section">
                     <h3 class="section-title">Organization Information</h3>
                     <div class="form-group">
-                        <label for="orgName">Organization Name <span class="required">*</span></label>
-                        <input type="text" id="orgName" name="orgName" placeholder="Enter organization name" required>
+                        <label for="organization_name">Organization Name <span class="required">*</span></label>
+                        <input type="text" id="organization_name" name="organization_name" placeholder="Enter organization name" required>
                     </div>
                     <div class="form-group">
-                        <label for="orgAddress">Organization Address</label>
-                        <textarea id="orgAddress" name="orgAddress" placeholder="Enter organization address"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="orgEmail">Organization Contact Email</label>
-                        <input type="email" id="orgEmail" name="orgEmail" placeholder="Enter organization contact email">
-                    </div>
-                    <div class="form-group">
-                        <label for="orgDescription">Organization Description</label>
-                        <textarea id="orgDescription" name="orgDescription" placeholder="Describe your organization"></textarea>
-                    </div>
-                </div>
-
-                <!-- Storage Configuration Section -->
-                <div class="form-section">
-                    <h3 class="section-title">Storage Configuration</h3>
-                    <div class="storage-config">
-                        <h4>Video Storage Settings</h4>
-                        <div class="form-group">
-                            <label for="storageProvider">Storage Provider</label>
-                            <select id="storageProvider" name="storageProvider" onchange="updateStoragePaths()">
-                                <option value="">Select storage provider</option>
-                                <option value="aws-s3">AWS S3</option>
-                                <option value="gcs">Google Cloud Storage</option>
-                                <option value="azure-blob">Azure Blob Storage</option>
-                                <option value="firebase">Firebase Storage</option>
-                                <option value="cloudflare-r2">Cloudflare R2</option>
-                                <option value="digitalocean-spaces">DigitalOcean Spaces</option>
-                                <option value="local">Local Storage</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="serverVideoPath">Server Video Path</label>
-                            <input type="text" id="serverVideoPath" name="serverVideoPath" placeholder="Server path for video storage">
-                        </div>
-                        <div class="form-group">
-                            <label for="clientVideoAccessPath">Client Video Access Path</label>
-                            <input type="text" id="clientVideoAccessPath" name="clientVideoAccessPath" placeholder="Client URL for video access">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- General Configuration Section -->
-                <div class="form-section">
-                    <h3 class="section-title">General Configuration</h3>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="retention">Video Retention (days)</label>
-                            <input type="number" id="retention" name="retention" value="30" min="1" max="365">
-                        </div>
-                        <div class="form-group">
-                            <label for="uploadUsername">Upload Username</label>
-                            <input type="text" id="uploadUsername" name="uploadUsername" value="admin" placeholder="Username for video uploads">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="uploadPassword">Upload Password</label>
-                        <input type="password" id="uploadPassword" name="uploadPassword" value="admin123" placeholder="Password for video uploads">
+                        <label for="organization_description">Organization Description</label>
+                        <textarea id="organization_description" name="organization_description" placeholder="Describe your organization"></textarea>
                     </div>
                 </div>
 
@@ -380,48 +318,6 @@
     </div>
 
     <script>
-        // Storage provider examples
-        const storageExamples = {
-            'aws-s3': {
-                serverPath: 's3://your-bucket/videos/',
-                clientPath: 'https://your-bucket.s3.amazonaws.com/videos/'
-            },
-            'gcs': {
-                serverPath: 'gs://your-bucket/videos/',
-                clientPath: 'https://storage.googleapis.com/your-bucket/videos/'
-            },
-            'azure-blob': {
-                serverPath: 'azure://your-container/videos/',
-                clientPath: 'https://youraccount.blob.core.windows.net/your-container/videos/'
-            },
-            'firebase': {
-                serverPath: 'firebase://your-project/videos/',
-                clientPath: 'https://firebasestorage.googleapis.com/v0/b/your-project/o/videos/'
-            },
-            'cloudflare-r2': {
-                serverPath: 'r2://your-bucket/videos/',
-                clientPath: 'https://your-domain.r2.cloudflarestorage.com/videos/'
-            },
-            'digitalocean-spaces': {
-                serverPath: 'spaces://your-space/videos/',
-                clientPath: 'https://your-space.nyc3.digitaloceanspaces.com/videos/'
-            },
-            'local': {
-                serverPath: '/var/videos/',
-                clientPath: 'https://your-domain.com/videos/'
-            }
-        };
-
-        // Update storage paths based on provider
-        function updateStoragePaths() {
-            const provider = document.getElementById('storageProvider').value;
-            const examples = storageExamples[provider];
-            
-            if (examples) {
-                document.getElementById('serverVideoPath').value = examples.serverPath;
-                document.getElementById('clientVideoAccessPath').value = examples.clientPath;
-            }
-        }
 
         // Show alert message
         function showAlert(message, type) {
@@ -444,35 +340,13 @@
         document.getElementById('signupForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Validate passwords match
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            
-            if (password !== confirmPassword) {
-                showAlert('Passwords do not match', 'error');
-                return;
-            }
-
-            // Prepare organization data
-            const organizationData = {
-                name: document.getElementById('orgName').value,
-                address: document.getElementById('orgAddress').value || undefined,
-                contact_email: document.getElementById('orgEmail').value || undefined,
-                description: document.getElementById('orgDescription').value || undefined,
-                retention: parseInt(document.getElementById('retention').value) || 30,
-                upload_username: document.getElementById('uploadUsername').value || 'admin',
-                upload_password: document.getElementById('uploadPassword').value || 'admin123',
-                storage_provider: document.getElementById('storageProvider').value || undefined,
-                server_video_path: document.getElementById('serverVideoPath').value || undefined,
-                client_video_access_path: document.getElementById('clientVideoAccessPath').value || undefined
-            };
-
-            // Prepare user data
-            const userData = {
-                username: document.getElementById('username').value,
+            // Prepare signup data according to the new API structure
+            const signupData = {
+                name: document.getElementById('name').value,
                 email: document.getElementById('email').value,
-                password: password,
-                organization: organizationData
+                password: document.getElementById('password').value,
+                organization_name: document.getElementById('organization_name').value,
+                organization_description: document.getElementById('organization_description').value || ''
             };
             
             // Show loading state
@@ -480,12 +354,12 @@
             document.getElementById('loading').style.display = 'block';
             
             try {
-                const response = await fetch('/api/auth/signup', {
+                const response = await fetch('http://127.0.0.1:8000/api/auth/signup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(userData)
+                    body: JSON.stringify(signupData)
                 });
 
                 const result = await response.json();
@@ -498,11 +372,11 @@
                         window.location.href = '/login';
                     }, 2000);
                 } else {
-                    showAlert(result.message || 'Failed to create account. Please try again.', 'error');
+                    showAlert(result.message || result.error || 'Failed to create account. Please try again.', 'error');
                 }
             } catch (error) {
                 console.error('Signup error:', error);
-                showAlert('Failed to create account. Please try again.', 'error');
+                showAlert('Failed to create account. Please check if the API server is running on port 8000.', 'error');
             } finally {
                 // Hide loading state
                 document.getElementById('signupButton').disabled = false;

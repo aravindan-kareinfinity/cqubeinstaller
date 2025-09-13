@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile - CQUBEPRO AI-Powered Video Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer"
+    />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8fafc;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .main-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 20px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+        }
+
+        .logo h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 5px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 250px;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-left h1 {
+            color: #1e293b;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #64748b;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background: #3b82f6;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .profile-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 40px;
+        }
+
+        .profile-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .profile-role {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+
+        .profile-content {
+            padding: 30px;
+        }
+
+        .profile-tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: #9ca3af;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .required {
+            color: #dc2626;
+        }
+
+        .storage-config {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .storage-config h4 {
+            margin: 0 0 15px 0;
+            color: #374151;
+            font-size: 16px;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-card h4 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .info-value {
+            color: #374151;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-content {
+                padding: 20px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="logo.jpg" alt="CQUBEPRO Logo" onerror="this.style.display='none'">
+                <h2>CQUBEPRO</h2>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="/" class="nav-link">
+                        <i class="fas fa-home"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/cameras" class="nav-link">
+                        <i class="fas fa-video"></i>
+                        Cameras
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/organizations" class="nav-link">
+                        <i class="fas fa-building"></i>
+                        Organizations
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/profile" class="nav-link active">
+                        <i class="fas fa-user"></i>
+                        Profile
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Navbar -->
+            <div class="navbar">
+                <div class="navbar-left">
+                    <h1>Profile Management</h1>
+                </div>
+                <div class="navbar-right">
+                    <div class="user-info" id="userInfo">
+                        <div class="user-avatar" id="userAvatar">U</div>
+                        <span id="userName">Loading...</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="handleLogout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Profile Container -->
+            <div class="profile-container">
+                <div class="profile-header">
+                    <div class="profile-avatar" id="profileAvatar">U</div>
+                    <div class="profile-name" id="profileName">Loading...</div>
+                    <div class="profile-role" id="profileRole">Loading...</div>
+                </div>
+
+                <div class="profile-content">
+                    <div class="profile-tabs">
+                        <button class="tab-button active" onclick="switchTab('user')">User Information</button>
+                        <button class="tab-button" onclick="switchTab('organization')">Organization Details</button>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    <div id="alert-container"></div>
+
+                    <!-- User Information Tab -->
+                    <div id="userTab" class="tab-content active">
+                        <form id="userForm">
+                            <div class="form-section">
+                                <h3 class="section-title">Personal Information</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="userName">Full Name <span class="required">*</span></label>
+                                        <input type="text" id="userName" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userEmail">Email Address <span class="required">*</span></label>
+                                        <input type="email" id="userEmail" name="email" required>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="userRole">Role</label>
+                                        <input type="text" id="userRole" name="role" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="userLoginRole">Login Role</label>
+                                        <input type="text" id="userLoginRole" name="login_role" readonly>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3 class="section-title">Change Password</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="currentPassword">Current Password</label>
+                                        <input type="password" id="currentPassword" name="current_password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newPassword">New Password</label>
+                                        <input type="password" id="newPassword" name="new_password">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">Confirm New Password</label>
+                                    <input type="password" id="confirmPassword" name="confirm_password">
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Update Profile
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Organization Details Tab -->
+                    <div id="organizationTab" class="tab-content">
+                        <form id="organizationForm">
+                            <div class="form-section">
+                                <h3 class="section-title">Organization Information</h3>
+                                <div class="form-group">
+                                    <label for="orgName">Organization Name <span class="required">*</span></label>
+                                    <input type="text" id="orgName" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="orgAddress">Organization Address</label>
+                                    <textarea id="orgAddress" name="address" placeholder="Enter organization address"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="orgEmail">Organization Contact Email</label>
+                                    <input type="email" id="orgEmail" name="contact_email" placeholder="Enter organization contact email">
+                                </div>
+                                <div class="form-group">
+                                    <label for="orgDescription">Organization Description</label>
+                                    <textarea id="orgDescription" name="description" placeholder="Describe your organization"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3 class="section-title">Storage Configuration</h3>
+                                <div class="storage-config">
+                                    <h4>Video Storage Settings</h4>
+                                    <div class="form-group">
+                                        <label for="storageProvider">Storage Provider</label>
+                                        <select id="storageProvider" name="storage_provider" onchange="updateStoragePaths()">
+                                            <option value="">Select storage provider</option>
+                                            <option value="aws-s3">AWS S3</option>
+                                            <option value="gcs">Google Cloud Storage</option>
+                                            <option value="azure-blob">Azure Blob Storage</option>
+                                            <option value="firebase">Firebase Storage</option>
+                                            <option value="cloudflare-r2">Cloudflare R2</option>
+                                            <option value="digitalocean-spaces">DigitalOcean Spaces</option>
+                                            <option value="local">Local Storage</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="serverVideoPath">Server Video Path</label>
+                                        <input type="text" id="serverVideoPath" name="server_video_path" placeholder="Server path for video storage">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="clientVideoAccessPath">Client Video Access Path</label>
+                                        <input type="text" id="clientVideoAccessPath" name="client_video_access_path" placeholder="Client URL for video access">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3 class="section-title">General Configuration</h3>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="retention">Video Retention (days)</label>
+                                        <input type="number" id="retention" name="retention" min="1" max="365">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="uploadUsername">Upload Username</label>
+                                        <input type="text" id="uploadUsername" name="upload_username" placeholder="Username for video uploads">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="uploadPassword">Upload Password</label>
+                                    <input type="password" id="uploadPassword" name="upload_password" placeholder="Password for video uploads">
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Update Organization
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>Updating profile...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentOrganization = null;
+
+        // Storage provider examples
+        const storageExamples = {
+            'aws-s3': {
+                serverPath: 's3://your-bucket/videos/',
+                clientPath: 'https://your-bucket.s3.amazonaws.com/videos/'
+            },
+            'gcs': {
+                serverPath: 'gs://your-bucket/videos/',
+                clientPath: 'https://storage.googleapis.com/your-bucket/videos/'
+            },
+            'azure-blob': {
+                serverPath: 'azure://your-container/videos/',
+                clientPath: 'https://youraccount.blob.core.windows.net/your-container/videos/'
+            },
+            'firebase': {
+                serverPath: 'firebase://your-project/videos/',
+                clientPath: 'https://firebasestorage.googleapis.com/v0/b/your-project/o/videos/'
+            },
+            'cloudflare-r2': {
+                serverPath: 'r2://your-bucket/videos/',
+                clientPath: 'https://your-domain.r2.cloudflarestorage.com/videos/'
+            },
+            'digitalocean-spaces': {
+                serverPath: 'spaces://your-space/videos/',
+                clientPath: 'https://your-space.nyc3.digitaloceanspaces.com/videos/'
+            },
+            'local': {
+                serverPath: '/var/videos/',
+                clientPath: 'https://your-domain.com/videos/'
+            }
+        };
+
+        // Check authentication status
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    updateUserInterface();
+                    await loadUserData();
+                    await loadOrganizationData();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // Update user interface
+        function updateUserInterface() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name || currentUser.username;
+                document.getElementById('userAvatar').textContent = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
+                document.getElementById('profileName').textContent = currentUser.name || currentUser.username;
+                document.getElementById('profileRole').textContent = currentUser.role || 'User';
+                document.getElementById('profileAvatar').textContent = (currentUser.name || currentUser.username).charAt(0).toUpperCase();
+            }
+        }
+
+        // Load user data
+        async function loadUserData() {
+            try {
+                const response = await fetch('/api/users/profile');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    populateUserForm(data.user);
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showAlert('Failed to load user data', 'error');
+            }
+        }
+
+        // Load organization data
+        async function loadOrganizationData() {
+            try {
+                const response = await fetch('/api/organizations/profile');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentOrganization = data.organization;
+                    populateOrganizationForm(data.organization);
+                }
+            } catch (error) {
+                console.error('Error loading organization data:', error);
+                showAlert('Failed to load organization data', 'error');
+            }
+        }
+
+        // Populate user form
+        function populateUserForm(user) {
+            document.getElementById('userName').value = user.name || '';
+            document.getElementById('userEmail').value = user.email || '';
+            document.getElementById('userRole').value = user.role || '';
+            document.getElementById('userLoginRole').value = user.login_role || '';
+        }
+
+        // Populate organization form
+        function populateOrganizationForm(org) {
+            document.getElementById('orgName').value = org.name || '';
+            document.getElementById('orgAddress').value = org.address || '';
+            document.getElementById('orgEmail').value = org.contact_email || '';
+            document.getElementById('orgDescription').value = org.description || '';
+            document.getElementById('storageProvider').value = org.storage_provider || '';
+            document.getElementById('serverVideoPath').value = org.server_video_path || '';
+            document.getElementById('clientVideoAccessPath').value = org.client_video_access_path || '';
+            document.getElementById('retention').value = org.retention || 30;
+            document.getElementById('uploadUsername').value = org.upload_username || '';
+            document.getElementById('uploadPassword').value = org.upload_password || '';
+        }
+
+        // Update storage paths based on provider
+        function updateStoragePaths() {
+            const provider = document.getElementById('storageProvider').value;
+            const examples = storageExamples[provider];
+            
+            if (examples) {
+                document.getElementById('serverVideoPath').value = examples.serverPath;
+                document.getElementById('clientVideoAccessPath').value = examples.clientPath;
+            }
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            container.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Handle user form submission
+        document.getElementById('userForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Validate password change
+            if (data.current_password || data.new_password || data.confirm_password) {
+                if (!data.current_password || !data.new_password || !data.confirm_password) {
+                    showAlert('All password fields are required for password change', 'error');
+                    return;
+                }
+                
+                if (data.new_password !== data.confirm_password) {
+                    showAlert('New passwords do not match', 'error');
+                    return;
+                }
+            }
+            
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Profile updated successfully', 'success');
+                    await loadUserData(); // Reload user data
+                } else {
+                    showAlert(result.message || 'Failed to update profile', 'error');
+                }
+            } catch (error) {
+                console.error('Profile update error:', error);
+                showAlert('Failed to update profile', 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        // Handle organization form submission
+        document.getElementById('organizationForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Show loading state
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/organizations/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Organization updated successfully', 'success');
+                    await loadOrganizationData(); // Reload organization data
+                } else {
+                    showAlert(result.message || 'Failed to update organization', 'error');
+                }
+            } catch (error) {
+                console.error('Organization update error:', error);
+                showAlert('Failed to update organization', 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        // Handle logout
+        async function handleLogout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    sessionStorage.removeItem('isAuthenticated');
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+        });
+    </script>
+</body>
+
+</html>

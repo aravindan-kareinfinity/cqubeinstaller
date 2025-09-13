@@ -33,8 +33,11 @@ merging_tasks = {}
 video_config = {
     'upload_to_api': True,
     'store_locally': True,
-    'api_url': 'http://localhost:8000/api/videos/upload',
-    'api_key': 'your_api_key_here'
+    'api_url': 'http://127.0.0.1:8000/api/video/upload',
+    'api_key': 'your_api_key_here',
+    'upload_retry_attempts': 3,
+    'upload_timeout': 30,
+    'upload_delay_between_files': 0.5  # seconds
 }
 api_organization_id = 'default_org'
 
@@ -64,15 +67,27 @@ def test_rtsp_stream(camera_rtsp_url, camera_name):
         
         # Try to open the stream with OpenCV
         cap = cv2.VideoCapture(camera_rtsp_url)
+        
+        # Try to set RTSP transport if available (compatibility check)
+        try:
+            cap.set(cv2.CAP_PROP_RTSP_TRANSPORT, 1)  # Use TCP transport
+        except AttributeError:
+            print("CAP_PROP_RTSP_TRANSPORT not available in this OpenCV version")
+        
+        try:
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer size
+        except AttributeError:
+            print("CAP_PROP_BUFFERSIZE not available in this OpenCV version")
+        
         if not cap.isOpened():
             print(f"Error: Could not open RTSP stream for {camera_name}")
             return False
         
-        # Try to read a frame
+        # Try to read a frame with timeout
         ret, frame = cap.read()
         cap.release()
         
-        if ret:
+        if ret and frame is not None:
             print(f"RTSP stream test successful for {camera_name}")
             return True
         else:
@@ -160,9 +175,66 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
             print(f"❌ Error: Cannot read video file: {e}")
             return False
         
-        # For now, just simulate successful upload
-        print(f"✅ Video uploaded successfully: {os.path.basename(video_file_path)} ({file_size} bytes)")
-        return True
+        # Upload to API if configured
+        if video_config['upload_to_api']:
+            try:
+                # Prepare files for upload
+                with open(video_file_path, 'rb') as video_file:
+                    files = {
+                        'video_file': (os.path.basename(video_file_path), video_file, 'video/mp4')
+                    }
+                    
+                    # Prepare form data
+                    data = {
+                        'organization_id': str(organization_id or api_organization_id),
+                        'guid': str(camera_guid) if camera_guid else str(uuid.uuid4())
+                    }
+                    
+                    # Log upload attempt with more details
+                    print(f"📤 Starting upload attempt for {os.path.basename(video_file_path)}")
+                    print(f"📤 Target API: {video_config['api_url']}")
+                    print(f"📤 Organization ID: {data['organization_id']}")
+                    print(f"📤 Camera GUID: {data['guid']}")
+                    print(f"📤 File size: {file_size} bytes")
+                    
+                    # Upload with retry logic
+                    max_retries = video_config.get('upload_retry_attempts', 3)
+                    upload_timeout = video_config.get('upload_timeout', 30)
+                    
+                    for attempt in range(max_retries):
+                        try:
+                            response = requests.post(
+                                video_config['api_url'],
+                                files=files,
+                                data=data,
+                                timeout=upload_timeout
+                            )
+                            
+                            if response.status_code == 200:
+                                result = response.json()
+                                print(f"✅ Video uploaded successfully: {result.get('message', 'Upload completed')}")
+                                print(f"✅ File path: {result.get('file_path', 'Unknown')}")
+                                return True
+                            else:
+                                print(f"❌ Upload failed (attempt {attempt + 1}/{max_retries}): {response.status_code} - {response.text}")
+                                if attempt < max_retries - 1:
+                                    time.sleep(2 ** attempt)  # Exponential backoff
+                                
+                        except requests.exceptions.RequestException as e:
+                            print(f"❌ Upload error (attempt {attempt + 1}/{max_retries}): {e}")
+                            if attempt < max_retries - 1:
+                                time.sleep(2 ** attempt)  # Exponential backoff
+                    
+                    print(f"❌ All upload attempts failed for {os.path.basename(video_file_path)}")
+                    return False
+                    
+            except Exception as e:
+                print(f"❌ Error uploading to API: {e}")
+                return False
+        else:
+            # Just simulate successful upload if API upload is disabled
+            print(f"✅ Video uploaded successfully (local only): {os.path.basename(video_file_path)} ({file_size} bytes)")
+            return True
         
     except Exception as e:
         print(f"❌ Error in upload_video_to_api: {e}")
@@ -454,20 +526,28 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                     # Upload video segment
                                     def upload_segment():
                                         try:
-                                            upload_success = upload_video_to_api(file_path, camera_guid=camera_guid)
+                                            print(f"🚀 Starting upload for {completed_file} from camera {camera_name}")
+                                            # Get organization_id from camera config or use default
+                                            camera_org_id = camera_config.get('organization_id') if camera_config else api_organization_id
+                                            print(f"📋 Using organization_id: {camera_org_id} for camera {camera_name}")
+                                            upload_success = upload_video_to_api(file_path, organization_id=camera_org_id, camera_guid=camera_guid)
                                             if upload_success:
-                                                print(f"✅ Upload completed for {completed_file}")
+                                                print(f"✅ Upload completed for {completed_file} from camera {camera_name}")
                                                 # Mark as processed to avoid reprocessing
                                                 processed_files.add(completed_file)
                                             else:
-                                                print(f"❌ Upload failed for {completed_file}")
+                                                print(f"❌ Upload failed for {completed_file} from camera {camera_name}")
                                         except Exception as e:
-                                            print(f"❌ Upload error for {completed_file}: {e}")
+                                            print(f"❌ Upload error for {completed_file} from camera {camera_name}: {e}")
                                     
                                     upload_thread = threading.Thread(target=upload_segment, 
                                                                   name=f"upload_{camera_name}_{completed_file}")
                                     upload_thread.daemon = True
                                     upload_thread.start()
+                                    
+                                    # Small delay to prevent overwhelming the server with simultaneous uploads
+                                    upload_delay = video_config.get('upload_delay_between_files', 0.5)
+                                    time.sleep(upload_delay)
                                     
                                 except Exception as e:
                                     print(f"❌ Final validation failed for {completed_file}: {e}")
@@ -1090,6 +1170,19 @@ def get_thread_status():
         }
     return jsonify(thread_status)
 
+@app.route('/api/video/upload/status')
+def get_upload_status():
+    """API endpoint to get video upload configuration and status"""
+    return jsonify({
+        'upload_enabled': video_config['upload_to_api'],
+        'api_url': video_config['api_url'],
+        'retry_attempts': video_config.get('upload_retry_attempts', 3),
+        'timeout': video_config.get('upload_timeout', 30),
+        'delay_between_files': video_config.get('upload_delay_between_files', 0.5),
+        'organization_id': api_organization_id,
+        'store_locally': video_config['store_locally']
+    })
+
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
     """API endpoint to get camera frame as MJPEG stream"""
@@ -1392,16 +1485,17 @@ def signup_page():
 
 @app.route('/api/auth/signup', methods=['POST'])
 def signup():
-    """Handle user signup with organization creation"""
+    """Handle user signup with organization creation - simplified API"""
     try:
         data = request.get_json()
-        username = data.get('username')
+        name = data.get('name')
         email = data.get('email')
         password = data.get('password')
-        organization_data = data.get('organization', {})
+        organization_name = data.get('organization_name')
+        organization_description = data.get('organization_description', '')
         
-        if not username or not email or not password:
-            return jsonify({'message': 'Username, email, and password are required'}), 400
+        if not name or not email or not password or not organization_name:
+            return jsonify({'message': 'Name, email, password, and organization name are required'}), 400
         
         # Load current config
         with open('config.json', 'r') as f:
@@ -1409,25 +1503,22 @@ def signup():
         
         # Check if user already exists
         users = config.get('users', [])
-        if any(user.get('username') == username for user in users):
-            return jsonify({'message': 'Username already exists'}), 400
-        
         if any(user.get('email') == email for user in users):
             return jsonify({'message': 'Email already exists'}), 400
         
         # Create new organization
         new_org = {
             'id': f"org_{str(uuid.uuid4())[:8]}",
-            'name': organization_data.get('name', ''),
-            'address': organization_data.get('address', ''),
-            'contact_email': organization_data.get('contact_email', ''),
-            'description': organization_data.get('description', ''),
-            'retention': organization_data.get('retention', 30),
-            'upload_username': organization_data.get('upload_username', 'admin'),
-            'upload_password': organization_data.get('upload_password', 'admin123'),
-            'storage_provider': organization_data.get('storage_provider', ''),
-            'server_video_path': organization_data.get('server_video_path', ''),
-            'client_video_access_path': organization_data.get('client_video_access_path', ''),
+            'name': organization_name,
+            'description': organization_description,
+            'address': '',
+            'contact_email': email,
+            'retention': 30,
+            'upload_username': 'admin',
+            'upload_password': 'admin123',
+            'storage_provider': '',
+            'server_video_path': '',
+            'client_video_access_path': '',
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat()
         }
@@ -1435,10 +1526,9 @@ def signup():
         # Create new user
         new_user = {
             'id': f"user_{str(uuid.uuid4())[:8]}",
-            'username': username,
+            'name': name,
             'email': email,
             'password': password,  # In production, hash this password
-            'name': username.title(),
             'role': 'Admin',
             'login_role': 'Owner',
             'organization_id': new_org['id'],
@@ -1464,13 +1554,16 @@ def signup():
             'message': 'Account created successfully',
             'user': {
                 'id': new_user['id'],
-                'username': new_user['username'],
-                'email': new_user['email'],
                 'name': new_user['name'],
+                'email': new_user['email'],
                 'role': new_user['role'],
                 'organization_id': new_user['organization_id']
             },
-            'organization': new_org
+            'organization': {
+                'id': new_org['id'],
+                'name': new_org['name'],
+                'description': new_org['description']
+            }
         }), 201
         
     except Exception as e:
@@ -1784,6 +1877,214 @@ def import_organizations():
     except Exception as e:
         print(f"Import error: {e}")
         return jsonify({'error': 'Failed to import organizations'}), 500
+
+@app.route('/profile')
+def profile_page():
+    """Serve the profile page"""
+    return send_file('profile.html')
+
+@app.route('/api/users/profile', methods=['GET'])
+def get_user_profile():
+    """Get current user's profile"""
+    try:
+        if not session.get('is_authenticated'):
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session.get('user', {}).get('id')
+        if not user_id:
+            return jsonify({'error': 'User ID not found'}), 400
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Find user
+        users = config.get('users', [])
+        user = next((u for u in users if u.get('id') == user_id), None)
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'user': user
+        })
+        
+    except Exception as e:
+        print(f"Get user profile error: {e}")
+        return jsonify({'error': 'Failed to get user profile'}), 500
+
+@app.route('/api/users/profile', methods=['PUT'])
+def update_user_profile():
+    """Update current user's profile"""
+    try:
+        if not session.get('is_authenticated'):
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session.get('user', {}).get('id')
+        if not user_id:
+            return jsonify({'error': 'User ID not found'}), 400
+        
+        data = request.get_json()
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Find user
+        users = config.get('users', [])
+        user_index = next((i for i, u in enumerate(users) if u.get('id') == user_id), None)
+        
+        if user_index is None:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Update user data
+        user = users[user_index]
+        
+        # Update basic fields
+        if 'name' in data:
+            user['name'] = data['name']
+        if 'email' in data:
+            user['email'] = data['email']
+        
+        # Handle password change
+        if data.get('current_password') and data.get('new_password'):
+            if user.get('password') != data['current_password']:
+                return jsonify({'error': 'Current password is incorrect'}), 400
+            
+            user['password'] = data['new_password']
+        
+        user['updated_at'] = datetime.now().isoformat()
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        # Update session
+        session['user'] = user
+        
+        return jsonify({
+            'success': True,
+            'message': 'Profile updated successfully',
+            'user': user
+        })
+        
+    except Exception as e:
+        print(f"Update user profile error: {e}")
+        return jsonify({'error': 'Failed to update profile'}), 500
+
+@app.route('/api/organizations/profile', methods=['GET'])
+def get_organization_profile():
+    """Get current user's organization profile"""
+    try:
+        if not session.get('is_authenticated'):
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session.get('user', {}).get('id')
+        organization_id = session.get('user', {}).get('organization_id')
+        
+        if not user_id or not organization_id:
+            return jsonify({'error': 'User or organization ID not found'}), 400
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Find organization
+        organizations = config.get('organizations', [])
+        organization = next((org for org in organizations if org.get('id') == organization_id), None)
+        
+        if not organization:
+            return jsonify({'error': 'Organization not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'organization': organization
+        })
+        
+    except Exception as e:
+        print(f"Get organization profile error: {e}")
+        return jsonify({'error': 'Failed to get organization profile'}), 500
+
+@app.route('/api/organizations/profile', methods=['PUT'])
+def update_organization_profile():
+    """Update current user's organization profile"""
+    try:
+        if not session.get('is_authenticated'):
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user_id = session.get('user', {}).get('id')
+        organization_id = session.get('user', {}).get('organization_id')
+        
+        if not user_id or not organization_id:
+            return jsonify({'error': 'User or organization ID not found'}), 400
+        
+        data = request.get_json()
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        
+        # Find organization
+        organizations = config.get('organizations', [])
+        org_index = next((i for i, org in enumerate(organizations) if org.get('id') == organization_id), None)
+        
+        if org_index is None:
+            return jsonify({'error': 'Organization not found'}), 404
+        
+        # Update organization data
+        organization = organizations[org_index]
+        
+        # Update all fields
+        for key, value in data.items():
+            if value is not None and value != '':
+                organization[key] = value
+        
+        organization['updated_at'] = datetime.now().isoformat()
+        
+        # Save config
+        with open('config.json', 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Organization updated successfully',
+            'organization': organization
+        })
+        
+    except Exception as e:
+        print(f"Update organization profile error: {e}")
+        return jsonify({'error': 'Failed to update organization'}), 500
+
+@app.route('/api/config', methods=['GET'])
+def get_config():
+    """Get current config.json content"""
+    try:
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+        return jsonify(config)
+    except Exception as e:
+        print(f"Error reading config: {e}")
+        return jsonify({'error': 'Failed to read config'}), 500
+
+@app.route('/api/config', methods=['PUT'])
+def update_config():
+    """Update config.json content"""
+    try:
+        data = request.get_json()
+        
+        # Validate that we have the required structure
+        if not isinstance(data, dict):
+            return jsonify({'error': 'Invalid config data'}), 400
+        
+        # Write updated config to file
+        with open('config.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({'message': 'Config updated successfully'})
+    except Exception as e:
+        print(f"Error updating config: {e}")
+        return jsonify({'error': 'Failed to update config'}), 500
 
 def main():
     """Main function"""

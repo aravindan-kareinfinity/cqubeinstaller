@@ -1,78 +1,37 @@
 {
-  "organization": {
-    "id": "org_001",
-    "name": "Smart Security Solutions Ltd",
-    "address": "123 Security Boulevard, Tech City, TC 12345",
-    "contact_email": "admin@smartsecurity.com",
-    "server_video_path": "/var/cqubetech/videos/org_001",
-    "client_video_access_path": "https://storage.cqubetech.com/videos/org_001",
-    "retention": 30,
-    "upload_username": "admin_org001",
-    "upload_password": "SecurePass123!",
-    "created_at": "2024-01-15T08:00:00Z",
-    "updated_at": "2024-06-27T10:30:00Z"
-  },
-  "server_video_path": "/var/cqubetech/videos/org_001",
-  "client_video_access_path": "https://storage.cqubetech.com/videos/org_001",
-  "retention": 30,
-  "upload": {
-    "username": "admin_org001",
-    "password": "SecurePass123!"
-  },
-  "users": [
-    {
-      "id": "usr_001",
-      "name": "John Security",
-      "role": "Manager",
-      "login_role": "Admin",
-      "organization_id": "org_001",
-      "email": "john@smartsecurity.com",
-      "created_at": "2024-01-16T09:00:00Z",
-      "updated_at": "2024-06-27T10:30:00Z"
-    },
-    {
-      "id": "usr_002",
-      "name": "Sarah Monitor",
-      "role": "Operator",
-      "login_role": "Owner",
-      "organization_id": "org_001",
-      "email": "sarah@smartsecurity.com",
-      "created_at": "2024-02-01T10:00:00Z",
-      "updated_at": "2024-06-27T10:30:00Z"
-    },
-    {
-      "id": "user_5f538196",
-      "username": "abc",
-      "email": "abc@gmail.com",
-      "password": "abc123",
-      "name": "Abc",
-      "role": "Admin",
-      "login_role": "Owner",
-      "organization_id": "org_80c73589",
-      "created_at": "2025-09-13T16:20:30.537289",
-      "updated_at": "2025-09-13T16:20:30.537289"
-    }
-  ],
   "cameras": [
     {
-      "id": "cam_c5a26d90",
+      "id": "cam_526b6997",
       "name": "Axis Communications AB Camera",
-      "location": "abc",
+      "location": "Unassigned",
       "ip_address": "192.168.1.14",
-      "mac_address": "00:17:88:12:34:56",
+      "mac_address": "ac:cc:8e:35:7c:c0",
       "model": "Axis Communications AB",
       "serial_number": "",
       "organization_id": "",
       "status": "Active",
+      "username": "root",
+      "password": "k2bsecure???",
+      "port": "554",
+      "path": "/axis-media/media.amp",
       "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
       "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
-      "GUID": "990ea75c-f1f0-43bd-99c2-0591f09fea3e",
+      "GUID": "706cb03d-7c1f-4fa9-b122-efff937d5d15",
       "description": "",
       "is_recording": true,
+      "created_at": "2025-09-13T17:28:58.793256",
+      "updated_at": "2025-09-13T17:28:58.793256",
       "frame_rate": 30,
+      "resolution": "1920x1080",
+      "video_bitrate": 4000,
+      "enable_audio": true,
+      "audio_bitrate": 128,
+      "preset": "medium",
+      "crf": 23,
+      "segment_time": 10,
       "camera_settings": {
         "frame_rate": 30,
-        "resolution": "640x480",
+        "resolution": "1920x1080",
         "video_bitrate": 4000,
         "enable_audio": true,
         "audio_bitrate": 128,
@@ -80,26 +39,19 @@
         "crf": 23,
         "segment_time": 10
       },
-      "resolution": "640x480",
-      "video_bitrate": 4000,
-      "enable_audio": true,
-      "audio_bitrate": 128,
-      "preset": "medium",
-      "crf": 23,
-      "segment_time": 10,
       "detection_features": {
-        "people_detection": true,
+        "people_detection": false,
         "vehicle_detection": false,
         "people_counting": false,
         "vehicle_counting": false,
-        "face_detection": true,
+        "face_detection": false,
         "face_recognition": false,
         "mask_detection": false,
         "face_mask_compliance": false,
         "intrusion_detection": false,
         "line_crossing_detection": false,
         "loitering_detection": false,
-        "aggressive_behavior_detection": true,
+        "aggressive_behavior_detection": false,
         "suspicious_behavior_detection": false,
         "fall_detection": false,
         "social_distancing_detection": false,
@@ -110,7 +62,7 @@
         "helmet_detection": false,
         "ppe_detection": false,
         "smoking_detection": false,
-        "phone_usage_detection": true,
+        "phone_usage_detection": false,
         "license_plate_recognition": false,
         "parking_occupancy_detection": false,
         "wrong_way_detection": false,
@@ -122,101 +74,93 @@
         "queue_monitoring": false,
         "footfall_analysis": false,
         "wait_time_analysis": false,
-        "fire_detection": true,
+        "fire_detection": false,
         "smoke_detection": false,
         "flood_water_level_detection": false,
         "night_time_movement_detection": false,
         "scream_gunshot_detection": false,
         "glass_break_detection": false,
-        "re_identification": true,
+        "re_identification": false,
         "multi_camera_tracking": false,
         "pose_estimation": false,
         "action_recognition": false,
         "gesture_recognition": false,
         "scene_anomaly_detection": false,
         "zone_based_alerts": false,
-        "virtual_tripwire": true,
+        "virtual_tripwire": false,
         "retail_zone_interaction": false
       },
       "alert_settings": {
         "real_time_alerts": false,
-        "in_app_alerts": true,
         "sms_alerts": false,
         "email_alerts": false,
+        "in_app_alerts": true,
+        "phone_numbers": [],
+        "email_addresses": [],
         "alert_sensitivity": "Medium",
-        "notification_cooldown": 5,
-        "phone_numbers": [
-          "8270612215"
-        ],
-        "email_addresses": [
-          "admin@gmail.com"
-        ]
-      },
-      "updated_at": "2025-09-13T14:01:01.165236"
-    }
-  ],
-  "multi_camera_selections": [
-    {
-      "camera_ids": [
-        "cam_001",
-        "cam_002"
-      ],
-      "detection_sync": true,
-      "shared_analytics": true
+        "notification_cooldown": 5
+      }
     }
   ],
   "detection_analytics": {
-    "total_active_detections": 52,
-    "total_alert_configurations": 2,
-    "detection_breakdown": {
-      "people_detection": 2,
-      "vehicle_detection": 2,
-      "face_detection": 1,
-      "face_recognition": 1,
-      "intrusion_detection": 2,
-      "gun_detection": 2,
-      "fire_detection": 2,
-      "smoke_detection": 2,
-      "license_plate_recognition": 2,
-      "zone_based_alerts": 2
-    }
+    "detection_breakdown": {},
+    "total_active_detections": 0,
+    "total_alert_configurations": 0
   },
-  "groups": [
-    {
-      "id": "grp_cb1904f8",
-      "name": "abc",
-      "camera_ids": []
-    }
-  ],
+  "groups": [],
+  "multi_camera_selections": [],
   "organizations": [
     {
-      "id": "org_001",
-      "name": "Smart Security Solutions Ltd",
-      "address": "123 Security Boulevard, Tech City, TC 12345",
-      "contact_email": "admin@smartsecurity.com",
-      "storage_provider": "aws-s3",
-      "server_video_path": "s3://smartsecurity-videos/org_001/",
-      "client_video_access_path": "https://smartsecurity-videos.s3.amazonaws.com/org_001/",
-      "retention": 30,
-      "upload_username": "admin_org001",
-      "upload_password": "SecurePass123!",
-      "created_at": "2024-01-15T08:00:00Z",
-      "updated_at": "2024-06-27T10:30:00Z"
+      "address": null,
+      "client_video_access_path": "",
+      "contact_email": null,
+      "created_at": "2025-09-13T16:36:53.882420+05:30",
+      "description": "Test Description",
+      "id": 15,
+      "name": "Test Organization",
+      "retention": 10,
+      "server_video_path": "",
+      "storage_provider": "",
+      "updated_at": "2025-09-13T16:36:53.882420+05:30",
+      "upload_password": "admin",
+      "upload_username": "admin"
     },
     {
-      "id": "org_80c73589",
-      "name": "abc",
-      "address": "abc",
-      "contact_email": "abcd@gmail.com",
-      "description": "jka",
-      "retention": 30,
+      "name": "CQUBEPRO",
+      "description": "CQUBEPRO",
+      "id": 17,
+      "address": null,
+      "contact_email": null,
+      "retention": 10,
       "upload_username": "admin",
-      "upload_password": "admin123",
-      "storage_provider": "aws-s3",
-      "server_video_path": "s3://your-bucket/videos/",
-      "client_video_access_path": "https://your-bucket.s3.amazonaws.com/videos/",
-      "created_at": "2025-09-13T16:20:30.537289",
-      "updated_at": "2025-09-13T16:20:30.537289"
+      "upload_password": "admin",
+      "storage_provider": "",
+      "server_video_path": "",
+      "client_video_access_path": "",
+      "created_at": "2025-09-13T17:16:30.486888+05:30",
+      "updated_at": "2025-09-13T17:16:30.486888+05:30"
+    }
+  ],
+  "users": [
+    {
+      "created_at": "2025-09-13T16:36:53.927023+05:30",
+      "email": "test@example.com",
+      "id": 14,
+      "isfactory": false,
+      "name": "Test User",
+      "organization_id": 15,
+      "role": "admin",
+      "updated_at": "2025-09-13T16:36:53.927023+05:30"
+    },
+    {
+      "name": "CQUBEPRO",
+      "email": "CQUBEPRO@gmail.com",
+      "role": "admin",
+      "isfactory": false,
+      "id": 16,
+      "organization_id": 17,
+      "created_at": "2025-09-13T17:16:30.515584+05:30",
+      "updated_at": "2025-09-13T17:16:30.515584+05:30"
     }
   ]
 }

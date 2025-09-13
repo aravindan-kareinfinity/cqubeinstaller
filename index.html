@@ -1302,6 +1302,7 @@
                     <a class="nav-link" href="#analytics-section">📊 Analytics</a>
                 </li>
                 <li><a class="nav-link" href="organizations.html">🏢 Organizations</a></li>
+                <li><a class="nav-link" href="profile.html">👤 Profile</a></li>
                 <li><a class="nav-link" href="#settings-section">⚙️ Settings</a></li>
             </ul>
         </aside>
@@ -2350,8 +2351,8 @@
             const grid = document.getElementById("cameraGrid");
             grid.innerHTML = "";
 
-            // Filter to show only recording cameras
-            let visible = cameras.filter((c) => c.is_recording);
+            // Show all cameras (both recording and non-recording)
+            let visible = cameras;
             
             // Optionally filter by selected group for list as well
             if (selectedGroupId !== "__all__") {
@@ -2360,9 +2361,9 @@
                 visible = visible.filter((c) => ids.has(c.id));
             }
 
-            // Show message if no recording cameras
+            // Show message if no cameras
             if (visible.length === 0) {
-                grid.innerHTML = '<div class="no-active-cameras">No cameras are currently recording. Turn on recording to see cameras here.</div>';
+                grid.innerHTML = '<div class="no-active-cameras">No cameras found. Add cameras to see them here.</div>';
                 return;
             }
 
