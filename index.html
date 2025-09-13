@@ -1302,9 +1302,9 @@
                     </div>
                     <div id="discovery-section">
                         <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                            <button class="refresh-button" id="searchButton" onclick="searchCameras()">
-                                🔍 Search Cameras
-                            </button>
+                        <button class="refresh-button" id="searchButton" onclick="searchCameras()">
+                🔍 Search Cameras
+              </button>
                             <button class="refresh-button" onclick="addNewCamera()" style="background: #28a745;">
                                 ➕ Add Camera
                             </button>
@@ -2426,9 +2426,9 @@
             } else {
                 // Show all cameras
                 cameraGrid.innerHTML = "";
-                recordingCameras.forEach((camera) => {
-                    const liveCard = document.createElement("div");
-                    liveCard.className = "live-camera-card";
+            recordingCameras.forEach((camera) => {
+                const liveCard = document.createElement("div");
+                liveCard.className = "live-camera-card";
                     liveCard.innerHTML = createLiveCameraCard(camera);
                     cameraGrid.appendChild(liveCard);
                 });
@@ -2458,8 +2458,8 @@
                             <p>Click "Start Stream" to view live feed</p>
                         </div>
                     </div>
-                </div>
-            `;
+                    </div>
+                `;
         }
 
         // Select specific camera for live view
