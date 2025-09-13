@@ -175,12 +175,5 @@
       "name": "abc",
       "camera_ids": []
     }
-  ],
-  "video_upload_config": {
-    "upload_to_api": true,
-    "store_locally": true,
-    "api_url": "http://localhost:8000/api/videos/upload",
-    "api_key": "your_api_key_here",
-    "organization_id": "org_001"
-  }
+  ]
 }

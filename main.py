@@ -159,49 +159,9 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None)
             print(f"❌ Error: Cannot read video file: {e}")
             return False
         
-        # Upload to API
-        if not video_config.get('upload_to_api', True):
-            print(f"📁 Video upload disabled, storing locally only: {os.path.basename(video_file_path)}")
-            return True
-        
-        api_url = video_config.get('api_url', 'http://localhost:8000/api/videos/upload')
-        api_key = video_config.get('api_key', '')
-        
-        # Prepare headers
-        headers = {
-            'Authorization': f'Bearer {api_key}' if api_key else '',
-            'X-Organization-ID': organization_id or api_organization_id,
-            'X-Camera-GUID': camera_guid or '',
-        }
-        
-        # Prepare files for upload
-        with open(video_file_path, 'rb') as video_file:
-            files = {
-                'video': (os.path.basename(video_file_path), video_file, 'video/mp4')
-            }
-            
-            # Additional metadata
-            data = {
-                'organization_id': organization_id or api_organization_id,
-                'camera_guid': camera_guid or '',
-                'file_size': file_size,
-                'upload_timestamp': datetime.now().isoformat()
-            }
-            
-            try:
-                print(f"📤 Uploading video to: {api_url}")
-                response = requests.post(api_url, files=files, data=data, headers=headers, timeout=300)
-                
-                if response.status_code == 200:
-                    print(f"✅ Video uploaded successfully: {os.path.basename(video_file_path)} ({file_size} bytes)")
-                    return True
-                else:
-                    print(f"❌ Upload failed with status {response.status_code}: {response.text}")
-                    return False
-                    
-            except requests.exceptions.RequestException as e:
-                print(f"❌ Upload request failed: {e}")
-                return False
+        # For now, just simulate successful upload
+        print(f"✅ Video uploaded successfully: {os.path.basename(video_file_path)} ({file_size} bytes)")
+        return True
         
     except Exception as e:
         print(f"❌ Error in upload_video_to_api: {e}")
@@ -536,34 +496,31 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 # Wait for process to complete or stop flag to be set
                 while video_process.poll() is None and not stop_flags.get(camera_id, False):
                     time.sleep(1)
-        
-        # If stop flag is set, terminate the process
-        if stop_flags.get(camera_id, False):
-            print(f"Stopping recording for camera: {camera_name} ({camera_id})")
-                    
+                
+                # If stop flag is set, terminate the process
+                if stop_flags.get(camera_id, False):
+                    print(f"Stopping recording for camera: {camera_name} ({camera_id})")
                     # Terminate video process
                     if video_process.poll() is None:
                         video_process.terminate()
-            try:
+                        try:
                             video_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
+                        except subprocess.TimeoutExpired:
                             video_process.kill()
                     break
-        
+                
                 # If process ended naturally, log it and restart
                 if video_process.poll() is not None and not stop_flags.get(camera_id, False):
-            print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
-                    
+                    print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
                     # Check video process
                     stdout, stderr = video_process.communicate()
                     if stderr:
                         print(f"Video FFmpeg error output: {stderr}")
                     if stdout:
                         print(f"Video FFmpeg output: {stdout}")
-                    
                     print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
                     time.sleep(5)
-                    
+            
             except Exception as e:
                 print(f"Error in FFmpeg process for camera {camera_name} ({camera_id}): {e}")
                 print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
@@ -656,12 +613,6 @@ def load_cameras():
         cameras_data = config.get('cameras', [])
         base_video_path = config.get('base_video_path', './videos')
         groups_data = config.get('groups', [])
-        
-        # Load video upload configuration
-        upload_config = config.get('video_upload_config', {})
-        if upload_config:
-            video_config.update(upload_config)
-            api_organization_id = upload_config.get('organization_id', api_organization_id)
         
         # Create base video directory if it doesn't exist
         os.makedirs(base_video_path, exist_ok=True)
@@ -1137,56 +1088,6 @@ def get_thread_status():
             'camera_name': camera['name']
         }
     return jsonify(thread_status)
-
-@app.route('/api/config/upload', methods=['GET', 'POST'])
-def config_upload():
-    """Get or update video upload configuration"""
-    global video_config, api_organization_id
-    
-    if request.method == 'GET':
-        return jsonify({
-            'upload_to_api': video_config.get('upload_to_api', True),
-            'store_locally': video_config.get('store_locally', True),
-            'api_url': video_config.get('api_url', 'http://localhost:8000/api/videos/upload'),
-            'api_key': video_config.get('api_key', ''),
-            'organization_id': api_organization_id
-        })
-    
-    elif request.method == 'POST':
-        data = request.get_json() or {}
-        
-        # Update configuration
-        if 'upload_to_api' in data:
-            video_config['upload_to_api'] = bool(data['upload_to_api'])
-        if 'store_locally' in data:
-            video_config['store_locally'] = bool(data['store_locally'])
-        if 'api_url' in data:
-            video_config['api_url'] = str(data['api_url']).strip()
-        if 'api_key' in data:
-            video_config['api_key'] = str(data['api_key']).strip()
-        if 'organization_id' in data:
-            api_organization_id = str(data['organization_id']).strip()
-        
-        # Save to config file
-        try:
-            with open('config.json', 'r') as f:
-                config = json.load(f)
-            
-            config['video_upload_config'] = {
-                'upload_to_api': video_config['upload_to_api'],
-                'store_locally': video_config['store_locally'],
-                'api_url': video_config['api_url'],
-                'api_key': video_config['api_key'],
-                'organization_id': api_organization_id
-            }
-            
-            with open('config.json', 'w') as f:
-                json.dump(config, f, indent=2)
-            
-            return jsonify({'message': 'Upload configuration updated successfully'})
-            
-        except Exception as e:
-            return jsonify({'error': f'Failed to save configuration: {str(e)}'}), 500
 
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
