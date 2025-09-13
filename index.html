@@ -482,6 +482,781 @@
             transform: scale(1.03);
             /* small emphasis */
         }
+
+        /* Camera Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border: none;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .form-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .checkbox-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.1);
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-radius: 0 0 10px 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .form-tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .form-tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .form-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .form-tab:hover {
+            color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .camera-details-display {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #28a745;
+        }
+
+        .camera-details-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .camera-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .camera-detail-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .camera-detail-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .camera-detail-value {
+            font-size: 14px;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        /* Video Playback Styles */
+        .video-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .video-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .video-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-color: #007bff;
+        }
+
+        .video-item.selected {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .video-info {
+            margin-top: 10px;
+        }
+
+        .video-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .video-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .video-duration {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .no-videos {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .video-player-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .video-info h4 {
+            margin: 15px 0 5px 0;
+            color: #333;
+        }
+
+        .video-info p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .video-controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-play {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Live Stream Styles */
+        .live-camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .live-camera-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-stream {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            background: #28a745;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-stream:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .btn-stream.btn-stop {
+            background: #dc3545;
+        }
+
+        .btn-stream.btn-stop:hover {
+            background: #c82333;
+        }
+
+        .stream-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            color: #6c757d;
+        }
+
+        .stream-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .stream-placeholder p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .stream-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #007bff;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .stream-loading i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .stream-loading p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .stream-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            color: #721c24;
+        }
+
+        .stream-error i {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .stream-error p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .error-details {
+            font-size: 12px !important;
+            color: #6c757d !important;
+        }
+
+        .live-camera-feed {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .live-camera-feed img {
+            width: 100%;
+            height: auto;
+            max-height: 300px;
+            object-fit: cover;
+        }
+
+        /* Live View Controls */
+        .live-view-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .camera-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .camera-selector label {
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .camera-selector select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .live-view-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-refresh {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            background: #007bff;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-refresh:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-show-all {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            background: #6c757d;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-show-all:hover {
+            background: #545b62;
+            transform: translateY(-1px);
+        }
+
+        .live-camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .live-camera-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Single camera view - larger display */
+        .live-camera-grid:has(.live-camera-card:only-child) .live-camera-card {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .live-camera-grid:has(.live-camera-card:only-child) .live-camera-feed img {
+            max-height: 500px;
+        }
+
+        /* Hour-based Video Organization */
+        .hour-section {
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .hour-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hour-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .hour-header h3 i {
+            color: #007bff;
+            margin-right: 8px;
+        }
+
+        .video-count {
+            background: #007bff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .hour-videos {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .video-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .video-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-color: #007bff;
+        }
+
+        .video-item.selected {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .video-info {
+            margin-top: 10px;
+        }
+
+        .video-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .video-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .video-duration {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .no-videos {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .video-player-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .video-info h4 {
+            margin: 15px 0 5px 0;
+            color: #333;
+        }
+
+        .video-info p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .video-controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-play {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
     </style>
 </head>
 
@@ -494,6 +1269,7 @@
                     <a class="nav-link active" href="#camera-section">📋 Camera List</a>
                 </li>
                 <li><a class="nav-link" href="#live-section">🎥 Live View</a></li>
+                <li><a class="nav-link" href="#video-playback-section">📹 Video Playback</a></li>
                 <li><a class="nav-link" href="#groups-section">👥 Groups</a></li>
                 <li>
                     <a class="nav-link" href="#discovery-section">🔍 Discovery</a>
@@ -525,9 +1301,14 @@
                         </div>
                     </div>
                     <div id="discovery-section">
-                        <button class="refresh-button" id="searchButton" onclick="searchCameras()">
-                🔍 Search Cameras
-              </button>
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                            <button class="refresh-button" id="searchButton" onclick="searchCameras()">
+                                🔍 Search Cameras
+                            </button>
+                            <button class="refresh-button" onclick="addNewCamera()" style="background: #28a745;">
+                                ➕ Add Camera
+                            </button>
+                        </div>
                         <div class="discovered-section-title">Discovered Cameras</div>
                         <div id="discoverResults" class="discovered-list">
                             Press "Search Cameras" to discover cameras on your network.
@@ -638,6 +1419,70 @@
                 </div>
             </div>
 
+            <!-- Video Playback Section -->
+            <div class="camera-list-section" id="video-playback-section">
+                <div class="section-title">📹 Video Playback</div>
+                
+                <!-- Video Selection Controls -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Select Date, Camera and Hour
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="videoDate">Select Date</label>
+                            <input type="date" id="videoDate" onchange="loadVideoList()">
+                        </div>
+                        <div class="form-group">
+                            <label for="videoCamera">Select Camera</label>
+                            <select id="videoCamera" onchange="loadVideoList()">
+                                <option value="">All Cameras</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="videoHour">Select Hour</label>
+                            <select id="videoHour" onchange="loadVideoList()">
+                                <option value="">All Hours</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" onclick="loadVideoList()">
+                                <i class="fas fa-search"></i> Load Videos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video List -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-video"></i>
+                        Available Videos
+                    </div>
+                    <div id="videoList" class="video-list">
+                        <div class="no-videos">Select a date and camera to view videos.</div>
+                    </div>
+                </div>
+
+                <!-- Video Player -->
+                <div class="form-section" id="videoPlayerSection" style="display: none;">
+                    <div class="form-section-title">
+                        <i class="fas fa-play"></i>
+                        Video Player
+                    </div>
+                    <div class="video-player-container">
+                        <video id="videoPlayer" controls width="100%" height="400">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-info">
+                            <h4 id="videoTitle">Video Title</h4>
+                            <p id="videoDetails">Video Details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Additional sections -->
             <div class="camera-list-section" id="analytics-section">
                 <div class="section-title">📊 Analytics</div>
@@ -647,6 +1492,548 @@
             <div class="camera-list-section" id="settings-section">
                 <div class="section-title">⚙️ Settings</div>
                 <div class="camera-info">Adjust application settings here.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Camera Add/Edit Modal -->
+    <div id="cameraModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add Camera</h2>
+                <button class="close" onclick="closeCameraModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-tabs">
+                    <button class="form-tab active" onclick="switchTab('basic')">Basic Info</button>
+                    <button class="form-tab" onclick="switchTab('settings')">Camera Settings</button>
+                    <button class="form-tab" onclick="switchTab('detection')">Detection Features</button>
+                    <button class="form-tab" onclick="switchTab('alerts')">Alert Settings</button>
+                </div>
+
+                <form id="cameraForm">
+                    <!-- Basic Information Tab -->
+                    <div id="basic-tab" class="tab-content active">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-camera"></i>
+                                Basic Information
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraName">Camera Name *</label>
+                                    <input type="text" id="cameraName" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraLocation">Location</label>
+                                    <input type="text" id="cameraLocation" name="location">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraIP">IP Address *</label>
+                                    <input type="text" id="cameraIP" name="ip_address" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraModel">Model</label>
+                                    <input type="text" id="cameraModel" name="model">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraStatus">Status</label>
+                                    <select id="cameraStatus" name="status">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraOrganization">Organization ID</label>
+                                    <input type="text" id="cameraOrganization" name="organization_id">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraURL">RTSP URL</label>
+                                    <input type="text" id="cameraURL" name="url" placeholder="rtsp://username:password@ip:port/path">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraDescription">Description</label>
+                                    <textarea id="cameraDescription" name="description" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Settings Tab -->
+                    <div id="settings-tab" class="tab-content">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-cog"></i>
+                                Video Encoding Settings
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="frameRate">Frame Rate (fps)</label>
+                                    <select id="frameRate" name="frame_rate">
+                                        <option value="15">15 fps</option>
+                                        <option value="24">24 fps</option>
+                                        <option value="25">25 fps</option>
+                                        <option value="30" selected>30 fps</option>
+                                        <option value="60">60 fps</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="resolution">Resolution</label>
+                                    <select id="resolution" name="resolution">
+                                        <option value="640x480">640x480 (VGA)</option>
+                                        <option value="1280x720">1280x720 (HD)</option>
+                                        <option value="1920x1080" selected>1920x1080 (Full HD)</option>
+                                        <option value="2560x1440">2560x1440 (2K)</option>
+                                        <option value="3840x2160">3840x2160 (4K)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="videoBitrate">Video Bitrate (kbps)</label>
+                                    <input type="number" id="videoBitrate" name="video_bitrate" value="4000" min="500" max="50000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="audioBitrate">Audio Bitrate (kbps)</label>
+                                    <input type="number" id="audioBitrate" name="audio_bitrate" value="128" min="64" max="320">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="preset">Encoding Preset</label>
+                                    <select id="preset" name="preset">
+                                        <option value="ultrafast">Ultrafast</option>
+                                        <option value="superfast">Superfast</option>
+                                        <option value="veryfast">Veryfast</option>
+                                        <option value="faster">Faster</option>
+                                        <option value="fast">Fast</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="slow">Slow</option>
+                                        <option value="slower">Slower</option>
+                                        <option value="veryslow">Veryslow</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="crf">CRF (Quality)</label>
+                                    <input type="number" id="crf" name="crf" value="23" min="0" max="51">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="segmentTime">Segment Time (seconds)</label>
+                                    <input type="number" id="segmentTime" name="segment_time" value="10" min="1" max="300">
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="enableAudio" name="enable_audio" checked>
+                                        Enable Audio Recording
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detection Features Tab -->
+                    <div id="detection-tab" class="tab-content">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-eye"></i>
+                                AI Detection Features
+                            </div>
+                            
+                            <!-- Person & Vehicle Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-users"></i>
+                                    Person & Vehicle Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="people_detection" name="people_detection">
+                                        <label for="people_detection">People Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="vehicle_detection" name="vehicle_detection">
+                                        <label for="vehicle_detection">Vehicle Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="people_counting" name="people_counting">
+                                        <label for="people_counting">People Counting</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="vehicle_counting" name="vehicle_counting">
+                                        <label for="vehicle_counting">Vehicle Counting</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Face Features -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-user-circle"></i>
+                                    Face Recognition Features
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="face_detection" name="face_detection">
+                                        <label for="face_detection">Face Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="face_recognition" name="face_recognition">
+                                        <label for="face_recognition">Face Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="mask_detection" name="mask_detection">
+                                        <label for="mask_detection">Mask Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="face_mask_compliance" name="face_mask_compliance">
+                                        <label for="face_mask_compliance">Face Mask Compliance</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Behavior Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Behavior Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="intrusion_detection" name="intrusion_detection">
+                                        <label for="intrusion_detection">Intrusion Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="line_crossing_detection" name="line_crossing_detection">
+                                        <label for="line_crossing_detection">Line Crossing Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="loitering_detection" name="loitering_detection">
+                                        <label for="loitering_detection">Loitering Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="aggressive_behavior_detection" name="aggressive_behavior_detection">
+                                        <label for="aggressive_behavior_detection">Aggressive Behavior Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="suspicious_behavior_detection" name="suspicious_behavior_detection">
+                                        <label for="suspicious_behavior_detection">Suspicious Behavior Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fall_detection" name="fall_detection">
+                                        <label for="fall_detection">Fall Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="social_distancing_detection" name="social_distancing_detection">
+                                        <label for="social_distancing_detection">Social Distancing Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Object Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-box"></i>
+                                    Object Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="object_left_behind" name="object_left_behind">
+                                        <label for="object_left_behind">Object Left Behind</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="object_removed" name="object_removed">
+                                        <label for="object_removed">Object Removed</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="bag_detection" name="bag_detection">
+                                        <label for="bag_detection">Bag Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="gun_detection" name="gun_detection">
+                                        <label for="gun_detection">Gun Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Safety & Compliance -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-hard-hat"></i>
+                                    Safety & Compliance
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="helmet_detection" name="helmet_detection">
+                                        <label for="helmet_detection">Helmet Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="ppe_detection" name="ppe_detection">
+                                        <label for="ppe_detection">PPE Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="smoking_detection" name="smoking_detection">
+                                        <label for="smoking_detection">Smoking Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="phone_usage_detection" name="phone_usage_detection">
+                                        <label for="phone_usage_detection">Phone Usage Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Traffic & Parking -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-car"></i>
+                                    Traffic & Parking
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="license_plate_recognition" name="license_plate_recognition">
+                                        <label for="license_plate_recognition">License Plate Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="parking_occupancy_detection" name="parking_occupancy_detection">
+                                        <label for="parking_occupancy_detection">Parking Occupancy Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="wrong_way_detection" name="wrong_way_detection">
+                                        <label for="wrong_way_detection">Wrong Way Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="speed_detection" name="speed_detection">
+                                        <label for="speed_detection">Speed Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="illegal_parking_detection" name="illegal_parking_detection">
+                                        <label for="illegal_parking_detection">Illegal Parking Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Analytics -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-chart-line"></i>
+                                    Analytics
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="crowd_density_estimation" name="crowd_density_estimation">
+                                        <label for="crowd_density_estimation">Crowd Density Estimation</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="dwell_time_analysis" name="dwell_time_analysis">
+                                        <label for="dwell_time_analysis">Dwell Time Analysis</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="heatmap_generation" name="heatmap_generation">
+                                        <label for="heatmap_generation">Heatmap Generation</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="queue_monitoring" name="queue_monitoring">
+                                        <label for="queue_monitoring">Queue Monitoring</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="footfall_analysis" name="footfall_analysis">
+                                        <label for="footfall_analysis">Footfall Analysis</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="wait_time_analysis" name="wait_time_analysis">
+                                        <label for="wait_time_analysis">Wait Time Analysis</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Environmental -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-leaf"></i>
+                                    Environmental Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fire_detection" name="fire_detection">
+                                        <label for="fire_detection">Fire Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="smoke_detection" name="smoke_detection">
+                                        <label for="smoke_detection">Smoke Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="flood_water_level_detection" name="flood_water_level_detection">
+                                        <label for="flood_water_level_detection">Flood/Water Level Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="night_time_movement_detection" name="night_time_movement_detection">
+                                        <label for="night_time_movement_detection">Night Time Movement Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Audio Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-volume-up"></i>
+                                    Audio Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="scream_gunshot_detection" name="scream_gunshot_detection">
+                                        <label for="scream_gunshot_detection">Scream/Gunshot Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="glass_break_detection" name="glass_break_detection">
+                                        <label for="glass_break_detection">Glass Break Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Features -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-robot"></i>
+                                    Advanced Features
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="re_identification" name="re_identification">
+                                        <label for="re_identification">Re-identification</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="multi_camera_tracking" name="multi_camera_tracking">
+                                        <label for="multi_camera_tracking">Multi-Camera Tracking</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="pose_estimation" name="pose_estimation">
+                                        <label for="pose_estimation">Pose Estimation</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="action_recognition" name="action_recognition">
+                                        <label for="action_recognition">Action Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="gesture_recognition" name="gesture_recognition">
+                                        <label for="gesture_recognition">Gesture Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="scene_anomaly_detection" name="scene_anomaly_detection">
+                                        <label for="scene_anomaly_detection">Scene Anomaly Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Zone & Area Features -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-map-marked-alt"></i>
+                                    Zone & Area Features
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="zone_based_alerts" name="zone_based_alerts">
+                                        <label for="zone_based_alerts">Zone-Based Alerts</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="virtual_tripwire" name="virtual_tripwire">
+                                        <label for="virtual_tripwire">Virtual Tripwire</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="retail_zone_interaction" name="retail_zone_interaction">
+                                        <label for="retail_zone_interaction">Retail Zone Interaction</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Settings Tab -->
+                    <div id="alerts-tab" class="tab-content">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-bell"></i>
+                                Alert Configuration
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="realTimeAlerts" name="real_time_alerts">
+                                        Enable Real-time Alerts
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="inAppAlerts" name="in_app_alerts" checked>
+                                        Enable In-App Alerts
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="smsAlerts" name="sms_alerts">
+                                        Enable SMS Alerts
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="emailAlerts" name="email_alerts">
+                                        Enable Email Alerts
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="alertSensitivity">Alert Sensitivity</label>
+                                    <select id="alertSensitivity" name="alert_sensitivity">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="notificationCooldown">Notification Cooldown (minutes)</label>
+                                    <input type="number" id="notificationCooldown" name="notification_cooldown" value="5" min="1" max="60">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="phoneNumbers">Phone Numbers (comma-separated)</label>
+                                    <textarea id="phoneNumbers" name="phone_numbers" rows="2" placeholder="+1234567890, +0987654321"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emailAddresses">Email Addresses (comma-separated)</label>
+                                    <textarea id="emailAddresses" name="email_addresses" rows="2" placeholder="admin@company.com, security@company.com"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Details Display -->
+                    <div id="cameraDetailsDisplay" class="camera-details-display" style="display: none;">
+                        <div class="camera-details-title">Selected Camera Details</div>
+                        <div id="cameraDetailsContent" class="camera-details-grid">
+                            <!-- Details will be populated here -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveCamera()">Save Camera</button>
             </div>
         </div>
     </div>
@@ -664,9 +2051,12 @@
             try {
                 const response = await fetch("/api/cameras");
                 cameras = await response.json();
+                console.log('Loaded cameras:', cameras);
+                console.log('Number of cameras:', cameras.length);
                 displayCameras(cameras);
                 updateStats();
                 updateLiveView();
+                populateCameraDropdown();
                 await loadGroups();
             } catch (error) {
                 console.error("Error loading cameras:", error);
@@ -914,6 +2304,18 @@
                     "Recording" :
                     "Not Recording";
 
+                // Get camera details
+                const resolution = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
+                const frameRate = camera.frame_rate || camera.camera_settings?.frame_rate || 30;
+                const detectionFeatures = camera.detection_features || {};
+                const enabledFeatures = Object.values(detectionFeatures).filter(Boolean).length;
+                const alertSettings = camera.alert_settings || {};
+                const alertTypes = [];
+                if (alertSettings.real_time_alerts) alertTypes.push('Real-time');
+                if (alertSettings.sms_alerts) alertTypes.push('SMS');
+                if (alertSettings.email_alerts) alertTypes.push('Email');
+                if (alertSettings.in_app_alerts !== false) alertTypes.push('In-App');
+
                 card.innerHTML = `
                     <div class="camera-name">${camera.name}</div>
                     <div class="camera-info">
@@ -923,6 +2325,10 @@
                         <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${
             camera.status
           }</span></p>
+                        <p><strong>Resolution:</strong> ${resolution}</p>
+                        <p><strong>Frame Rate:</strong> ${frameRate} fps</p>
+                        <p><strong>AI Features:</strong> ${enabledFeatures} enabled</p>
+                        <p><strong>Alerts:</strong> ${alertTypes.length > 0 ? alertTypes.join(', ') : 'None'}</p>
                     </div>
                     <div class="recording-toggle">
                         <label class="toggle-switch">
@@ -961,6 +2367,9 @@
             document.getElementById("recordingCameras").textContent = recording;
         }
 
+        // Global variable to track selected camera for live view
+        let selectedLiveCamera = null;
+
         // Update live view
         function updateLiveView() {
             const liveGrid = document.getElementById("liveViewGrid");
@@ -977,20 +2386,156 @@
                 return;
             }
 
-            liveGrid.innerHTML = "";
-            recordingCameras.forEach((camera) => {
-                const liveCard = document.createElement("div");
-                liveCard.className = "live-camera-card";
-                liveCard.innerHTML = `
-                    <div class="live-camera-header">${camera.name}</div>
+            // Add camera selection controls
+            liveGrid.innerHTML = `
+                <div class="live-view-controls">
+                    <div class="camera-selector">
+                        <label for="liveCameraSelect">Select Camera:</label>
+                        <select id="liveCameraSelect" onchange="selectLiveCamera(this.value)">
+                            <option value="">All Cameras</option>
+                            ${recordingCameras.map(camera => 
+                                `<option value="${camera.id}">${camera.name}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                    <div class="live-view-actions">
+                        <button onclick="refreshLiveView()" class="btn-refresh">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div id="liveCameraGrid" class="live-camera-grid"></div>
+            `;
+
+            // Display cameras based on selection
+            displayLiveCameras(recordingCameras);
+        }
+
+        // Display live cameras based on selection
+        function displayLiveCameras(recordingCameras) {
+            const cameraGrid = document.getElementById("liveCameraGrid");
+            
+            if (selectedLiveCamera) {
+                // Show only selected camera
+                const camera = recordingCameras.find(c => c.id === selectedLiveCamera);
+                if (camera) {
+                    cameraGrid.innerHTML = createLiveCameraCard(camera);
+                } else {
+                    cameraGrid.innerHTML = '<div class="no-active-cameras">Selected camera not found.</div>';
+                }
+            } else {
+                // Show all cameras
+                cameraGrid.innerHTML = "";
+                recordingCameras.forEach((camera) => {
+                    const liveCard = document.createElement("div");
+                    liveCard.className = "live-camera-card";
+                    liveCard.innerHTML = createLiveCameraCard(camera);
+                    cameraGrid.appendChild(liveCard);
+                });
+            }
+        }
+
+        // Create live camera card HTML
+        function createLiveCameraCard(camera) {
+            return `
+                <div class="live-camera-card">
+                    <div class="live-camera-header">
+                        <span>${camera.name}</span>
+                        <div class="live-camera-controls">
+                            <button onclick="toggleLiveStream('${camera.id}')" class="btn-stream" id="stream-btn-${camera.id}">
+                                <i class="fas fa-play"></i> Start Stream
+                            </button>
+                            ${selectedLiveCamera ? `
+                                <button onclick="selectLiveCamera('')" class="btn-show-all">
+                                    <i class="fas fa-th"></i> Show All
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
                     <div class="live-camera-feed" id="feed-${camera.id}">
-                        <img src="/api/cameras/${camera.id}/frame" alt="Live feed from ${camera.name}" 
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div style="display: none;">Loading live feed...</div>
+                        <div class="stream-placeholder">
+                            <i class="fas fa-video"></i>
+                            <p>Click "Start Stream" to view live feed</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Select specific camera for live view
+        function selectLiveCamera(cameraId) {
+            selectedLiveCamera = cameraId || null;
+            const select = document.getElementById("liveCameraSelect");
+            if (select) {
+                select.value = cameraId || "";
+            }
+            
+            // Refresh the display
+            let recordingCameras = cameras.filter((c) => c.is_recording);
+            if (selectedGroupId !== "__all__") {
+                const group = groups.find((g) => g.id === selectedGroupId);
+                const ids = new Set((group && group.camera_ids) || []);
+                recordingCameras = recordingCameras.filter((c) => ids.has(c.id));
+            }
+            
+            displayLiveCameras(recordingCameras);
+        }
+
+        // Toggle live stream for a camera
+        function toggleLiveStream(cameraId) {
+            const feedDiv = document.getElementById(`feed-${cameraId}`);
+            const streamBtn = document.getElementById(`stream-btn-${cameraId}`);
+            const isStreaming = feedDiv.querySelector('img') !== null;
+            
+            if (isStreaming) {
+                // Stop stream
+                feedDiv.innerHTML = `
+                    <div class="stream-placeholder">
+                        <i class="fas fa-video"></i>
+                        <p>Click "Start Stream" to view live feed</p>
                     </div>
                 `;
-                liveGrid.appendChild(liveCard);
-            });
+                streamBtn.innerHTML = '<i class="fas fa-play"></i> Start Stream';
+                streamBtn.className = 'btn-stream';
+            } else {
+                // Start stream
+                feedDiv.innerHTML = `
+                    <img src="/api/cameras/${cameraId}/frame" 
+                         alt="Live feed from ${cameras.find(c => c.id === cameraId)?.name}" 
+                         onerror="handleStreamError('${cameraId}')"
+                         onload="handleStreamLoad('${cameraId}')">
+                    <div class="stream-loading" id="loading-${cameraId}">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Connecting to camera...</p>
+                    </div>
+                `;
+                streamBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Stream';
+                streamBtn.className = 'btn-stream btn-stop';
+            }
+        }
+
+        // Handle stream load success
+        function handleStreamLoad(cameraId) {
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+        }
+
+        // Handle stream error
+        function handleStreamError(cameraId) {
+            const feedDiv = document.getElementById(`feed-${cameraId}`);
+            const streamBtn = document.getElementById(`stream-btn-${cameraId}`);
+            
+            feedDiv.innerHTML = `
+                <div class="stream-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to connect to camera</p>
+                    <p class="error-details">Check camera URL and network connection</p>
+                </div>
+            `;
+            streamBtn.innerHTML = '<i class="fas fa-play"></i> Start Stream';
+            streamBtn.className = 'btn-stream';
         }
 
         // Refresh live view
@@ -1048,18 +2593,17 @@
         }
 
         function openDiscoveryAddForm(ip, vendor) {
-            const form = document.getElementById("discoveryAddForm");
-            document.getElementById("discName").value = vendor ?
-                vendor + " Camera" :
-                "";
-            document.getElementById("discIP").value = ip || "";
-            document.getElementById("discLocation").value = "";
-            document.getElementById("discURL").value = "";
-            form.style.display = "block";
-            form.scrollIntoView({
-                behavior: "smooth",
-                block: "center",
-            });
+            // Open the camera modal and populate with discovered camera data
+            openCameraModal();
+            
+            // Populate the form with discovered camera data
+            setTimeout(() => {
+                document.getElementById("cameraName").value = vendor ? vendor + " Camera" : "";
+                document.getElementById("cameraIP").value = ip || "";
+                document.getElementById("cameraLocation").value = "";
+                document.getElementById("cameraURL").value = "";
+                document.getElementById("cameraModel").value = vendor || "";
+            }, 100);
         }
 
         function cancelDiscoveryAddForm() {
@@ -1117,6 +2661,153 @@
             cancelDiscoveryAddForm();
         }
 
+        function collectFormData() {
+            const formData = new FormData(document.getElementById('cameraForm'));
+            const data = {};
+            
+            // Basic fields
+            data.name = formData.get('name');
+            data.location = formData.get('location');
+            data.ip_address = formData.get('ip_address');
+            data.model = formData.get('model');
+            data.status = formData.get('status');
+            data.organization_id = formData.get('organization_id');
+            data.url = formData.get('url');
+            data.description = formData.get('description');
+            
+            // Camera settings
+            data.frame_rate = parseInt(formData.get('frame_rate'));
+            data.resolution = formData.get('resolution');
+            data.video_bitrate = parseInt(formData.get('video_bitrate'));
+            data.audio_bitrate = parseInt(formData.get('audio_bitrate'));
+            data.preset = formData.get('preset');
+            data.crf = parseInt(formData.get('crf'));
+            data.segment_time = parseInt(formData.get('segment_time'));
+            data.enable_audio = formData.get('enable_audio') === 'on';
+            
+            // Detection features
+            const detectionFeatures = {};
+            const detectionCheckboxes = document.querySelectorAll('#detection-tab input[type="checkbox"]');
+            detectionCheckboxes.forEach(checkbox => {
+                detectionFeatures[checkbox.name] = checkbox.checked;
+            });
+            data.detection_features = detectionFeatures;
+            
+            // Alert settings
+            const alertSettings = {
+                real_time_alerts: formData.get('real_time_alerts') === 'on',
+                in_app_alerts: formData.get('in_app_alerts') === 'on',
+                sms_alerts: formData.get('sms_alerts') === 'on',
+                email_alerts: formData.get('email_alerts') === 'on',
+                alert_sensitivity: formData.get('alert_sensitivity'),
+                notification_cooldown: parseInt(formData.get('notification_cooldown')),
+                phone_numbers: formData.get('phone_numbers') ? 
+                    formData.get('phone_numbers').split(',').map(p => p.trim()).filter(p => p) : [],
+                email_addresses: formData.get('email_addresses') ? 
+                    formData.get('email_addresses').split(',').map(e => e.trim()).filter(e => e) : []
+            };
+            data.alert_settings = alertSettings;
+            
+            return data;
+        }
+
+        function displayCameraDetails(camera) {
+            const detailsDisplay = document.getElementById('cameraDetailsDisplay');
+            const detailsContent = document.getElementById('cameraDetailsContent');
+            
+            if (!detailsDisplay || !detailsContent) return;
+            
+            const details = [];
+            
+            // Basic info
+            details.push({ label: 'Name', value: camera.name });
+            details.push({ label: 'Location', value: camera.location || 'Not specified' });
+            details.push({ label: 'IP Address', value: camera.ip_address });
+            details.push({ label: 'Status', value: camera.status });
+            
+            // Camera settings
+            details.push({ label: 'Resolution', value: camera.resolution || camera.camera_settings?.resolution || '1920x1080' });
+            details.push({ label: 'Frame Rate', value: (camera.frame_rate || camera.camera_settings?.frame_rate || 30) + ' fps' });
+            details.push({ label: 'Video Bitrate', value: (camera.video_bitrate || camera.camera_settings?.video_bitrate || 4000) + ' kbps' });
+            details.push({ label: 'Audio', value: (camera.enable_audio !== false && camera.camera_settings?.enable_audio !== false) ? 'Enabled' : 'Disabled' });
+            
+            // Detection features count
+            const detectionFeatures = camera.detection_features || {};
+            const enabledFeatures = Object.values(detectionFeatures).filter(Boolean).length;
+            details.push({ label: 'AI Features', value: `${enabledFeatures} enabled` });
+            
+            // Alert settings
+            const alertSettings = camera.alert_settings || {};
+            const alertTypes = [];
+            if (alertSettings.real_time_alerts) alertTypes.push('Real-time');
+            if (alertSettings.sms_alerts) alertTypes.push('SMS');
+            if (alertSettings.email_alerts) alertTypes.push('Email');
+            if (alertSettings.in_app_alerts !== false) alertTypes.push('In-App');
+            details.push({ label: 'Alerts', value: alertTypes.length > 0 ? alertTypes.join(', ') : 'None' });
+            
+            // Build HTML
+            const html = details.map(detail => `
+                <div class="camera-detail-item">
+                    <div class="camera-detail-label">${detail.label}</div>
+                    <div class="camera-detail-value">${detail.value}</div>
+                </div>
+            `).join('');
+            
+            detailsContent.innerHTML = html;
+            detailsDisplay.style.display = 'block';
+        }
+
+        async function saveCamera() {
+            try {
+                const data = collectFormData();
+                
+                if (!data.name || !data.ip_address) {
+                    alert('Name and IP address are required');
+                    return;
+                }
+                
+                let response;
+                if (editingCameraId) {
+                    // Update existing camera
+                    response = await fetch(`/api/cameras/${editingCameraId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // Create new camera
+                    response = await fetch('/api/cameras', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to save camera');
+                }
+                
+                const savedCamera = await response.json();
+                await loadCameras();
+                
+                // Display the saved camera details
+                displayCameraDetails(savedCamera);
+                
+                // Show success message
+                alert(editingCameraId ? 'Camera updated successfully!' : 'Camera added successfully!');
+                
+                // Close modal after a short delay to show the details
+                setTimeout(() => {
+                    closeCameraModal();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Save camera error:', error);
+                alert('Failed to save camera: ' + error.message);
+            }
+        }
+
         async function addCamera(payload) {
             try {
                 const res = await fetch("/api/cameras", {
@@ -1138,23 +2829,188 @@
             }
         }
 
-        function promptEditCamera(cameraId) {
-            const cam = cameras.find((c) => c.id === cameraId);
-            if (!cam) return;
-            const name = prompt("Camera name:", cam.name);
-            if (name === null) return;
-            const location = prompt("Location:", cam.location || "");
-            if (location === null) return;
-            const ip = prompt("IP address:", cam.ip_address || "");
-            if (ip === null) return;
-            const url = prompt("RTSP URL:", cam.URL || cam.url || "");
-            if (url === null) return;
-            updateCamera(cameraId, {
-                name,
-                location,
-                ip_address: ip,
-                url,
+        // Modal management
+        let editingCameraId = null;
+
+        function openCameraModal(cameraId = null) {
+            console.log('openCameraModal called with cameraId:', cameraId);
+            const modal = document.getElementById('cameraModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('cameraForm');
+            
+            console.log('Modal element:', modal);
+            console.log('Title element:', title);
+            console.log('Form element:', form);
+            
+            if (cameraId) {
+                // Edit mode
+                editingCameraId = cameraId;
+                const camera = cameras.find(c => c.id === cameraId);
+                console.log('Camera found for editing:', camera);
+                if (!camera) {
+                    console.error('Camera not found for ID:', cameraId);
+                    return;
+                }
+                
+                title.textContent = 'Edit Camera';
+                console.log('About to populate form with camera data');
+                populateCameraForm(camera);
+                console.log('Form populated');
+            } else {
+                // Add mode
+                editingCameraId = null;
+                title.textContent = 'Add Camera';
+                form.reset();
+                setDefaultValues();
+            }
+            
+            console.log('Setting modal display to block');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            console.log('Modal should be visible now');
+        }
+
+        function closeCameraModal() {
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            editingCameraId = null;
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
             });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.form-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        function setDefaultValues() {
+            // Set default camera settings
+            document.getElementById('frameRate').value = '30';
+            document.getElementById('resolution').value = '1920x1080';
+            document.getElementById('videoBitrate').value = '4000';
+            document.getElementById('audioBitrate').value = '128';
+            document.getElementById('preset').value = 'medium';
+            document.getElementById('crf').value = '23';
+            document.getElementById('segmentTime').value = '10';
+            document.getElementById('enableAudio').checked = true;
+            
+            // Set default alert settings
+            document.getElementById('inAppAlerts').checked = true;
+            document.getElementById('alertSensitivity').value = 'Medium';
+            document.getElementById('notificationCooldown').value = '5';
+        }
+
+        function populateCameraForm(camera) {
+            try {
+                // Basic info
+                const nameEl = document.getElementById('cameraName');
+                if (nameEl) nameEl.value = camera.name || '';
+                
+                const locationEl = document.getElementById('cameraLocation');
+                if (locationEl) locationEl.value = camera.location || '';
+                
+                const ipEl = document.getElementById('cameraIP');
+                if (ipEl) ipEl.value = camera.ip_address || '';
+                
+                const modelEl = document.getElementById('cameraModel');
+                if (modelEl) modelEl.value = camera.model || '';
+                
+                const statusEl = document.getElementById('cameraStatus');
+                if (statusEl) statusEl.value = camera.status || 'Active';
+                
+                const orgEl = document.getElementById('cameraOrganization');
+                if (orgEl) orgEl.value = camera.organization_id || '';
+                
+                const urlEl = document.getElementById('cameraURL');
+                if (urlEl) urlEl.value = camera.url || camera.URL || '';
+                
+                const descEl = document.getElementById('cameraDescription');
+                if (descEl) descEl.value = camera.description || '';
+                
+                // Camera settings
+                const frameRateEl = document.getElementById('frameRate');
+                if (frameRateEl) frameRateEl.value = camera.frame_rate || camera.camera_settings?.frame_rate || '30';
+                
+                const resolutionEl = document.getElementById('resolution');
+                if (resolutionEl) resolutionEl.value = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
+                
+                const videoBitrateEl = document.getElementById('videoBitrate');
+                if (videoBitrateEl) videoBitrateEl.value = camera.video_bitrate || camera.camera_settings?.video_bitrate || '4000';
+                
+                const audioBitrateEl = document.getElementById('audioBitrate');
+                if (audioBitrateEl) audioBitrateEl.value = camera.audio_bitrate || camera.camera_settings?.audio_bitrate || '128';
+                
+                const presetEl = document.getElementById('preset');
+                if (presetEl) presetEl.value = camera.preset || camera.camera_settings?.preset || 'medium';
+                
+                const crfEl = document.getElementById('crf');
+                if (crfEl) crfEl.value = camera.crf || camera.camera_settings?.crf || '23';
+                
+                const segmentTimeEl = document.getElementById('segmentTime');
+                if (segmentTimeEl) segmentTimeEl.value = camera.segment_time || camera.camera_settings?.segment_time || '10';
+                
+                const enableAudioEl = document.getElementById('enableAudio');
+                if (enableAudioEl) enableAudioEl.checked = camera.enable_audio !== false && camera.camera_settings?.enable_audio !== false;
+                
+                // Detection features
+                const detectionFeatures = camera.detection_features || {};
+                Object.keys(detectionFeatures).forEach(feature => {
+                    const checkbox = document.getElementById(feature);
+                    if (checkbox) {
+                        checkbox.checked = detectionFeatures[feature] || false;
+                    }
+                });
+                
+                // Alert settings
+                const alertSettings = camera.alert_settings || {};
+                const realTimeAlertsEl = document.getElementById('realTimeAlerts');
+                if (realTimeAlertsEl) realTimeAlertsEl.checked = alertSettings.real_time_alerts || false;
+                
+                const inAppAlertsEl = document.getElementById('inAppAlerts');
+                if (inAppAlertsEl) inAppAlertsEl.checked = alertSettings.in_app_alerts !== false;
+                
+                const smsAlertsEl = document.getElementById('smsAlerts');
+                if (smsAlertsEl) smsAlertsEl.checked = alertSettings.sms_alerts || false;
+                
+                const emailAlertsEl = document.getElementById('emailAlerts');
+                if (emailAlertsEl) emailAlertsEl.checked = alertSettings.email_alerts || false;
+                
+                const alertSensitivityEl = document.getElementById('alertSensitivity');
+                if (alertSensitivityEl) alertSensitivityEl.value = alertSettings.alert_sensitivity || 'Medium';
+                
+                const notificationCooldownEl = document.getElementById('notificationCooldown');
+                if (notificationCooldownEl) notificationCooldownEl.value = alertSettings.notification_cooldown || 5;
+                
+                const phoneNumbersEl = document.getElementById('phoneNumbers');
+                if (phoneNumbersEl) phoneNumbersEl.value = (alertSettings.phone_numbers || []).join(', ');
+                
+                const emailAddressesEl = document.getElementById('emailAddresses');
+                if (emailAddressesEl) emailAddressesEl.value = (alertSettings.email_addresses || []).join(', ');
+                
+            } catch (error) {
+                console.error('Error populating camera form:', error);
+            }
+        }
+
+        function promptEditCamera(cameraId) {
+            console.log('Edit button clicked for camera ID:', cameraId);
+            openCameraModal(cameraId);
+        }
+
+        function addNewCamera() {
+            openCameraModal();
         }
 
         async function updateCamera(cameraId, payload) {
@@ -1244,6 +3100,194 @@
             }
         }, 5000);
 
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('cameraModal');
+            if (event.target === modal) {
+                closeCameraModal();
+            }
+        }
+
+        // Video playback functionality
+        let currentVideos = [];
+        let selectedVideo = null;
+
+        async function loadVideoList() {
+            const date = document.getElementById('videoDate').value;
+            const cameraId = document.getElementById('videoCamera').value;
+            const hour = document.getElementById('videoHour').value;
+            
+            if (!date) {
+                document.getElementById('videoList').innerHTML = '<div class="no-videos">Please select a date to view videos.</div>';
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({ date });
+                if (cameraId) params.append('camera_id', cameraId);
+                if (hour) params.append('hour', hour);
+                
+                const response = await fetch(`/api/videos?${params}`);
+                if (!response.ok) throw new Error('Failed to load videos');
+                
+                const videos = await response.json();
+                currentVideos = videos;
+                displayVideoList(videos);
+                populateHourDropdown(videos);
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                document.getElementById('videoList').innerHTML = '<div class="no-videos">Error loading videos. Please try again.</div>';
+            }
+        }
+
+        function displayVideoList(videos) {
+            const videoList = document.getElementById('videoList');
+            
+            if (!videos || videos.length === 0) {
+                videoList.innerHTML = '<div class="no-videos">No videos found for the selected date, camera and hour.</div>';
+                return;
+            }
+
+            // Group videos by hour
+            const videosByHour = {};
+            videos.forEach(video => {
+                const hour = video.hour || 'Unknown';
+                if (!videosByHour[hour]) {
+                    videosByHour[hour] = [];
+                }
+                videosByHour[hour].push(video);
+            });
+
+            // Sort hours
+            const sortedHours = Object.keys(videosByHour).sort((a, b) => {
+                if (a === 'Unknown') return 1;
+                if (b === 'Unknown') return -1;
+                return parseInt(a) - parseInt(b);
+            });
+
+            let html = '';
+            sortedHours.forEach(hour => {
+                const hourVideos = videosByHour[hour];
+                const hourLabel = hour === 'Unknown' ? 'Unknown Hour' : `${hour}:00 - ${hour}:59`;
+                
+                html += `
+                    <div class="hour-section">
+                        <div class="hour-header">
+                            <h3><i class="fas fa-clock"></i> ${hourLabel}</h3>
+                            <span class="video-count">${hourVideos.length} video(s)</span>
+                        </div>
+                        <div class="hour-videos">
+                            ${hourVideos.map(video => `
+                                <div class="video-item" onclick="selectVideo('${video.filename}')" data-filename="${video.filename}">
+                                    <div class="video-thumbnail">
+                                        <i class="fas fa-play-circle"></i>
+                                    </div>
+                                    <div class="video-info">
+                                        <div class="video-name">${video.filename}</div>
+                                        <div class="video-meta">Camera: ${video.camera_name}</div>
+                                        <div class="video-meta">Hour: ${video.hour || 'Unknown'}</div>
+                                        <div class="video-meta">Size: ${formatFileSize(video.size)}</div>
+                                        <div class="video-meta">Created: ${new Date(video.created_at).toLocaleString()}</div>
+                                    </div>
+                                    <div class="video-controls">
+                                        <button class="btn-play" onclick="event.stopPropagation(); playVideo('${video.filename}')">
+                                            <i class="fas fa-play"></i> Play
+                                        </button>
+                                        <button class="btn-download" onclick="event.stopPropagation(); downloadVideo('${video.filename}')">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            videoList.innerHTML = html;
+        }
+
+        function populateHourDropdown(videos) {
+            const hourSelect = document.getElementById('videoHour');
+            const currentHour = hourSelect.value;
+            
+            // Get unique hours from videos
+            const hours = [...new Set(videos.map(video => video.hour).filter(hour => hour))].sort((a, b) => parseInt(a) - parseInt(b));
+            
+            hourSelect.innerHTML = '<option value="">All Hours</option>';
+            hours.forEach(hour => {
+                const option = document.createElement('option');
+                option.value = hour;
+                option.textContent = `${hour}:00 - ${hour}:59`;
+                hourSelect.appendChild(option);
+            });
+            
+            // Restore selection if it still exists
+            if (currentHour && hours.includes(currentHour)) {
+                hourSelect.value = currentHour;
+            }
+        }
+
+        function selectVideo(filename) {
+            // Remove previous selection
+            document.querySelectorAll('.video-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to clicked item
+            const selectedItem = document.querySelector(`[data-filename="${filename}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+            
+            selectedVideo = filename;
+        }
+
+        function playVideo(filename) {
+            const video = currentVideos.find(v => v.filename === filename);
+            if (!video) return;
+
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoPlayerSection = document.getElementById('videoPlayerSection');
+            const videoTitle = document.getElementById('videoTitle');
+            const videoDetails = document.getElementById('videoDetails');
+
+            videoPlayer.src = `/api/videos/play/${filename}`;
+            videoTitle.textContent = video.filename;
+            videoDetails.innerHTML = `
+                <strong>Camera:</strong> ${video.camera_name}<br>
+                <strong>Date:</strong> ${new Date(video.created_at).toLocaleString()}<br>
+                <strong>Size:</strong> ${formatFileSize(video.size)}
+            `;
+            
+            videoPlayerSection.style.display = 'block';
+            videoPlayerSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function downloadVideo(filename) {
+            window.open(`/api/videos/download/${filename}`, '_blank');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function populateCameraDropdown() {
+            const select = document.getElementById('videoCamera');
+            select.innerHTML = '<option value="">All Cameras</option>';
+            
+            cameras.forEach(camera => {
+                const option = document.createElement('option');
+                option.value = camera.id;
+                option.textContent = `${camera.name} (${camera.GUID})`;
+                select.appendChild(option);
+            });
+        }
+
         // Load cameras when page loads
         document.addEventListener("DOMContentLoaded", () => {
             loadCameras();
@@ -1272,6 +3316,9 @@
                     if (gridEl) gridEl.style.display = "";
                 } else if (sectionKey === "live") {
                     if (liveSec) liveSec.style.display = "block";
+                } else if (sectionKey === "video-playback") {
+                    const videoPlaybackSec = document.getElementById("video-playback-section");
+                    if (videoPlaybackSec) videoPlaybackSec.style.display = "block";
                 } else if (sectionKey === "groups") {
                     // Show camera container but only groups UI
                     if (cameraSec) cameraSec.style.display = "block";

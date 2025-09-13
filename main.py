@@ -7,7 +7,7 @@ import re
 import uuid
 import requests
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request, send_from_directory
+from flask import Flask, render_template, jsonify, request, send_from_directory, send_file
 
 app = Flask(__name__)
 
@@ -61,9 +61,10 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
     """Function that runs in each camera thread - creates video recordings using ffmpeg"""
     print(f"Thread started for camera: {camera_name} ({camera_id})")
     
-    # Create output directory structure: base_path/date/cameraguid/mp4
+    # Create output directory structure: base_path/date/cameraguid/hh/mm.mp4
     current_date = datetime.now().strftime("%Y-%m-%d")
-    output_dir = os.path.join(base_video_path, current_date, camera_guid, "mp4")
+    current_hour = datetime.now().strftime("%H")
+    output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
     os.makedirs(output_dir, exist_ok=True)
     
     try:
@@ -92,9 +93,52 @@ def camera_thread_function(camera_id, camera_name, camera_url, camera_guid):
             universal_newlines=True
         )
         
-        # Wait for process to complete or stop flag to be set
+        # Monitor for hour changes and restart ffmpeg with new folder
+        last_hour = current_hour
+        
         while process.poll() is None and not stop_flags.get(camera_id, False):
-            time.sleep(1)
+            time.sleep(30)  # Check every 30 seconds
+            
+            # Check if hour has changed
+            current_hour = datetime.now().strftime("%H")
+            if current_hour != last_hour:
+                print(f"Hour changed from {last_hour} to {current_hour} for camera: {camera_name}")
+                
+                # Stop current ffmpeg process
+                process.terminate()
+                try:
+                    process.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                
+                # Create new hour folder
+                new_output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
+                os.makedirs(new_output_dir, exist_ok=True)
+                
+                # Build new ffmpeg command with new folder
+                ffmpeg_cmd = [
+                    "ffmpeg",
+                    "-rtsp_transport", "tcp",
+                    "-i", camera_url,
+                    "-c", "copy",
+                    "-f", "segment",
+                    "-segment_time", "60",
+                    "-reset_timestamps", "1",
+                    "-strftime", "1",
+                    os.path.join(new_output_dir, "%H%M.mp4")
+                ]
+                
+                print(f"Restarting ffmpeg with new hour folder: {new_output_dir}")
+                
+                # Start new ffmpeg process
+                process = subprocess.Popen(
+                    ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
+                )
+                
+                last_hour = current_hour
         
         # If stop flag is set, terminate the process
         if stop_flags.get(camera_id, False):
@@ -231,7 +275,9 @@ def get_cameras():
 @app.route('/api/cameras', methods=['POST'])
 def create_camera():
     """Create a new camera and persist in config.json
-    Expected JSON: {id?, name, location, ip_address, URL/url, GUID?, is_recording?}
+    Expected JSON: {id?, name, location, ip_address, URL/url, GUID?, is_recording?, 
+                   frame_rate?, resolution?, video_bitrate?, enable_audio?, audio_bitrate?, 
+                   preset?, crf?, segment_time?, detection_features?, alert_settings?}
     """
     global cameras_data
     data = request.get_json(force=True) or {}
@@ -257,6 +303,101 @@ def create_camera():
     is_recording = bool(data.get('is_recording', False))
     status = data.get('status') or 'Active'
 
+    # Default camera settings
+    default_camera_settings = {
+        'frame_rate': 30,
+        'resolution': '1920x1080',
+        'video_bitrate': 4000,
+        'enable_audio': True,
+        'audio_bitrate': 128,
+        'preset': 'medium',
+        'crf': 23,
+        'segment_time': 10
+    }
+
+    # Default detection features (all false)
+    default_detection_features = {
+        'people_detection': False,
+        'vehicle_detection': False,
+        'people_counting': False,
+        'vehicle_counting': False,
+        'face_detection': False,
+        'face_recognition': False,
+        'mask_detection': False,
+        'face_mask_compliance': False,
+        'intrusion_detection': False,
+        'line_crossing_detection': False,
+        'loitering_detection': False,
+        'aggressive_behavior_detection': False,
+        'suspicious_behavior_detection': False,
+        'fall_detection': False,
+        'social_distancing_detection': False,
+        'object_left_behind': False,
+        'object_removed': False,
+        'bag_detection': False,
+        'gun_detection': False,
+        'helmet_detection': False,
+        'ppe_detection': False,
+        'smoking_detection': False,
+        'phone_usage_detection': False,
+        'license_plate_recognition': False,
+        'parking_occupancy_detection': False,
+        'wrong_way_detection': False,
+        'speed_detection': False,
+        'illegal_parking_detection': False,
+        'crowd_density_estimation': False,
+        'dwell_time_analysis': False,
+        'heatmap_generation': False,
+        'queue_monitoring': False,
+        'footfall_analysis': False,
+        'wait_time_analysis': False,
+        'fire_detection': False,
+        'smoke_detection': False,
+        'flood_water_level_detection': False,
+        'night_time_movement_detection': False,
+        'scream_gunshot_detection': False,
+        'glass_break_detection': False,
+        're_identification': False,
+        'multi_camera_tracking': False,
+        'pose_estimation': False,
+        'action_recognition': False,
+        'gesture_recognition': False,
+        'scene_anomaly_detection': False,
+        'zone_based_alerts': False,
+        'virtual_tripwire': False,
+        'retail_zone_interaction': False
+    }
+
+    # Default alert settings
+    default_alert_settings = {
+        'real_time_alerts': False,
+        'sms_alerts': False,
+        'email_alerts': False,
+        'in_app_alerts': True,
+        'phone_numbers': [],
+        'email_addresses': [],
+        'alert_sensitivity': 'Medium',
+        'notification_cooldown': 5
+    }
+
+    # Merge with provided data
+    camera_settings = {**default_camera_settings}
+    for key in default_camera_settings:
+        if key in data:
+            camera_settings[key] = data[key]
+
+    detection_features = {**default_detection_features}
+    if 'detection_features' in data and isinstance(data['detection_features'], dict):
+        for key in default_detection_features:
+            if key in data['detection_features']:
+                detection_features[key] = bool(data['detection_features'][key])
+
+    alert_settings = {**default_alert_settings}
+    if 'alert_settings' in data and isinstance(data['alert_settings'], dict):
+        for key in default_alert_settings:
+            if key in data['alert_settings']:
+                alert_settings[key] = data['alert_settings'][key]
+
     new_camera = {
         'id': camera_id,
         'name': name,
@@ -270,6 +411,21 @@ def create_camera():
         'GUID': guid,
         'description': data.get('description', name),
         'is_recording': is_recording,
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat(),
+        # Direct camera settings fields
+        'frame_rate': camera_settings['frame_rate'],
+        'resolution': camera_settings['resolution'],
+        'video_bitrate': camera_settings['video_bitrate'],
+        'enable_audio': camera_settings['enable_audio'],
+        'audio_bitrate': camera_settings['audio_bitrate'],
+        'preset': camera_settings['preset'],
+        'crf': camera_settings['crf'],
+        'segment_time': camera_settings['segment_time'],
+        # Structured settings
+        'camera_settings': camera_settings,
+        'detection_features': detection_features,
+        'alert_settings': alert_settings
     }
 
     cameras_data.append(new_camera)
@@ -316,6 +472,34 @@ def update_camera(camera_id):
     # is_recording
     if 'is_recording' in data:
         camera['is_recording'] = bool(data['is_recording'])
+
+    # Update camera settings
+    camera_settings_fields = ['frame_rate', 'resolution', 'video_bitrate', 'enable_audio', 
+                             'audio_bitrate', 'preset', 'crf', 'segment_time']
+    for field in camera_settings_fields:
+        if field in data:
+            camera[field] = data[field]
+            # Also update in camera_settings if it exists
+            if 'camera_settings' not in camera:
+                camera['camera_settings'] = {}
+            camera['camera_settings'][field] = data[field]
+
+    # Update detection features
+    if 'detection_features' in data and isinstance(data['detection_features'], dict):
+        if 'detection_features' not in camera:
+            camera['detection_features'] = {}
+        for key, value in data['detection_features'].items():
+            camera['detection_features'][key] = bool(value)
+
+    # Update alert settings
+    if 'alert_settings' in data and isinstance(data['alert_settings'], dict):
+        if 'alert_settings' not in camera:
+            camera['alert_settings'] = {}
+        for key, value in data['alert_settings'].items():
+            camera['alert_settings'][key] = value
+
+    # Update timestamp
+    camera['updated_at'] = datetime.now().isoformat()
 
     # Manage threads if recording state changed
     if bool(camera.get('is_recording', False)) != previous_is_recording:
@@ -495,7 +679,7 @@ def get_thread_status():
 
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
-    """API endpoint to get camera frame (placeholder for now)"""
+    """API endpoint to get camera frame as MJPEG stream"""
     # Find the camera
     camera = None
     for cam in cameras_data:
@@ -506,14 +690,218 @@ def get_camera_frame(camera_id):
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
     
-    # For now, return a placeholder response
-    # In a real implementation, this would capture and return a frame from the camera
-    return jsonify({
-        'camera_id': camera_id,
-        'camera_name': camera['name'],
-        'status': 'recording' if camera.get('is_recording', False) else 'stopped',
-        'message': 'Frame capture not implemented yet'
-    })
+    camera_url = camera.get('URL', '')
+    if not camera_url:
+        return jsonify({'error': 'Camera URL not configured'}), 400
+    
+    try:
+        # Use ffmpeg to convert RTSP stream to MJPEG
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-rtsp_transport", "tcp",
+            "-i", camera_url,
+            "-f", "mjpeg",
+            "-q:v", "5",  # Quality level (1-31, lower is better)
+            "-r", "10",   # Frame rate
+            "-s", "640x360",  # Resolution for live view
+            "pipe:1"
+        ]
+        
+        process = subprocess.Popen(
+            ffmpeg_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        def generate():
+            try:
+                while True:
+                    # Read a chunk of data
+                    chunk = process.stdout.read(1024)
+                    if not chunk:
+                        break
+                    yield chunk
+            except Exception as e:
+                print(f"Error in MJPEG stream: {e}")
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+        
+        return app.response_class(
+            generate(),
+            mimetype='multipart/x-mixed-replace; boundary=frame'
+        )
+        
+    except Exception as e:
+        print(f"Error creating MJPEG stream: {e}")
+        return jsonify({'error': 'Failed to create video stream'}), 500
+
+@app.route('/api/cameras/<camera_id>/stream')
+def get_camera_stream(camera_id):
+    """API endpoint to get camera live stream as HLS"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    camera_url = camera.get('URL', '')
+    if not camera_url:
+        return jsonify({'error': 'Camera URL not configured'}), 400
+    
+    try:
+        # Create HLS stream directory
+        stream_dir = os.path.join(base_video_path, 'live_streams', camera_id)
+        os.makedirs(stream_dir, exist_ok=True)
+        
+        # Use ffmpeg to convert RTSP stream to HLS
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-rtsp_transport", "tcp",
+            "-i", camera_url,
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            "-f", "hls",
+            "-hls_time", "2",
+            "-hls_list_size", "3",
+            "-hls_flags", "delete_segments",
+            "-hls_segment_filename", os.path.join(stream_dir, "segment_%03d.ts"),
+            os.path.join(stream_dir, "playlist.m3u8")
+        ]
+        
+        # Start ffmpeg process in background
+        process = subprocess.Popen(
+            ffmpeg_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        # Return the HLS playlist URL
+        return jsonify({
+            'stream_url': f'/api/cameras/{camera_id}/hls/playlist.m3u8',
+            'status': 'streaming'
+        })
+        
+    except Exception as e:
+        print(f"Error creating HLS stream: {e}")
+        return jsonify({'error': 'Failed to create video stream'}), 500
+
+@app.route('/api/cameras/<camera_id>/hls/<path:filename>')
+def get_hls_file(camera_id, filename):
+    """Serve HLS files for live streaming"""
+    stream_dir = os.path.join(base_video_path, 'live_streams', camera_id)
+    return send_from_directory(stream_dir, filename)
+
+@app.route('/api/videos')
+def get_videos():
+    """API endpoint to get list of videos by date and optional camera ID and hour"""
+    date = request.args.get('date')
+    camera_id = request.args.get('camera_id')
+    hour = request.args.get('hour')
+    
+    if not date:
+        return jsonify({'error': 'Date parameter is required'}), 400
+    
+    try:
+        videos = []
+        date_path = os.path.join(base_video_path, date)
+        
+        if not os.path.exists(date_path):
+            return jsonify(videos)
+        
+        # Get all camera GUIDs for the date
+        for item in os.listdir(date_path):
+            item_path = os.path.join(date_path, item)
+            if os.path.isdir(item_path):
+                # Find camera by GUID
+                camera = None
+                for cam in cameras_data:
+                    if cam.get('GUID') == item:
+                        camera = cam
+                        break
+                
+                # Skip if camera_id filter is specified and doesn't match
+                if camera_id and camera and camera.get('id') != camera_id:
+                    continue
+                
+                # Look for hour folders (00, 01, 02, ..., 23)
+                for hour_folder in os.listdir(item_path):
+                    hour_path = os.path.join(item_path, hour_folder)
+                    if os.path.isdir(hour_path) and hour_folder.isdigit() and 0 <= int(hour_folder) <= 23:
+                        # Skip if hour filter is specified and doesn't match
+                        if hour and hour_folder != hour:
+                            continue
+                            
+                        # Get all video files in this hour folder
+                        for video_file in os.listdir(hour_path):
+                            if video_file.endswith('.mp4'):
+                                video_path = os.path.join(hour_path, video_file)
+                                file_stat = os.stat(video_path)
+                                
+                                video_info = {
+                                    'filename': video_file,
+                                    'path': video_path,
+                                    'camera_id': camera.get('id') if camera else None,
+                                    'camera_name': camera.get('name') if camera else 'Unknown Camera',
+                                    'camera_guid': item,
+                                    'hour': hour_folder,
+                                    'size': file_stat.st_size,
+                                    'created_at': datetime.fromtimestamp(file_stat.st_ctime).isoformat(),
+                                    'modified_at': datetime.fromtimestamp(file_stat.st_mtime).isoformat()
+                                }
+                                videos.append(video_info)
+        
+        # Sort by creation time (newest first)
+        videos.sort(key=lambda x: x['created_at'], reverse=True)
+        return jsonify(videos)
+        
+    except Exception as e:
+        print(f"Error getting videos: {e}")
+        return jsonify({'error': 'Failed to get videos'}), 500
+
+@app.route('/api/videos/play/<filename>')
+def play_video(filename):
+    """API endpoint to stream video for playback"""
+    try:
+        # Find the video file
+        video_path = None
+        for root, dirs, files in os.walk(base_video_path):
+            if filename in files:
+                video_path = os.path.join(root, filename)
+                break
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': 'Video not found'}), 404
+        
+        return send_file(video_path, mimetype='video/mp4')
+        
+    except Exception as e:
+        print(f"Error playing video: {e}")
+        return jsonify({'error': 'Failed to play video'}), 500
+
+@app.route('/api/videos/download/<filename>')
+def download_video(filename):
+    """API endpoint to download video file"""
+    try:
+        # Find the video file
+        video_path = None
+        for root, dirs, files in os.walk(base_video_path):
+            if filename in files:
+                video_path = os.path.join(root, filename)
+                break
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({'error': 'Video not found'}), 404
+        
+        return send_file(video_path, as_attachment=True, download_name=filename)
+        
+    except Exception as e:
+        print(f"Error downloading video: {e}")
+        return jsonify({'error': 'Failed to download video'}), 500
 
 def main():
     """Main function"""
