@@ -146,8 +146,12 @@
             background: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #e6ebf2;
             transition: all 0.3s ease;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .camera-card:hover {
@@ -166,6 +170,10 @@
             margin-bottom: 12px;
             color: #666;
             font-size: 14px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .camera-info p {
@@ -195,6 +203,9 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
         }
 
         .toggle-switch {
@@ -407,9 +418,9 @@
             transition: background 0.2s ease;
         }
 
-        .inline-btn:hover {
+        /* .inline-btn:hover {
             background: #138496;
-        }
+        } */
 
         .group-form {
             display: none;
@@ -862,7 +873,9 @@
         .video-controls {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
         }
 
         .video-controls button {
@@ -1101,6 +1114,9 @@
             padding: 15px;
             border: 1px solid #e9ecef;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Single camera view - larger display */
@@ -1167,6 +1183,9 @@
             border: 1px solid #e9ecef;
             transition: all 0.3s ease;
             cursor: pointer;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
         }
 
         .video-item:hover {
@@ -1244,7 +1263,9 @@
         .video-controls {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
         }
 
         .video-controls button {
@@ -1294,6 +1315,12 @@
             font-size: 24px;
             font-weight: semi-bold;
         }
+
+        #camera-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
     </style>
 </head>
 
@@ -1316,11 +1343,10 @@
                 <li>
                     <a class="nav-link" href="#discovery-section">🔍 Discovery</a>
                 </li>
-                <li>
+                <!-- <li>
                     <a class="nav-link" href="#analytics-section">📊 Analytics</a>
-                </li>
-                <li><a class="nav-link" href="organizations.html">🏢 Organizations</a></li>
-                <li><a class="nav-link" href="profile.html">👤 Profile</a></li>
+                </li> -->
+               
                 <li><a class="nav-link" href="#settings-section">⚙️ Settings</a></li>
             </ul>
         </aside>
@@ -1338,9 +1364,9 @@
                 </div>
 
             </div>
-            <div class="main-container">
+            <div class="main-container" style="flex:1; min-height: 0; overflow-y: auto;">
                 <!-- Camera List Section -->
-                <div class="camera-list-section" id="camera-section">
+                <div class="camera-list-section" id="camera-section" >
                     <div class="section-title">📋 Camera List (Recording Only)</div>
                     <div class="stats">
                         <div class="stat-item">
@@ -1361,7 +1387,7 @@
                         <button class="refresh-button" id="searchButton" onclick="searchCameras()">
                 🔍 Search Cameras
               </button>
-                            <button class="refresh-button" onclick="addNewCamera()" style="background: #28a745;">
+                            <button class="refresh-button" onclick="addNewCamera()" style="background: #2a303f;">
                                 ➕ Add Camera
                             </button>
                         </div>
@@ -1421,13 +1447,13 @@
                             <select id="groupSelect" class="group-select" onchange="onGroupChange()">
                   <option value="__all__">All cameras</option>
                 </select>
-                            <button class="inline-btn" onclick="startCreateGroup()">
+                            <button class="inline-btn" style="background:#2a303f;" onclick="startCreateGroup()">
                   ➕ Create Group
                 </button>
-                            <button class="inline-btn" id="editGroupBtn" style="background: #6f42c1" onclick="startEditGroup()" disabled>
+                            <button class="inline-btn" id="editGroupBtn" style="background: #2a303f;" onclick="startEditGroup()" disabled>
                   ✏️ Edit Group
                 </button>
-                            <button class="inline-btn" id="deleteGroupBtn" style="background: #dc3545" onclick="deleteGroup()" disabled>
+                            <button class="inline-btn" id="deleteGroupBtn" style="background: #2a303f;" onclick="deleteGroup()" disabled>
                   🗑️ Delete
                 </button>
                         </div>
@@ -1439,7 +1465,7 @@
                             <input id="groupName" type="text" placeholder="Group name" />
                             <div class="camera-checkboxes" id="groupCameraList"></div>
                             <div style="display: flex; gap: 8px; margin-top: 8px">
-                                <button class="inline-btn" onclick="saveGroup()">Save</button>
+                                <button class="inline-btn" onclick="saveGroup()" style="background:#2a303f; color: white">Save</button>
                                 <button class="inline-btn" style="background: #6c757d" onclick="toggleGroupForm()">
                     Cancel
                   </button>
@@ -1452,7 +1478,7 @@
                 </div>
 
                 <!-- Live View Section -->
-                <div class="live-view-section" id="live-section" style="margin-top: 20px">
+                <div class="live-view-section" id="live-section" style="margin: 10px; padding: 10px">
                     <div class="section-title">🎥 Live View</div>
                     <div style="
                 display: flex;
@@ -1473,10 +1499,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Video Playback Section -->
-            <div class="camera-list-section" id="video-playback-section">
+                <!-- Video Playback Section -->
+            <div class="camera-list-section" id="video-playback-section" style="flex:1; min-height: 0; overflow-y: auto;">
                 <div class="section-title">📹 Video Playback</div>
                 
                 <!-- Video Selection Controls -->
@@ -1503,7 +1528,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <button class="btn btn-primary" onclick="loadVideoList()">
+                            <label for=""><br></label>
+                            <button class="btn" onclick="loadVideoList()">
                                 <i class="fas fa-search"></i> Load Videos
                             </button>
                         </div>
@@ -1549,6 +1575,9 @@
                 <div class="section-title">⚙️ Settings</div>
                 <div class="camera-info">Adjust application settings here.</div>
             </div>
+            </div>
+
+            
         </div>
     </div>
 
@@ -2119,7 +2148,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="saveCamera()">Save Camera</button>
+                <button type="button" class="btn" style="background:#2a303f; color: white" onclick="saveCamera()">Save Camera</button>
             </div>
         </div>
     </div>
@@ -2517,29 +2546,70 @@
 
         // Create live camera card HTML
         function createLiveCameraCard(camera) {
-            return `
-                
+            const cameraGuid = camera?.GUID;
+            if (!cameraGuid) {
+                return `
                     <div class="live-camera-header">
                         <span>${camera.name}</span>
                         <div class="live-camera-controls">
-                            <button onclick="toggleLiveStream('${camera.id}')" class="btn-stream" id="stream-btn-${camera.id}">
-                                <i class="fas fa-play"></i> Start Stream
-                            </button>
-                            ${selectedLiveCamera ? `
-                                <button onclick="selectLiveCamera('')" class="btn-show-all">
-                                    <i class="fas fa-th"></i> Show All
-                                </button>
-                            ` : ''}
+                            <span style="color: #dc3545;">No GUID found</span>
                         </div>
                     </div>
-                    <div class="live-camera-feed" id="feed-${camera.id}">
-                        <div class="stream-placeholder">
-                            <i class="fas fa-video"></i>
-                            <p>Click "Start Stream" to view live feed</p>
+                    <div class="live-camera-feed">
+                        <div class="stream-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Camera GUID not found</p>
+                            <p class="error-details">Cannot generate live URL</p>
                         </div>
                     </div>
-                  
                 `;
+            }
+
+            // Get camera resolution for iframe dimensions
+            const resolution = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
+            const [width, height] = resolution.split('x').map(Number);
+            
+            // Calculate responsive dimensions (max 1280x720, maintain aspect ratio)
+            let iframeWidth = Math.min(width, 1280);
+            let iframeHeight = Math.min(height, 720);
+            
+            // Maintain aspect ratio
+            if (width > height) {
+                iframeHeight = (iframeWidth * height) / width;
+            } else {
+                iframeWidth = (iframeHeight * width) / height;
+            }
+
+            return `
+                <div class="live-camera-header">
+                    <span>${camera.name}</span>
+                    <div class="live-camera-controls">
+                        <button onclick="refreshCameraStream('${camera.id}')" class="btn-stream" style="background: #007bff;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        ${selectedLiveCamera ? `
+                            <button onclick="selectLiveCamera('')" class="btn-show-all">
+                                <i class="fas fa-th"></i> Show All
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="live-camera-feed" id="feed-${camera.id}">
+                    <iframe src="http://localhost:8889/${cameraGuid}/" 
+                            width="${Math.round(iframeWidth)}" 
+                            height="${Math.round(iframeHeight)}" 
+                            frameborder="0"
+                            allowfullscreen
+                            style="border: none; border-radius: 8px; max-width: 100%;"
+                            onload="handleIframeLoad('${camera.id}')"
+                            onerror="handleIframeError('${camera.id}')">
+                    </iframe>
+                    <div class="stream-loading" id="loading-${camera.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading live stream...</p>
+                    </div>
+                </div>
+            `;
         }
 
         // Select specific camera for live view
@@ -2561,69 +2631,60 @@
             displayLiveCameras(recordingCameras);
         }
 
-        // Toggle live stream for a camera
-        function toggleLiveStream(cameraId) {
-            const feedDiv = document.getElementById(`feed-${cameraId}`);
-            const streamBtn = document.getElementById(`stream-btn-${cameraId}`);
-            const isStreaming = feedDiv.querySelector('img') !== null;
-            
-            if (isStreaming) {
-                // Stop stream
-                feedDiv.innerHTML = `
-                    <div class="stream-placeholder">
-                        <i class="fas fa-video"></i>
-                        <p>Click "Start Stream" to view live feed</p>
-                    </div>
-                `;
-                streamBtn.innerHTML = '<i class="fas fa-play"></i> Start Stream';
-                streamBtn.className = 'btn-stream';
-            } else {
-                // Start stream
-                const camera = cameras.find(c => c.id === cameraId);
-                const rtspURL = camera?.url || camera?.URL;
-                
-                feedDiv.innerHTML = `
-                    <img src="/api/cameras/${cameraId}/frame?rtsp_url=${encodeURIComponent(rtspURL || '')}" 
-                         alt="Live feed from ${camera?.name}" 
-                         onerror="handleStreamError('${cameraId}')"
-                         onload="handleStreamLoad('${cameraId}')">
-                    <div class="stream-loading" id="loading-${cameraId}">
-                        <i class="fas fa-spinner fa-spin"></i>
-                        <p>Connecting to camera...</p>
-                    </div>
-                `;
-                streamBtn.innerHTML = '<i class="fas fa-stop"></i> Stop Stream';
-                streamBtn.className = 'btn-stream btn-stop';
-            }
-        }
 
-        // Handle stream load success
-        function handleStreamLoad(cameraId) {
-            const loadingDiv = document.getElementById(`loading-${cameraId}`);
-            if (loadingDiv) {
-                loadingDiv.style.display = 'none';
-            }
-        }
-
-        // Handle stream error
-        function handleStreamError(cameraId) {
-            const feedDiv = document.getElementById(`feed-${cameraId}`);
-            const streamBtn = document.getElementById(`stream-btn-${cameraId}`);
-            
-            feedDiv.innerHTML = `
-                <div class="stream-error">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <p>Failed to connect to camera</p>
-                    <p class="error-details">Check camera URL and network connection</p>
-                </div>
-            `;
-            streamBtn.innerHTML = '<i class="fas fa-play"></i> Start Stream';
-            streamBtn.className = 'btn-stream';
-        }
 
         // Refresh live view
         function refreshLiveView() {
             updateLiveView();
+        }
+
+        // Handle iframe load success
+        function handleIframeLoad(cameraId) {
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+            console.log(`Live stream loaded for camera ${cameraId}`);
+        }
+
+        // Handle iframe error
+        function handleIframeError(cameraId) {
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            if (loadingDiv) {
+                loadingDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load stream</p>
+                    <p style="font-size: 12px;">Click Refresh to retry</p>
+                `;
+            }
+            console.error(`Live stream failed for camera ${cameraId}`);
+        }
+
+        // Refresh individual camera stream
+        function refreshCameraStream(cameraId) {
+            const camera = cameras.find(c => c.id === cameraId);
+            if (!camera || !camera.GUID) return;
+
+            const feedDiv = document.getElementById(`feed-${cameraId}`);
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            
+            if (loadingDiv) {
+                loadingDiv.style.display = 'block';
+                loadingDiv.innerHTML = `
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Refreshing stream...</p>
+                `;
+            }
+
+            // Force iframe reload by changing src
+            const iframe = feedDiv.querySelector('iframe');
+            if (iframe) {
+                const currentSrc = iframe.src;
+                iframe.src = '';
+                setTimeout(() => {
+                    iframe.src = currentSrc + '?t=' + Date.now(); // Add timestamp to force reload
+                }, 100);
+            }
         }
 
         // Search for cameras (LAN discovery)
@@ -2676,10 +2737,10 @@
         }
 
         function openDiscoveryAddForm(ip, vendor, macAddress = '') {
-            // Open the camera modal and populate with discovered camera data
+            // Open the same camera modal as the regular "Add Camera" button
             openCameraModal();
             
-            // Populate the form with discovered camera data
+            // Populate the regular camera modal with discovered camera data
             setTimeout(() => {
                 document.getElementById("cameraName").value = vendor ? vendor + " Camera" : "";
                 document.getElementById("cameraIP").value = ip || "";
@@ -2691,8 +2752,11 @@
                 document.getElementById("cameraPassword").value = "";
                 document.getElementById("cameraPort").value = "554";
                 document.getElementById("cameraPath").value = "/axis-media/media.amp";
+                document.getElementById("cameraOrganization").value = "";
+                document.getElementById("cameraStatus").value = "Active"; // Use "Active" not "active"
+                document.getElementById("cameraDescription").value = "";
                 
-                // Update RTSP URL
+                // Update RTSP URL using the regular camera modal function
                 updateRTSPURL();
             }, 100);
         }
@@ -2701,6 +2765,7 @@
             const form = document.getElementById("discoveryAddForm");
             form.style.display = "none";
         }
+
 
         async function submitDiscoveryAddForm() {
             const name = document.getElementById("discName").value.trim();
@@ -2777,7 +2842,11 @@
             const port = document.getElementById('cameraPort').value;
             const path = document.getElementById('cameraPath').value;
             
+            console.log('updateRTSPURL called with:', { username, password, ip, port, path });
+            
             const rtspURL = constructRTSPURL(username, password, ip, port, path);
+            console.log('Generated RTSP URL:', rtspURL);
+            
             document.getElementById('cameraURL').value = rtspURL;
         }
 
@@ -2800,6 +2869,8 @@
             data.path = formData.get('path');
             data.url = formData.get('url');
             data.description = formData.get('description');
+            
+            console.log('collectFormData - collected data:', data);
             
             // Camera settings
             data.frame_rate = parseInt(formData.get('frame_rate'));
@@ -3272,12 +3343,24 @@
             }
         }
 
-        // Auto-refresh live view every 5 seconds
+        // Auto-refresh live view every 30 seconds to keep streams alive
         setInterval(() => {
             if (cameras.some((c) => c.is_recording)) {
-                refreshLiveView();
+                // Only refresh if we're on the live view section
+                const liveSection = document.getElementById('live-section');
+                if (liveSection && liveSection.style.display !== 'none') {
+                    // Refresh individual camera streams instead of full reload
+                    cameras.filter(c => c.is_recording).forEach(camera => {
+                        const iframe = document.querySelector(`#feed-${camera.id} iframe`);
+                        if (iframe) {
+                            // Add timestamp to force reload and keep stream alive
+                            const currentSrc = iframe.src.split('?')[0];
+                            iframe.src = currentSrc + '?t=' + Date.now();
+                        }
+                    });
+                }
             }
-        }, 5000);
+        }, 30000); // Refresh every 30 seconds
 
         // Close modal when clicking outside
         window.onclick = function(event) {
@@ -3479,6 +3562,7 @@
                     field.addEventListener('input', updateRTSPURL);
                 }
             });
+
             // Sidebar navigation: show only selected area
             function showOnlySection(sectionKey) {
                 const cameraSec = document.getElementById("camera-section");
@@ -3595,6 +3679,7 @@
         // Check authentication status on page load
         async function checkAuthStatus() {
             try {
+                // First try to get auth status from API
                 const response = await fetch('/api/auth/status');
                 const data = await response.json();
                 
@@ -3603,10 +3688,39 @@
                     isAuthenticated = true;
                     updateNavbar(true);
                 } else {
-                    updateNavbar(false);
+                    // If not authenticated, check config file for organization details
+                    await checkConfigForOrganization();
                 }
             } catch (error) {
                 console.error('Auth check failed:', error);
+                // If API fails, check config file for organization details
+                await checkConfigForOrganization();
+            }
+        }
+
+        // Check config file for organization details
+        async function checkConfigForOrganization() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                if (config.organizations && config.organizations.length > 0) {
+                    // Show organization details from config
+                    const org = config.organizations[0]; // Use first organization
+                    currentUser = {
+                        name: org.name || 'Organization User',
+                        username: org.upload_username || 'admin',
+                        organization_id: org.id,
+                        role: 'admin',
+                        email: org.contact_email || ''
+                    };
+                    isAuthenticated = true;
+                    updateNavbar(true);
+                } else {
+                    updateNavbar(false);
+                }
+            } catch (error) {
+                console.error('Config check failed:', error);
                 updateNavbar(false);
             }
         }
@@ -3619,7 +3733,14 @@
             const authIcon = authLink.querySelector('i');
 
             if (authenticated && currentUser) {
-                userInfo.textContent = `${currentUser.name} - ${currentUser.username} (Org: ${currentUser.organization_id}) (${currentUser.role})`;
+                // Check if this is config-based auth (no email field) or API-based auth
+                if (currentUser.email) {
+                    // API-based auth - show full details
+                    userInfo.textContent = `${currentUser.name} - ${currentUser.username} (Org: ${currentUser.organization_id}) (${currentUser.role})`;
+                } else {
+                    // Config-based auth - show organization details
+                    userInfo.textContent = `${currentUser.name} (Organization ID: ${currentUser.organization_id}) - ${currentUser.role}`;
+                }
                 authText.textContent = 'Logout';
                 authIcon.className = 'fas fa-sign-out-alt';
             } else {
@@ -3632,22 +3753,37 @@
         // Handle authentication action
         async function handleAuth() {
             if (isAuthenticated) {
-                // Logout
+                // Check if we're using config-based auth or API auth
                 try {
-                    const response = await fetch('/api/auth/logout', {
-                        method: 'POST'
-                    });
+                    const response = await fetch('/api/auth/status');
+                    const data = await response.json();
                     
-                    if (response.ok) {
+                    if (data.authenticated) {
+                        // API-based auth - perform logout
+                        const logoutResponse = await fetch('/api/auth/logout', {
+                            method: 'POST'
+                        });
+                        
+                        if (logoutResponse.ok) {
+                            currentUser = null;
+                            isAuthenticated = false;
+                            updateNavbar(false);
+                            // Clear session storage
+                            sessionStorage.removeItem('user');
+                            sessionStorage.removeItem('isAuthenticated');
+                        }
+                    } else {
+                        // Config-based auth - just reset to sign in
                         currentUser = null;
                         isAuthenticated = false;
                         updateNavbar(false);
-                        // Clear session storage
-                        sessionStorage.removeItem('user');
-                        sessionStorage.removeItem('isAuthenticated');
                     }
                 } catch (error) {
-                    console.error('Logout failed:', error);
+                    console.error('Auth check failed:', error);
+                    // Config-based auth - just reset to sign in
+                    currentUser = null;
+                    isAuthenticated = false;
+                    updateNavbar(false);
                 }
             } else {
                 // Redirect to login

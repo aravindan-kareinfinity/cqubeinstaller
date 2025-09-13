@@ -1,7 +1,7 @@
 {
   "cameras": [
     {
-      "id": "cam_526b6997",
+      "id": "cam_4f63e36a",
       "name": "Axis Communications AB Camera",
       "location": "Unassigned",
       "ip_address": "192.168.1.14",
@@ -12,15 +12,15 @@
       "status": "Active",
       "username": "root",
       "password": "k2bsecure???",
-      "port": "554",
+      "port": "",
       "path": "/axis-media/media.amp",
       "url": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
       "URL": "rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp",
-      "GUID": "706cb03d-7c1f-4fa9-b122-efff937d5d15",
+      "GUID": "8483a4c1-54f6-4e8a-82fb-9ecabde07d60",
       "description": "",
       "is_recording": true,
-      "created_at": "2025-09-13T17:28:58.793256",
-      "updated_at": "2025-09-13T17:28:58.793256",
+      "created_at": "2025-09-13T23:01:46.253357",
+      "updated_at": "2025-09-13T23:01:46.253357",
       "frame_rate": 30,
       "resolution": "1920x1080",
       "video_bitrate": 4000,
@@ -28,7 +28,7 @@
       "audio_bitrate": 128,
       "preset": "medium",
       "crf": 23,
-      "segment_time": 10,
+      "segment_time": 60,
       "camera_settings": {
         "frame_rate": 30,
         "resolution": "1920x1080",
@@ -111,21 +111,6 @@
   "multi_camera_selections": [],
   "organizations": [
     {
-      "address": null,
-      "client_video_access_path": "",
-      "contact_email": null,
-      "created_at": "2025-09-13T16:36:53.882420+05:30",
-      "description": "Test Description",
-      "id": 15,
-      "name": "Test Organization",
-      "retention": 10,
-      "server_video_path": "",
-      "storage_provider": "",
-      "updated_at": "2025-09-13T16:36:53.882420+05:30",
-      "upload_password": "admin",
-      "upload_username": "admin"
-    },
-    {
       "name": "CQUBEPRO",
       "description": "CQUBEPRO",
       "id": 17,
@@ -142,16 +127,6 @@
     }
   ],
   "users": [
-    {
-      "created_at": "2025-09-13T16:36:53.927023+05:30",
-      "email": "test@example.com",
-      "id": 14,
-      "isfactory": false,
-      "name": "Test User",
-      "organization_id": 15,
-      "role": "admin",
-      "updated_at": "2025-09-13T16:36:53.927023+05:30"
-    },
     {
       "name": "CQUBEPRO",
       "email": "CQUBEPRO@gmail.com",

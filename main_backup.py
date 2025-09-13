@@ -388,64 +388,42 @@ def stop_dedicated_upload_thread():
     print("✅ Dedicated upload thread stopped")
 
 def test_rtsp_stream(camera_rtsp_url, camera_name):
-    """Test if RTSP stream is accessible using ffmpeg instead of OpenCV"""
+    """Test if RTSP stream is accessible"""
     try:
         print(f"Testing RTSP stream for {camera_name}: {camera_rtsp_url}")
         
-        # Use ffmpeg to test the RTSP stream instead of OpenCV
-        # This is more reliable for RTSP streams
-        ffmpeg_cmd = [
-            "ffmpeg",
-            "-rtsp_transport", "tcp",
-            "-i", camera_rtsp_url,
-            "-t", "5",  # Test for 5 seconds
-            "-f", "null",  # No output file needed
-            "-"
-        ]
+        # Try to open the stream with OpenCV
+        cap = cv2.VideoCapture(camera_rtsp_url)
         
-        print(f"Running RTSP test command: {' '.join(ffmpeg_cmd)}")
-        result = subprocess.run(
-            ffmpeg_cmd,
-            capture_output=True,
-            text=True,
-            timeout=10  # 10 second timeout
-        )
+        # Try to set RTSP transport if available (compatibility check)
+        try:
+            cap.set(cv2.CAP_PROP_RTSP_TRANSPORT, 1)  # Use TCP transport
+        except AttributeError:
+            print("CAP_PROP_RTSP_TRANSPORT not available in this OpenCV version")
         
-        if result.returncode == 0:
-            print(f"✅ RTSP stream test successful for {camera_name}")
+        try:
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Reduce buffer size
+        except AttributeError:
+            print("CAP_PROP_BUFFERSIZE not available in this OpenCV version")
+        
+        if not cap.isOpened():
+            print(f"Error: Could not open RTSP stream for {camera_name}")
+            return False
+        
+        # Try to read a frame with timeout
+        ret, frame = cap.read()
+        cap.release()
+        
+        if ret and frame is not None:
+            print(f"RTSP stream test successful for {camera_name}")
             return True
         else:
-            print(f"❌ RTSP stream test failed for {camera_name}")
-            print(f"FFmpeg error: {result.stderr}")
+            print(f"Error: Could not read frame from RTSP stream for {camera_name}")
             return False
             
-    except subprocess.TimeoutExpired:
-        print(f"❌ RTSP stream test timed out for {camera_name}")
-        return False
     except Exception as e:
-        print(f"❌ Error testing RTSP stream for {camera_name}: {e}")
-        # If ffmpeg test fails, try a simple connectivity test
-        try:
-            import socket
-            from urllib.parse import urlparse
-            parsed = urlparse(camera_rtsp_url)
-            host = parsed.hostname
-            port = parsed.port or 554
-            
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)
-            result = sock.connect_ex((host, port))
-            sock.close()
-            
-            if result == 0:
-                print(f"✅ Camera {camera_name} is reachable on port {port}, proceeding with recording")
-                return True
-            else:
-                print(f"❌ Camera {camera_name} is not reachable on port {port}")
-                return False
-        except Exception as e2:
-            print(f"❌ Connectivity test also failed: {e2}")
-            return False
+        print(f"Error testing RTSP stream for {camera_name}: {e}")
+        return False
 
 def cleanup_corrupted_files(output_dir, camera_name):
     """Clean up corrupted or incomplete video files"""
@@ -613,11 +591,7 @@ def start_hourly_merging(camera_guid):
                 time.sleep(wait_seconds)
                 
                 # Get the hour that just completed (previous hour)
-                # Handle hour rollover properly (e.g., if next_hour is 0, previous hour is 23)
-                if next_hour.hour == 0:
-                    completed_hour = "23"
-                else:
-                    completed_hour = (next_hour.replace(hour=next_hour.hour - 1)).strftime("%H")
+                completed_hour = (next_hour.replace(hour=next_hour.hour - 1)).strftime("%H")
                 
                 # For now, just log the merge task
                 print(f"Hourly merge task completed for hour {completed_hour} in camera {camera_guid}")
@@ -650,168 +624,198 @@ def find_lan_devices():
     return results
 
 def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid):
-    """Function that runs in each camera thread - creates video recordings using ffmpeg"""
+    """Simple camera thread function - just records video without MediaMTX complexity"""
     print(f"Thread started for camera: {camera_name} ({camera_id})")
     
-    # Initialize hour tracking variables
-    last_hour = None
-    current_date = None
-    current_hour = None
-    output_dir = None
-    
-    def update_output_directory():
-        """Update output directory when hour changes"""
-        nonlocal current_date, current_hour, output_dir, last_hour
-        
-        now = datetime.now()
-        new_date = now.strftime("%Y-%m-%d")
-        new_hour = now.strftime("%H")
-        
-        # Check if date or hour has changed
-        if current_date != new_date or current_hour != new_hour:
-            current_date = new_date
-            current_hour = new_hour
-            output_dir = os.path.join(base_video_path, current_date, camera_guid, current_hour)
-            os.makedirs(output_dir, exist_ok=True)
-            
-            if last_hour is not None:
-                print(f"Hour changed from {last_hour} to {current_hour} for camera {camera_name}")
-                print(f"New output directory: {output_dir}")
-            
-            last_hour = current_hour
-            return True  # Directory was updated
-        return False  # No change
-    
-    # Initialize the first output directory
-    update_output_directory()
-    
-    # Start hourly merging task
-    start_hourly_merging(camera_guid)
+    # Simple output directory - one per day
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    output_dir = os.path.join(base_video_path, current_date, camera_guid)
+    os.makedirs(output_dir, exist_ok=True)
     
     try:
         print(f"Starting recording for camera: {camera_name} ({camera_id})")
         
-        # Keep trying to start FFmpeg until stop flag is set
+        # Simple continuous recording loop
         while not stop_flags.get(camera_id, False):
             try:
-                # Check if hour has changed and update output directory
-                hour_changed = update_output_directory()
-                if hour_changed:
-                    print(f"Hour changed for camera {camera_name}, will restart recording in new directory")
-                
-                # Test RTSP stream (with fallback option)
+                # Test RTSP stream
                 if not test_rtsp_stream(camera_rtsp_url, camera_name):
-                    print(f"⚠️ RTSP stream test failed for camera: {camera_name} ({camera_id})")
-                    print(f"⚠️ Proceeding with recording anyway - FFmpeg may still be able to connect")
-                    # Don't break here - let FFmpeg try to connect directly
+                    print(f"RTSP stream test failed for camera: {camera_name} ({camera_id}). Skipping recording.")
+                    break
                 
-                # Get camera settings from config
-                camera_config = None
-                for cam in cameras_data:
-                    if cam['id'] == camera_id:
-                        camera_config = cam
-                        break
+                # Simple FFmpeg command for continuous recording
+                timestamp = datetime.now().strftime("%H%M%S")
+                output_file = os.path.join(output_dir, f"{timestamp}.mp4")
                 
-                # Default settings
-                frame_rate = 15
-                video_bitrate = "110k"
-                audio_bitrate = "24k"
-                resolution = "1280:720"
-                preset = "veryfast"
-                crf = "28"
-                segment_time = 60
-                enable_audio = True
-                
-                # Override with camera-specific settings if available
-                if camera_config:
-                    if 'camera_settings' in camera_config:
-                        settings = camera_config['camera_settings']
-                        frame_rate = settings.get('frame_rate', frame_rate)
-                        video_bitrate = f"{settings.get('video_bitrate', 110)}k"
-                        audio_bitrate = f"{settings.get('audio_bitrate', 24)}k"
-                        preset = settings.get('preset', preset)
-                        crf = str(settings.get('crf', crf))
-                        segment_time = settings.get('segment_time', segment_time)
-                        enable_audio = settings.get('enable_audio', enable_audio)
-                        
-                        # Handle resolution
-                        res = settings.get('resolution', '1280x720')
-                        if 'x' in res:
-                            width, height = res.split('x')
-                            resolution = f"{width}:{height}"
-                
-                # Video recording command
                 video_ffmpeg_cmd = [
-            "ffmpeg",
-            "-rtsp_transport", "tcp",
+                    "ffmpeg",
+                    "-rtsp_transport", "tcp",
                     "-i", camera_rtsp_url,
                     "-c:v", "libx264",
-                    "-b:v", video_bitrate,
-                    "-maxrate", video_bitrate,
-                    "-bufsize", f"{int(video_bitrate.replace('k', '')) * 2}k",
-                    "-preset", preset,
-                    "-crf", crf,
-                    "-r", str(frame_rate),
-                    "-vf", f"scale={resolution}",
+                    "-b:v", "110k",
+                    "-preset", "veryfast",
+                    "-crf", "28",
+                    "-r", "15",
+                    "-vf", "scale=1280:720",
+                    "-c:a", "aac",
+                    "-b:a", "24k",
+                    "-f", "mp4",
+                    "-y",  # Overwrite output file
+                    output_file
                 ]
                 
-                # Add audio settings if enabled
-                if enable_audio:
-                    video_ffmpeg_cmd.extend([
-                        "-c:a", "aac",
-                        "-b:a", audio_bitrate,
-                    ])
-                
-                # Add segment settings for video recording
-                video_ffmpeg_cmd.extend([
-            "-f", "segment",
-                    "-segment_time", str(segment_time),
-                    "-segment_time_delta", "0.1",
-            "-reset_timestamps", "1",
-            "-strftime", "1",
-            "-avoid_negative_ts", "make_zero",
-            os.path.join(output_dir, "%H%M.mp4")
-                ])
-                
-                print(f"Running video ffmpeg command: {' '.join(video_ffmpeg_cmd)}")
+                print(f"Recording video: {output_file}")
                 
                 # Start video ffmpeg process
                 video_process = subprocess.Popen(
                     video_ffmpeg_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-                    universal_newlines=True,
-                    bufsize=1
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
                 )
                 
                 print(f"Video FFmpeg process started with PID: {video_process.pid}")
                 
-                # Monitor FFmpeg output in real-time
-                def monitor_video_ffmpeg():
-                    while video_process.poll() is None:
-                        line = video_process.stderr.readline()
-                        if line:
-                            print(f"Video FFmpeg [{camera_name}]: {line.strip()}")
+                # Wait for process to complete or stop flag
+                while video_process.poll() is None and not stop_flags.get(camera_id, False):
+                    time.sleep(1)
                 
-                # Start monitoring thread
-                video_monitor_thread = threading.Thread(target=monitor_video_ffmpeg)
-                video_monitor_thread.daemon = True
-                video_monitor_thread.start()
-                
-                # Monitor file creation during video creation
-                def monitor_files():
-                    last_files = set()
-                    processing_files = set()
-                    processed_files = set()  # Track files that have been processed
-                    pending_files = {}  # Track files that are too new: {filename: {'added_time': time, 'retry_count': int}}
-                    cleanup_counter = 0  # Counter for periodic cleanup
-                    while video_process.poll() is None and not stop_flags.get(camera_id, False):
+                # Process the completed video file
+                if os.path.exists(output_file):
+                    print(f"📁 Processing completed video: {output_file}")
+                    
+                    # Validate file
+                    if validate_video_file(output_file):
+                        # Generate thumbnail
+                        thumbnail_path = output_file.replace('.mp4', '_thumb.jpg')
                         try:
-                            # Update output directory in case hour changed
-                            update_output_directory()
-                            
-                            # Periodic cleanup of corrupted files (every 10 iterations)
-                            cleanup_counter += 1
+                            generate_video_thumbnail(output_file, thumbnail_path)
+                            print(f"📸 Thumbnail generated: {thumbnail_path}")
+                        except Exception as e:
+                            print(f"⚠️ Failed to generate thumbnail: {e}")
+                            thumbnail_path = None
+                        
+                        # Add to upload queue
+                        upload_queue.put({
+                            'file_path': output_file,
+                            'thumbnail_path': thumbnail_path,
+                            'camera_id': camera_id,
+                            'camera_name': camera_name,
+                            'camera_guid': camera_guid,
+                            'organization_id': get_organization_id_for_camera(camera_id)
+                        })
+                        
+                        print(f"✅ Video added to upload queue: {output_file}")
+                    else:
+                        print(f"❌ Video validation failed: {output_file}")
+                else:
+                    print(f"⚠️ Video file not found: {output_file}")
+                
+                # Simple continuous recording - restart after each file
+                time.sleep(5)  # Wait 5 seconds before next recording
+                
+            except Exception as e:
+                print(f"Error in FFmpeg process for camera {camera_name}: {e}")
+                time.sleep(5)
+            
+    except Exception as e:
+        print(f"Error in recording for camera {camera_name} ({camera_id}): {e}")
+    
+    print(f"Thread stopped for camera: {camera_name} ({camera_id})")
+
+def start_camera_thread(camera):
+    """Start a thread for a specific camera"""
+    camera_id = camera['id']
+    camera_name = camera['name']
+    camera_url = camera.get('URL', '')  # Get URL from camera config
+    camera_guid = camera.get('GUID', camera_id)  # Get GUID from camera config, fallback to ID
+    
+    if not camera_url:
+        print(f"No URL found for camera: {camera_name} ({camera_id})")
+        return
+    
+    # If thread already exists, stop it first
+    if camera_id in active_threads:
+        stop_camera_thread(camera_id)
+    
+    # Set stop flag to False
+    stop_flags[camera_id] = False
+    
+    # Create and start new thread
+    thread = threading.Thread(target=camera_thread_function, args=(camera_id, camera_name, camera_url, camera_guid))
+    thread.daemon = True  # Make thread daemon so it stops when main program exits
+    thread.start()
+    
+    # Store thread reference
+    active_threads[camera_id] = thread
+    
+    print(f"Started recording thread for camera: {camera_name}")
+
+def stop_camera_thread(camera_id):
+    """Stop a thread for a specific camera"""
+    if camera_id in active_threads:
+        # Set stop flag to True
+        stop_flags[camera_id] = True
+        
+        # Wait for thread to finish (with timeout)
+        thread = active_threads[camera_id]
+        thread.join(timeout=5)  # Wait up to 5 seconds
+        
+        # Remove from active threads
+        del active_threads[camera_id]
+        print(f"Stopped recording thread for camera: {camera_id}")
+    else:
+        print(f"No active thread found for camera: {camera_id}")
+
+def stop_all_camera_threads():
+                
+                # Start video ffmpeg process
+                video_process = subprocess.Popen(
+                    video_ffmpeg_cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    universal_newlines=True
+                )
+                
+                print(f"Video FFmpeg process started with PID: {video_process.pid}")
+                
+                # Wait for process to complete or stop flag
+                while video_process.poll() is None and not stop_flags.get(camera_id, False):
+                    time.sleep(1)
+                
+                # Process the completed video file
+                if os.path.exists(output_file):
+                    print(f"📁 Processing completed video: {output_file}")
+                    
+                    # Validate file
+                    if validate_video_file(output_file):
+                        # Generate thumbnail
+                        thumbnail_path = output_file.replace('.mp4', '_thumb.jpg')
+                        try:
+                            generate_video_thumbnail(output_file, thumbnail_path)
+                            print(f"📸 Thumbnail generated: {thumbnail_path}")
+                        except Exception as e:
+                            print(f"⚠️ Failed to generate thumbnail: {e}")
+                            thumbnail_path = None
+                        
+                        # Add to upload queue
+                        upload_queue.put({
+                            'file_path': output_file,
+                            'thumbnail_path': thumbnail_path,
+                            'camera_id': camera_id,
+                            'camera_name': camera_name,
+                            'camera_guid': camera_guid,
+                            'organization_id': get_organization_id_for_camera(camera_id)
+                        })
+                        
+                        print(f"✅ Video added to upload queue: {output_file}")
+                    else:
+                        print(f"❌ Video validation failed: {output_file}")
+                else:
+                    print(f"⚠️ Video file not found: {output_file}")
+                
+                # Simple continuous recording - restart after each file
+                time.sleep(5)  # Wait 5 seconds before next recording
                             if cleanup_counter >= 10:
                                 cleanup_corrupted_files(output_dir, camera_name)
                                 cleanup_counter = 0
@@ -1153,11 +1157,7 @@ def validate_camera_credentials(camera):
         # Construct expected RTSP URL
         if username and password and ip_address:
             encoded_password = urllib.parse.quote(password, safe='')
-            # Only include port if it's not the default RTSP port (554) or if it's explicitly set
-            if port and port != '554' and port != '':
-                expected_url = f"rtsp://{username}:{encoded_password}@{ip_address}:{port}{path}"
-            else:
-                expected_url = f"rtsp://{username}:{encoded_password}@{ip_address}{path}"
+            expected_url = f"rtsp://{username}:{encoded_password}@{ip_address}:{port}{path}"
             
             # Check if the stored URL matches the constructed one
             stored_url = camera.get('url') or camera.get('URL', '')
@@ -1797,6 +1797,59 @@ def get_camera_frame(camera_id):
         print(f"Error creating MJPEG stream: {e}")
         return jsonify({'error': 'Failed to create video stream'}), 500
 
+@app.route('/api/cameras/<camera_id>/stream')
+def get_camera_stream(camera_id):
+    """API endpoint to get camera live stream as HLS"""
+    # Find the camera
+    camera = None
+    for cam in cameras_data:
+        if cam['id'] == camera_id:
+            camera = cam
+            break
+    
+    if not camera:
+        return jsonify({'error': 'Camera not found'}), 404
+    
+    camera_url = camera.get('URL', '')
+    if not camera_url:
+        return jsonify({'error': 'Camera URL not configured'}), 400
+    
+    try:
+        # Create HLS stream directory
+        stream_dir = os.path.join(base_video_path, 'live_streams', camera_id)
+        os.makedirs(stream_dir, exist_ok=True)
+        
+        # Use ffmpeg to convert RTSP stream to HLS
+        ffmpeg_cmd = [
+            "ffmpeg",
+            "-rtsp_transport", "tcp",
+            "-i", camera_url,
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            "-f", "hls",
+            "-hls_time", "2",
+            "-hls_list_size", "3",
+            "-hls_flags", "delete_segments",
+            "-hls_segment_filename", os.path.join(stream_dir, "segment_%03d.ts"),
+            os.path.join(stream_dir, "playlist.m3u8")
+        ]
+        
+        # Start ffmpeg process in background
+        process = subprocess.Popen(
+            ffmpeg_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        
+        # Return the HLS playlist URL
+        return jsonify({
+            'stream_url': f'/api/cameras/{camera_id}/hls/playlist.m3u8',
+            'status': 'streaming'
+        })
+        
+    except Exception as e:
+        print(f"Error creating HLS stream: {e}")
+        return jsonify({'error': 'Failed to create video stream'}), 500
 
 @app.route('/api/cameras/<camera_id>/hls/<path:filename>')
 def get_hls_file(camera_id, filename):
@@ -2716,6 +2769,25 @@ def mediamtx_restart_api():
         'status': status,
         'message': 'MediaMTX server restarted' if success else 'Failed to restart MediaMTX server'
     })
+
+@app.route('/api/mediamtx/config', methods=['GET'])
+def get_mediamtx_config_api():
+    """API endpoint to get MediaMTX configuration"""
+    try:
+        with open(mediamtx_config_file, 'r', encoding='utf-8') as file:
+            config = yaml.safe_load(file)
+        
+        # Extract relevant configuration for frontend
+        config_info = {
+            'webrtc_address': config.get('webrtcAddress', ':8889'),
+            'rtsp_address': config.get('rtspAddress', ':8554'),
+            'hls_address': config.get('hlsAddress', ':8888'),
+            'paths': config.get('paths', {})
+        }
+        
+        return jsonify(config_info)
+    except Exception as e:
+        return jsonify({'error': f'Failed to read MediaMTX config: {str(e)}'}), 500
 
 def start_mediamtx():
     """Start the MediaMTX server process"""
