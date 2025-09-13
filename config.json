@@ -37,7 +37,7 @@
         "audio_bitrate": 128,
         "preset": "medium",
         "crf": 23,
-        "segment_time": 10
+        "segment_time": 60
       },
       "detection_features": {
         "people_detection": false,

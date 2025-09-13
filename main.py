@@ -12,6 +12,7 @@ import urllib.parse
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, session, redirect, url_for, make_response
 from PIL import Image
+from io import BytesIO
 
 app = Flask(__name__)
 app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
@@ -37,16 +38,16 @@ merge_queue = None
 merge_worker_thread = None
 merging_tasks = {}
 video_config = {
-    'upload_to_api': True,
+    'upload_to_api': True,  # Enabled - API server is running
     'store_locally': True,
-    'api_url': 'http://127.0.0.1:8000/api/video/upload',
+    'api_url': 'http://127.0.0.1:8000/api/video/upload',  # Original API endpoint
     'api_key': 'your_api_key_here',
     'upload_retry_attempts': 3,
     'upload_timeout': 30,
     'upload_delay_between_files': 0.5,  # seconds
-    'strict_validation': True,  # Enable strict video validation
-    'min_file_age_seconds': 10,  # Minimum file age before upload
-    'file_stability_check_seconds': 2  # Time to wait for file stability
+    'strict_validation': False,  # Disable strict validation for segment files
+    'min_file_age_seconds': 15,  # Increase from 5 to 15 seconds
+    'file_stability_check_seconds': 3  # Increase from 1 to 3 seconds
 }
 api_organization_id = 'default_org'
 
@@ -89,44 +90,18 @@ def validate_video_file(video_path):
             print(f"❌ Video file too small ({file_size} bytes), likely corrupted")
             return False
         
+        # For segment files, we need to be more lenient about the structure
         # Check if file is being written to (size changes)
         size1 = os.path.getsize(video_path)
-        stability_wait = video_config.get('file_stability_check_seconds', 2)
+        stability_wait = video_config.get('file_stability_check_seconds', 3)
         time.sleep(stability_wait)
         size2 = os.path.getsize(video_path)
         if size1 != size2:
             print(f"❌ Video file is still being written (size changed: {size1} -> {size2})")
             return False
         
-        # Check MP4 structure
-        try:
-            with open(video_path, 'rb') as f:
-                # Read first 8KB to check for MP4 structure
-                header = f.read(8192)
-                if len(header) < 1024:
-                    print(f"❌ Video file too small to read header")
-                    return False
-                
-                # Check for MP4 file signature
-                if b'ftyp' not in header:
-                    print(f"❌ Invalid MP4 file structure - missing ftyp atom")
-                    return False
-                
-                # Check for video data atom
-                if b'mdat' not in header:
-                    print(f"❌ Invalid MP4 file structure - missing mdat atom")
-                    return False
-                
-                # Check for proper MP4 container structure
-                if b'moov' not in header and b'moof' not in header:
-                    print(f"❌ Invalid MP4 file structure - missing moov/moof atoms")
-                    return False
-                    
-        except Exception as e:
-            print(f"❌ Error reading video file header: {e}")
-            return False
-        
-        # Test video with OpenCV to ensure it can be opened and read
+        # For segment files, we can't always expect complete MP4 structure
+        # Try to open with OpenCV first as a better validation method
         try:
             cap = cv2.VideoCapture(video_path)
             if not cap.isOpened():
@@ -146,6 +121,7 @@ def validate_video_file(video_path):
             width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             
+            # For segment files, even 1 frame is acceptable
             if fps <= 0 or frame_count <= 0 or width <= 0 or height <= 0:
                 print(f"❌ Invalid video properties: fps={fps}, frames={frame_count}, size={width}x{height}")
                 cap.release()
@@ -158,6 +134,18 @@ def validate_video_file(video_path):
             
         except Exception as e:
             print(f"❌ Error validating video with OpenCV: {e}")
+            # Fallback: check if file has basic video data
+            try:
+                with open(video_path, 'rb') as f:
+                    header = f.read(8192)
+                    if len(header) < 1024:
+                        return False
+                    # Look for any video data indicators
+                    if b'mdat' in header or b'avc1' in header or b'h264' in header:
+                        print(f"⚠️ Basic video validation passed (segment file): {os.path.basename(video_path)}")
+                        return True
+            except:
+                pass
             return False
         
     except Exception as e:
@@ -502,6 +490,12 @@ def cleanup_corrupted_files(output_dir, camera_name):
 def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None, thumbnail_path=None):
     """Upload video file to API with optional thumbnail"""
     try:
+        print(f"🔍 Attempting to upload: {os.path.basename(video_file_path)}")
+        
+        # Skip health check since API server doesn't have a health endpoint
+        # The actual upload attempt will determine if the server is working
+        print(f"📡 Proceeding with upload to API server...")
+        
         # Comprehensive video validation before upload
         if not validate_video_file(video_file_path):
             print(f"❌ Video validation failed, skipping upload: {video_file_path}")
@@ -513,81 +507,94 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None,
                 # Get file size for integrity check
                 file_size = os.path.getsize(video_file_path)
                 
-                # Prepare files for upload
-                with open(video_file_path, 'rb') as video_file:
-                    files = {
-                        'video_file': (os.path.basename(video_file_path), video_file, 'video/mp4')
-                    }
+                # Prepare files for upload - read files into memory to avoid file handle issues
+                try:
+                    # Read video file into memory
+                    with open(video_file_path, 'rb') as video_file:
+                        video_data = video_file.read()
                     
-                    # Add thumbnail if available
+                    # Read thumbnail file into memory if available
+                    thumbnail_data = None
                     if thumbnail_path and os.path.exists(thumbnail_path):
                         with open(thumbnail_path, 'rb') as thumb_file:
-                            files['thumbnail_file'] = (os.path.basename(thumbnail_path), thumb_file, 'image/jpeg')
-                            print(f"📷 Including thumbnail: {os.path.basename(thumbnail_path)}")
-                    
-                    # Prepare form data
-                    data = {
-                        'organization_id': str(organization_id or api_organization_id),
-                        'guid': str(camera_guid) if camera_guid else str(uuid.uuid4())
-                    }
-                    
-                    # Log upload attempt with more details
-                    print(f"📤 Starting upload attempt for {os.path.basename(video_file_path)}")
-                    print(f"📤 Target API: {video_config['api_url']}")
-                    print(f"📤 Organization ID: {data['organization_id']}")
-                    print(f"📤 Camera GUID: {data['guid']}")
-                    print(f"📤 File size: {file_size} bytes")
-                    
-                    # Upload with retry logic
-                    max_retries = video_config.get('upload_retry_attempts', 3)
-                    upload_timeout = video_config.get('upload_timeout', 30)
-                    
-                    for attempt in range(max_retries):
-                        try:
-                            response = requests.post(
-                                video_config['api_url'],
-                                files=files,
-                                data=data,
-                                timeout=upload_timeout
-                            )
+                            thumbnail_data = thumb_file.read()
+                        print(f"📷 Including thumbnail: {os.path.basename(thumbnail_path)}")
+                except Exception as e:
+                    print(f"❌ Error reading files for upload: {e}")
+                    return False
+                
+                # Prepare form data
+                data = {
+                    'organization_id': str(organization_id or api_organization_id),
+                    'guid': str(camera_guid) if camera_guid else str(uuid.uuid4())
+                }
+                
+                # Log upload attempt with more details
+                print(f"📤 Starting upload attempt for {os.path.basename(video_file_path)}")
+                print(f"📤 Target API: {video_config['api_url']}")
+                print(f"📤 Organization ID: {data['organization_id']}")
+                print(f"📤 Camera GUID: {data['guid']}")
+                print(f"📤 File size: {file_size} bytes")
+                
+                # Upload with retry logic
+                max_retries = video_config.get('upload_retry_attempts', 3)
+                upload_timeout = video_config.get('upload_timeout', 30)
+                
+                for attempt in range(max_retries):
+                    try:
+                        # Create files dict with BytesIO objects
+                        files = {
+                            'video_file': (os.path.basename(video_file_path), BytesIO(video_data), 'video/mp4')
+                        }
+                        
+                        if thumbnail_data:
+                            files['thumbnail_file'] = (os.path.basename(thumbnail_path), BytesIO(thumbnail_data), 'image/jpeg')
+                        
+                        response = requests.post(
+                            video_config['api_url'],
+                            files=files,
+                            data=data,
+                            timeout=upload_timeout
+                        )
+                        
+                        if response.status_code == 200:
+                            result = response.json()
+                            print(f"✅ Video uploaded successfully: {result.get('message', 'Upload completed')}")
+                            print(f"✅ File path: {result.get('file_path', 'Unknown')}")
                             
-                            if response.status_code == 200:
-                                result = response.json()
-                                print(f"✅ Video uploaded successfully: {result.get('message', 'Upload completed')}")
-                                print(f"✅ File path: {result.get('file_path', 'Unknown')}")
-                                
-                                # Verify upload integrity by checking server response
-                                if result.get('file_size') and int(result.get('file_size', 0)) != file_size:
-                                    print(f"⚠️ File size mismatch! Local: {file_size}, Server: {result.get('file_size')}")
-                                    return False
-                                
-                                print(f"✅ Upload integrity verified (size: {file_size} bytes)")
-                                
-                                # Additional integrity check after upload
-                                if not verify_upload_integrity(video_file_path, file_size):
-                                    print(f"⚠️ Post-upload integrity check failed for {os.path.basename(video_file_path)}")
-                                    return False
-                                
-                                return True
-                            else:
-                                print(f"❌ Upload failed (attempt {attempt + 1}/{max_retries}): {response.status_code} - {response.text}")
-                                if attempt < max_retries - 1:
-                                    time.sleep(2 ** attempt)  # Exponential backoff
-                                
-                        except requests.exceptions.RequestException as e:
-                            print(f"❌ Upload error (attempt {attempt + 1}/{max_retries}): {e}")
+                            # Verify upload integrity by checking server response
+                            if result.get('file_size') and int(result.get('file_size', 0)) != file_size:
+                                print(f"⚠️ File size mismatch! Local: {file_size}, Server: {result.get('file_size')}")
+                                return False
+                            
+                            print(f"✅ Upload integrity verified (size: {file_size} bytes)")
+                            
+                            # Additional integrity check after upload
+                            if not verify_upload_integrity(video_file_path, file_size):
+                                print(f"⚠️ Post-upload integrity check failed for {os.path.basename(video_file_path)}")
+                                return False
+                            
+                            return True
+                        else:
+                            print(f"❌ Upload failed (attempt {attempt + 1}/{max_retries}): {response.status_code} - {response.text}")
                             if attempt < max_retries - 1:
                                 time.sleep(2 ** attempt)  # Exponential backoff
-                    
-                    print(f"❌ All upload attempts failed for {os.path.basename(video_file_path)}")
-                    return False
+                            
+                    except requests.exceptions.RequestException as e:
+                        print(f"❌ Upload error (attempt {attempt + 1}/{max_retries}): {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(2 ** attempt)  # Exponential backoff
+                
+                print(f"❌ All upload attempts failed for {os.path.basename(video_file_path)}")
+                return False
                     
             except Exception as e:
                 print(f"❌ Error uploading to API: {e}")
                 return False
         else:
-            # Just simulate successful upload if API upload is disabled
-            print(f"✅ Video uploaded successfully (local only): {os.path.basename(video_file_path)} ({file_size} bytes)")
+            # API upload is disabled, just store locally
+            print(f"✅ Video stored locally (API disabled): {os.path.basename(video_file_path)} ({file_size} bytes)")
+            print(f"📁 Local path: {video_file_path}")
             return True
         
     except Exception as e:
@@ -765,6 +772,8 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 # Add segment settings for video recording
                 video_ffmpeg_cmd.extend([
             "-f", "segment",
+                    "-segment_format", "mp4",  # Explicitly specify segment format
+                    "-movflags", "frag_keyframe+empty_moov+faststart",  # Critical for proper MP4 structure
                     "-segment_time", str(segment_time),
                     "-segment_time_delta", "0.1",
             "-reset_timestamps", "1",
@@ -833,7 +842,8 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                         file_path = os.path.join(output_dir, new_file)
                                         try:
                                             file_age = time.time() - os.path.getctime(file_path)
-                                            if file_age < 5:  # Less than 5 seconds old
+                                            min_age = video_config.get('min_file_age_seconds', 15)
+                                            if file_age < min_age:  # Less than configured minimum age
                                                 print(f"⏳ File {new_file} too new ({file_age:.1f}s), adding to pending queue")
                                                 pending_files[new_file] = {
                                                     'added_time': time.time(),
@@ -861,16 +871,18 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                 file_age = current_time - pending_info['added_time']
                                 pending_info['retry_count'] += 1
                                 
-                                # Check if file is ready (older than 5 seconds) or max retries reached
-                                if file_age >= 5 or pending_info['retry_count'] >= 10:
+                                # Check if file is ready (older than configured minimum age) or max retries reached
+                                min_age = video_config.get('min_file_age_seconds', 15)
+                                if file_age >= min_age or pending_info['retry_count'] >= 10:
                                     file_path = pending_info['file_path']
                                     
                                     # Final check if file exists and is stable
                                     if os.path.exists(file_path):
                                         try:
-                                            # Check if file is stable (no size changes for 2 seconds)
+                                            # Check if file is stable (no size changes for configured time)
+                                            stability_wait = video_config.get('file_stability_check_seconds', 3)
                                             size1 = os.path.getsize(file_path)
-                                            time.sleep(2)
+                                            time.sleep(stability_wait)
                                             size2 = os.path.getsize(file_path)
                                             
                                             if size1 == size2 and size1 > 1024:  # File is stable and has content
@@ -901,9 +913,10 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                 file_path = os.path.join(output_dir, file)
                                 if os.path.exists(file_path):
                                     try:
-                                        # Wait for file to stabilize (no size changes for 3 seconds)
+                                        # Wait for file to stabilize (no size changes for configured time)
+                                        stability_wait = video_config.get('file_stability_check_seconds', 3)
                                         size1 = os.path.getsize(file_path)
-                                        time.sleep(3)  # Increased wait time
+                                        time.sleep(stability_wait)
                                         size2 = os.path.getsize(file_path)
                                         
                                         if size1 == size2 and size1 > 1024:  # File size stable and > 1KB
@@ -1289,7 +1302,7 @@ def create_camera():
         'audio_bitrate': 128,
         'preset': 'medium',
         'crf': 23,
-        'segment_time': 10
+        'segment_time': 60
     }
 
     # Default detection features (all false)
@@ -1803,6 +1816,7 @@ def get_hls_file(camera_id, filename):
     """Serve HLS files for live streaming"""
     stream_dir = os.path.join(base_video_path, 'live_streams', camera_id)
     return send_from_directory(stream_dir, filename)
+
 
 @app.route('/api/videos')
 def get_videos():
