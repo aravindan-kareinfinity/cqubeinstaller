@@ -42,6 +42,7 @@
             width: 250px;
             background: white;
             border-radius: 10px;
+          
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             height: fit-content;
@@ -115,11 +116,12 @@
         }
         
         .live-view-section {
-            flex: 2;
+            flex: 3;
             background: white;
             border-radius: 10px;
             padding: 20px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-height: 80vh;
         }
         
         .section-title {
@@ -1002,7 +1004,7 @@
         .live-camera-feed img {
             width: 100%;
             height: auto;
-            max-height: 300px;
+            max-height: 500px;
             object-fit: cover;
         }
 
@@ -1080,8 +1082,9 @@
 
         .live-camera-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            min-height: 60vh;
         }
 
         .live-camera-card {
@@ -1285,19 +1288,19 @@
             <div class="main-container">
                 <!-- Camera List Section -->
                 <div class="camera-list-section" id="camera-section">
-                    <div class="section-title">📋 Camera List</div>
+                    <div class="section-title">📋 Camera List (Recording Only)</div>
                     <div class="stats">
                         <div class="stat-item">
                             <div class="stat-value" id="totalCameras">0</div>
-                            <div class="stat-label">Total</div>
+                            <div class="stat-label">Total Cameras</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value" id="activeCameras">0</div>
-                            <div class="stat-label">Active</div>
+                            <div class="stat-label">Active Cameras</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value" id="recordingCameras">0</div>
-                            <div class="stat-label">Recording</div>
+                            <div class="stat-label">Recording Cameras</div>
                         </div>
                     </div>
                     <div id="discovery-section">
@@ -2283,12 +2286,20 @@
             const grid = document.getElementById("cameraGrid");
             grid.innerHTML = "";
 
+            // Filter to show only recording cameras
+            let visible = cameras.filter((c) => c.is_recording);
+            
             // Optionally filter by selected group for list as well
-            let visible = cameras;
             if (selectedGroupId !== "__all__") {
                 const group = groups.find((g) => g.id === selectedGroupId);
                 const ids = new Set((group && group.camera_ids) || []);
                 visible = visible.filter((c) => ids.has(c.id));
+            }
+
+            // Show message if no recording cameras
+            if (visible.length === 0) {
+                grid.innerHTML = '<div class="no-active-cameras">No cameras are currently recording. Turn on recording to see cameras here.</div>';
+                return;
             }
 
             visible.forEach((camera) => {
@@ -2388,22 +2399,7 @@
 
             // Add camera selection controls
             liveGrid.innerHTML = `
-                <div class="live-view-controls">
-                    <div class="camera-selector">
-                        <label for="liveCameraSelect">Select Camera:</label>
-                        <select id="liveCameraSelect" onchange="selectLiveCamera(this.value)">
-                            <option value="">All Cameras</option>
-                            ${recordingCameras.map(camera => 
-                                `<option value="${camera.id}">${camera.name}</option>`
-                            ).join('')}
-                        </select>
-                    </div>
-                    <div class="live-view-actions">
-                        <button onclick="refreshLiveView()" class="btn-refresh">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                </div>
+              
                 <div id="liveCameraGrid" class="live-camera-grid"></div>
             `;
 
@@ -2438,7 +2434,7 @@
         // Create live camera card HTML
         function createLiveCameraCard(camera) {
             return `
-                <div class="live-camera-card">
+                
                     <div class="live-camera-header">
                         <span>${camera.name}</span>
                         <div class="live-camera-controls">
@@ -2458,7 +2454,7 @@
                             <p>Click "Start Stream" to view live feed</p>
                         </div>
                     </div>
-                    </div>
+                  
                 `;
         }
 
@@ -3299,38 +3295,36 @@
                 const settingsSec = document.getElementById("settings-section");
                 const discoverySec = document.getElementById("discovery-section");
                 const groupsSec = document.getElementById("groups-section");
+                const videoPlaybackSec = document.getElementById("video-playback-section");
                 const statsEl = cameraSec ? cameraSec.querySelector(".stats") : null;
                 const gridEl = document.getElementById("cameraGrid");
 
-                // Hide all top-level sections first
+                // Hide ALL sections first
                 if (cameraSec) cameraSec.style.display = "none";
                 if (liveSec) liveSec.style.display = "none";
                 if (analyticsSec) analyticsSec.style.display = "none";
                 if (settingsSec) settingsSec.style.display = "none";
+                if (discoverySec) discoverySec.style.display = "none";
+                if (groupsSec) groupsSec.style.display = "none";
+                if (videoPlaybackSec) videoPlaybackSec.style.display = "none";
 
+                // Show only the selected section
                 if (sectionKey === "camera") {
                     if (cameraSec) cameraSec.style.display = "block";
-                    if (discoverySec) discoverySec.style.display = "block";
-                    if (groupsSec) groupsSec.style.display = "none";
                     if (statsEl) statsEl.style.display = "";
                     if (gridEl) gridEl.style.display = "";
                 } else if (sectionKey === "live") {
                     if (liveSec) liveSec.style.display = "block";
                 } else if (sectionKey === "video-playback") {
-                    const videoPlaybackSec = document.getElementById("video-playback-section");
                     if (videoPlaybackSec) videoPlaybackSec.style.display = "block";
                 } else if (sectionKey === "groups") {
-                    // Show camera container but only groups UI
                     if (cameraSec) cameraSec.style.display = "block";
-                    if (discoverySec) discoverySec.style.display = "none";
                     if (groupsSec) groupsSec.style.display = "block";
                     if (statsEl) statsEl.style.display = "none";
                     if (gridEl) gridEl.style.display = "none";
                 } else if (sectionKey === "discovery") {
                     if (cameraSec) cameraSec.style.display = "block";
                     if (discoverySec) discoverySec.style.display = "block";
-                    if (groupsSec) groupsSec.style.display = "none";
-                    // Hide stats and camera list while in discovery-only view
                     if (statsEl) statsEl.style.display = "none";
                     if (gridEl) gridEl.style.display = "none";
                 } else if (sectionKey === "analytics") {

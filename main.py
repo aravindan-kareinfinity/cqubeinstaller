@@ -278,8 +278,8 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 
                 # Video recording command
                 video_ffmpeg_cmd = [
-                    "ffmpeg",
-                    "-rtsp_transport", "tcp",
+            "ffmpeg",
+            "-rtsp_transport", "tcp",
                     "-i", camera_rtsp_url,
                     "-c:v", "libx264",
                     "-b:v", video_bitrate,
@@ -300,13 +300,13 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 
                 # Add segment settings for video recording
                 video_ffmpeg_cmd.extend([
-                    "-f", "segment",
+            "-f", "segment",
                     "-segment_time", str(segment_time),
                     "-segment_time_delta", "0.1",
-                    "-reset_timestamps", "1",
-                    "-strftime", "1",
-                    "-avoid_negative_ts", "make_zero",
-                    os.path.join(output_dir, "%H%M.mp4")
+            "-reset_timestamps", "1",
+            "-strftime", "1",
+            "-avoid_negative_ts", "make_zero",
+            os.path.join(output_dir, "%H%M.mp4")
                 ])
                 
                 print(f"Running video ffmpeg command: {' '.join(video_ffmpeg_cmd)}")
@@ -314,8 +314,8 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 # Start video ffmpeg process
                 video_process = subprocess.Popen(
                     video_ffmpeg_cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
                     universal_newlines=True,
                     bufsize=1
                 )
@@ -495,23 +495,23 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 # Wait for process to complete or stop flag to be set
                 while video_process.poll() is None and not stop_flags.get(camera_id, False):
                     time.sleep(1)
-                
-                # If stop flag is set, terminate the process
-                if stop_flags.get(camera_id, False):
-                    print(f"Stopping recording for camera: {camera_name} ({camera_id})")
+        
+        # If stop flag is set, terminate the process
+        if stop_flags.get(camera_id, False):
+            print(f"Stopping recording for camera: {camera_name} ({camera_id})")
                     
                     # Terminate video process
                     if video_process.poll() is None:
                         video_process.terminate()
-                        try:
+            try:
                             video_process.wait(timeout=5)
-                        except subprocess.TimeoutExpired:
+            except subprocess.TimeoutExpired:
                             video_process.kill()
                     break
-                
+        
                 # If process ended naturally, log it and restart
                 if video_process.poll() is not None and not stop_flags.get(camera_id, False):
-                    print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
+            print(f"Recording process ended unexpectedly for camera: {camera_name} ({camera_id})")
                     
                     # Check video process
                     stdout, stderr = video_process.communicate()
@@ -527,7 +527,7 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 print(f"Error in FFmpeg process for camera {camera_name} ({camera_id}): {e}")
                 print(f"Restarting FFmpeg for camera: {camera_name} ({camera_id}) in 5 seconds...")
                 time.sleep(5)
-                
+            
     except Exception as e:
         print(f"Error in recording for camera {camera_name} ({camera_id}): {e}")
     
