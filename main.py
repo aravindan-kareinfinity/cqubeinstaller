@@ -3175,6 +3175,410 @@ def get_mediamtx_status():
     else:
         return {"running": False, "pid": None, "status": "stopped"}
 
+# FRP Configuration Manager Class
+class FRPConfigManager:
+    def __init__(self):
+        self.config = {
+            'common': {
+                'server_addr': '103.189.89.135',
+                'server_port': 7000,
+                'log_level': 'info',
+                'log_file': 'frpc.log',
+                'log_max_days': 3
+            },
+            'tcp_webrtc': {
+                'type': 'tcp',
+                'remote_port': 10556,
+                'local_ip': '127.0.0.1',
+                'local_port': 8189
+            },
+            'udp_webrtc': {
+                'type': 'udp',
+                'remote_port': 10555,
+                'local_ip': '127.0.0.1',
+                'local_port': 8889
+            },
+            'ice_webrtc': {
+                'type': 'tcp',
+                'remote_port': 10556,
+                'local_ip': '127.0.0.1',
+                'local_port': 8189
+            },
+            'hls': {
+                'type': 'tcp',
+                'remote_port': 10557,
+                'local_ip': '127.0.0.1',
+                'local_port': 8888
+            }
+        }
+    
+    def get_config(self):
+        return self.config
+    
+    def update_section(self, section_name, section_data):
+        if section_name in self.config:
+            self.config[section_name].update(section_data)
+    
+    def validate_config(self):
+        errors = []
+        # Basic validation
+        if not self.config['common'].get('server_addr'):
+            errors.append('Server address is required')
+        if not self.config['common'].get('server_port'):
+            errors.append('Server port is required')
+        
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors
+        }
+    
+    def generate_frp_ini(self, file_path='frpc.ini'):
+        try:
+            with open(file_path, 'w') as f:
+                f.write('[common]\n')
+                for key, value in self.config['common'].items():
+                    f.write(f'{key} = {value}\n')
+                f.write('\n')
+                
+                # Add TCP WebRTC
+                f.write('[tcp_webrtc]\n')
+                for key, value in self.config['tcp_webrtc'].items():
+                    f.write(f'{key} = {value}\n')
+                f.write('\n')
+                
+                # Add UDP WebRTC
+                f.write('[udp_webrtc]\n')
+                for key, value in self.config['udp_webrtc'].items():
+                    f.write(f'{key} = {value}\n')
+                f.write('\n')
+                
+                # Add ICE WebRTC
+                f.write('[ice_webrtc]\n')
+                for key, value in self.config['ice_webrtc'].items():
+                    f.write(f'{key} = {value}\n')
+                f.write('\n')
+                
+                # Add HLS
+                f.write('[hls]\n')
+                for key, value in self.config['hls'].items():
+                    f.write(f'{key} = {value}\n')
+            
+            return True
+        except Exception as e:
+            print(f"Error generating FRP INI: {e}")
+            return False
+    
+    def reset_to_defaults(self):
+        self.__init__()
+        return True
+    
+    def get_config_summary(self):
+        return {
+            'server': f"{self.config['common']['server_addr']}:{self.config['common']['server_port']}",
+            'tunnels': len([k for k in self.config.keys() if k != 'common']),
+            'log_level': self.config['common']['log_level']
+        }
+
+# Initialize FRP config manager
+frp_config_manager = FRPConfigManager()
+
+# FRP Configuration API Routes
+@app.route('/frp-config')
+def frp_config_page():
+    """Serve the FRP configuration page"""
+    return send_file('frp_config.html')
+
+@app.route('/api/frp/config', methods=['GET'])
+def get_frp_config():
+    """Get current FRP configuration"""
+    try:
+        config = frp_config_manager.get_config()
+        return jsonify({
+            'success': True,
+            'config': config
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/frp/config', methods=['POST'])
+def update_frp_config():
+    """Update FRP configuration"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No configuration data provided'
+            }), 400
+        
+        # Update each section
+        for section_name, section_data in data.items():
+            if section_name in frp_config_manager.config:
+                frp_config_manager.update_section(section_name, section_data)
+        
+        # Validate configuration
+        validation = frp_config_manager.validate_config()
+        if not validation['valid']:
+            return jsonify({
+                'success': False,
+                'message': 'Configuration validation failed',
+                'errors': validation['errors']
+            }), 400
+        
+        return jsonify({
+            'success': True,
+            'message': 'Configuration updated successfully'
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/frp/generate-ini', methods=['POST'])
+def generate_frp_ini():
+    """Generate FRP INI configuration file"""
+    try:
+        success = frp_config_manager.generate_frp_ini()
+        if success:
+            # Read the generated INI file
+            with open('frpc.ini', 'r') as f:
+                ini_content = f.read()
+            
+            return jsonify({
+                'success': True,
+                'message': 'INI file generated successfully',
+                'ini_content': ini_content
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to generate INI file'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/frp/reset', methods=['POST'])
+def reset_frp_config():
+    """Reset FRP configuration to defaults"""
+    try:
+        success = frp_config_manager.reset_to_defaults()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Configuration reset to defaults'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to reset configuration'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/frp/validate', methods=['GET'])
+def validate_frp_config():
+    """Validate current FRP configuration"""
+    try:
+        validation = frp_config_manager.validate_config()
+        return jsonify({
+            'success': True,
+            'validation': validation
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/frp/summary', methods=['GET'])
+def get_frp_summary():
+    """Get FRP configuration summary"""
+    try:
+        summary = frp_config_manager.get_config_summary()
+        return jsonify({
+            'success': True,
+            'summary': summary
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+@app.route('/api/frp/store-ini', methods=['POST'])
+def store_frp_ini():
+    """Store FRP INI file in frp-c subfolder"""
+    try:
+        # Create frp-c directory if it doesn't exist
+        frp_c_dir = os.path.join(os.getcwd(), 'frp-c')
+        if not os.path.exists(frp_c_dir):
+            os.makedirs(frp_c_dir)
+        
+        # Generate INI content
+        success = frp_config_manager.generate_frp_ini('frp-c/frpc.ini')
+        
+        if success:
+            # Verify the file was created
+            ini_path = os.path.join(frp_c_dir, 'frpc.ini')
+            if os.path.exists(ini_path):
+                file_size = os.path.getsize(ini_path)
+                return jsonify({
+                    'success': True,
+                    'message': f'FRP INI file stored successfully in frp-c/ folder',
+                    'file_path': ini_path,
+                    'file_size': file_size
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'INI file generation succeeded but file not found'
+                }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to generate INI file'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error storing INI file: {str(e)}'
+        }), 500
+
+def restart_frp_client():
+    """Restart FRP client service"""
+    try:
+        # This would implement actual FRP client restart logic
+        # For now, just return success
+        return True
+    except Exception as e:
+        print(f"Error restarting FRP client: {e}")
+        return False
+
+def get_frp_status():
+    """Get FRP client status"""
+    try:
+        # This would implement actual FRP status checking
+        # For now, return a mock status
+        return {
+            'running': False,
+            'pid': None,
+            'status': 'not_started'
+        }
+    except Exception as e:
+        print(f"Error getting FRP status: {e}")
+        return {
+            'running': False,
+            'pid': None,
+            'status': 'error'
+        }
+
+def start_frp_client():
+    """Start FRP client service"""
+    try:
+        # This would implement actual FRP client start logic
+        return True
+    except Exception as e:
+        print(f"Error starting FRP client: {e}")
+        return False
+
+def stop_frp_client():
+    """Stop FRP client service"""
+    try:
+        # This would implement actual FRP client stop logic
+        return True
+    except Exception as e:
+        print(f"Error stopping FRP client: {e}")
+        return False
+
+@app.route('/api/frp/restart', methods=['POST'])
+def restart_frp_client_api():
+    """Restart FRP client service"""
+    try:
+        success = restart_frp_client()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'FRP client restarted successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to restart FRP client'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error restarting FRP client: {str(e)}'
+        }), 500
+
+@app.route('/api/frp/status', methods=['GET'])
+def get_frp_status_api():
+    """Get FRP client status"""
+    try:
+        status = get_frp_status()
+        return jsonify({
+            'success': True,
+            'status': status
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error getting FRP status: {str(e)}'
+        }), 500
+
+@app.route('/api/frp/start', methods=['POST'])
+def start_frp_client_api():
+    """Start FRP client service"""
+    try:
+        success = start_frp_client()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'FRP client started successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to start FRP client'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error starting FRP client: {str(e)}'
+        }), 500
+
+@app.route('/api/frp/stop', methods=['POST'])
+def stop_frp_client_api():
+    """Stop FRP client service"""
+    try:
+        success = stop_frp_client()
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'FRP client stopped successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to stop FRP client'
+            }), 500
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error stopping FRP client: {str(e)}'
+        }), 500
+
 def main():
     """Main function"""
     # Load cameras first

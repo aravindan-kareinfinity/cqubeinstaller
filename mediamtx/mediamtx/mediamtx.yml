@@ -75,7 +75,7 @@ rtspTransports:
 - multicast
 - tcp
 rtspEncryption: 'no'
-rtspAddress: :8554
+rtspAddress: :8550
 rtspsAddress: :8322
 rtpAddress: :8000
 rtcpAddress: :8001

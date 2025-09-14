@@ -1321,6 +1321,60 @@
   min-height: 0;
   overflow-y: auto;
 }
+
+        /* FRP Configuration Styles */
+        .config-subsection {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .config-subsection h4 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .config-preview {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .status-message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
     </style>
 </head>
 
@@ -1581,6 +1635,8 @@
                         MediaMTX Configuration
                     </div>
                     
+                    <div id="mediamtxStatusMessage" class="status-message" style="display: none;"></div>
+                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="webrtcPort">WebRTC Port</label>
@@ -1607,6 +1663,19 @@
                         </div>
                     </div>
                     
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="apiPort">API Port</label>
+                            <input type="number" id="apiPort" name="api_port" value="9997" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for API access (default: 9997)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="metricsPort">Metrics Port</label>
+                            <input type="number" id="metricsPort" name="metrics_port" value="9998" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for metrics collection (default: 9998)</small>
+                        </div>
+                    </div>
+                    
                     
                     
                     <div style="margin-top: 20px;">
@@ -1622,6 +1691,161 @@
                     </div>
                 </div>
                 
+             
+                <!-- FRP Configuration Settings -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-network-wired"></i>
+                        FRP Configuration
+                    </div>
+                    
+                    <div id="frpStatusMessage" class="status-message" style="display: none;"></div>
+
+                    <!-- Common Configuration -->
+                    <div class="config-subsection">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;">
+                            <i class="fas fa-server"></i> Common Configuration
+                        </h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frp_server_addr">Server Address</label>
+                                <input type="text" id="frp_server_addr" placeholder="103.189.89.135">
+                            </div>
+                            <div class="form-group">
+                                <label for="frp_server_port">Server Port</label>
+                                <input type="number" id="frp_server_port" placeholder="7000">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frp_log_level">Log Level</label>
+                                <select id="frp_log_level">
+                                    <option value="trace">Trace</option>
+                                    <option value="debug">Debug</option>
+                                    <option value="info" selected>Info</option>
+                                    <option value="warn">Warn</option>
+                                    <option value="error">Error</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="frp_log_file">Log File</label>
+                                <input type="text" id="frp_log_file" placeholder="frpc.log">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="frp_log_max_days">Log Max Days</label>
+                            <input type="number" id="frp_log_max_days" placeholder="3">
+            </div>
+            </div>
+
+                    <!-- MediaMTX WebRTC TCP -->
+                    <div class="config-subsection">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;">
+                            <i class="fas fa-exchange-alt"></i> MediaMTX WebRTC TCP
+                        </h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frp_tcp_remote_port">Remote Port</label>
+                                <input type="number" id="frp_tcp_remote_port" placeholder="10556">
+                            </div>
+                            <div class="form-group">
+                                <label for="frp_tcp_local_ip">Local IP</label>
+                                <input type="text" id="frp_tcp_local_ip" placeholder="127.0.0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="frp_tcp_local_port">Local Port</label>
+                            <input type="number" id="frp_tcp_local_port" placeholder="8189">
+                        </div>
+                    </div>
+
+                    <!-- MediaMTX WebRTC UDP -->
+                    <div class="config-subsection">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;">
+                            <i class="fas fa-broadcast-tower"></i> MediaMTX WebRTC UDP
+                        </h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frp_udp_remote_port">Remote Port</label>
+                                <input type="number" id="frp_udp_remote_port" placeholder="10555">
+                            </div>
+                            <div class="form-group">
+                                <label for="frp_udp_local_ip">Local IP</label>
+                                <input type="text" id="frp_udp_local_ip" placeholder="127.0.0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="frp_udp_local_port">Local Port</label>
+                            <input type="number" id="frp_udp_local_port" placeholder="8889">
+                        </div>
+                    </div>
+
+                    <!-- MediaMTX WebRTC ICE -->
+                    <div class="config-subsection">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;">
+                            <i class="fas fa-snowflake"></i> MediaMTX WebRTC ICE
+                        </h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frp_ice_remote_port">Remote Port</label>
+                                <input type="number" id="frp_ice_remote_port" placeholder="10556">
+                            </div>
+                            <div class="form-group">
+                                <label for="frp_ice_local_ip">Local IP</label>
+                                <input type="text" id="frp_ice_local_ip" placeholder="127.0.0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="frp_ice_local_port">Local Port</label>
+                            <input type="number" id="frp_ice_local_port" placeholder="8189">
+                        </div>
+                    </div>
+
+                    <!-- MediaMTX HLS -->
+                    <div class="config-subsection">
+                        <h4 style="color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #e0e0e0; padding-bottom: 5px;">
+                            <i class="fas fa-video"></i> MediaMTX HLS
+                        </h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="frp_hls_remote_port">Remote Port</label>
+                                <input type="number" id="frp_hls_remote_port" placeholder="10557">
+                            </div>
+                            <div class="form-group">
+                                <label for="frp_hls_local_ip">Local IP</label>
+                                <input type="text" id="frp_hls_local_ip" placeholder="127.0.0.1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="frp_hls_local_port">Local Port</label>
+                            <input type="number" id="frp_hls_local_port" placeholder="8888">
+                        </div>
+                    </div>
+
+                    <!-- Configuration Preview -->
+                    <div id="frpConfigPreview" class="config-preview" style="display: none; background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-top: 20px; font-family: 'Courier New', monospace; font-size: 14px; white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></div>
+
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="loadFRPConfig()">
+                            <i class="fas fa-download"></i> Load Current Config
+                        </button>
+                        <button class="btn btn-success" onclick="saveFRPConfig()">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                        <button class="btn btn-secondary" onclick="generateFRPIni()">
+                            <i class="fas fa-file-code"></i> Preview INI
+                        </button>
+                        <button class="btn btn-info" onclick="storeFRPIni()">
+                            <i class="fas fa-save"></i> Update INI File
+                        </button>
+                        <button class="btn btn-warning" onclick="resetFRPConfig()">
+                            <i class="fas fa-undo"></i> Reset to Defaults
+                        </button>
+                        <button class="btn btn-danger" onclick="restartFRPClient()">
+                            <i class="fas fa-redo"></i> Restart FRP Client
+                        </button>
+                    </div>
+                </div>
              
             </div>
             </div>
@@ -3956,16 +4180,16 @@
         // MediaMTX Configuration Management
         async function loadMediaMTXConfig() {
             try {
-                // Load the YAML file directly
-                const response = await fetch('/mediamtx/mediamtx/mediamtxconfig');
-                if (!response.ok) throw new Error('Failed to load MediaMTX config file');
+                const response = await fetch('/api/mediamtx/config');
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to load MediaMTX config');
+                }
                 
-                const yamlContent = await response.text();
-                console.log('Loaded MediaMTX config:', yamlContent);
-                // Parse YAML content to extract port information
-                const config = parseYamlConfig(yamlContent);
+                const config = await response.json();
+                console.log('Loaded MediaMTX config:', config);
                 
-                // Populate form fields only if they exist
+                // Populate form fields
                 const webrtcPortEl = document.getElementById('webrtcPort');
                 const hlsPortEl = document.getElementById('hlsPort');
                 const rtspPortEl = document.getElementById('rtspPort');
@@ -3973,68 +4197,41 @@
                 const apiPortEl = document.getElementById('apiPort');
                 const metricsPortEl = document.getElementById('metricsPort');
                 
-                if (webrtcPortEl) webrtcPortEl.value = config.webrtcPort || 8889;
-                if (hlsPortEl) hlsPortEl.value = config.hlsPort || 8888;
-                if (rtspPortEl) rtspPortEl.value = config.rtspPort || 8554;
-                if (rtmpPortEl) rtmpPortEl.value = config.rtmpPort || 1935;
-                if (apiPortEl) apiPortEl.value = config.apiPort || 9997;
-                if (metricsPortEl) metricsPortEl.value = config.metricsPort || 9998;
+                if (webrtcPortEl) {
+                    webrtcPortEl.value = config.webrtcPort || 8889;
+                }
+                if (hlsPortEl) {
+                    hlsPortEl.value = config.hlsPort || 8888;
+                }
+                if (rtspPortEl) {
+                    rtspPortEl.value = config.rtspPort || 8554;
+                }
+                if (rtmpPortEl) {
+                    rtmpPortEl.value = config.rtmpPort || 1935;
+                }
+                if (apiPortEl) {
+                    apiPortEl.value = config.apiPort || 9997;
+                }
+                if (metricsPortEl) {
+                    metricsPortEl.value = config.metricsPort || 9998;
+                }
                 
                 // Update URL displays
                 updateUrlDisplays();
                 
-                // Set status as loaded
-                const statusEl = document.getElementById('mediamtxStatus');
-                if (statusEl) {
-                    statusEl.textContent = 'Config Loaded';
-                    statusEl.style.color = '#28a745';
-                }
+                // Show success message
+                showMediaMTXStatusMessage('Configuration loaded successfully', 'success');
                 
             } catch (error) {
                 console.error('Error loading MediaMTX config:', error);
-                const statusEl = document.getElementById('mediamtxStatus');
-                if (statusEl) {
-                    statusEl.textContent = 'Error loading config';
-                    statusEl.style.color = '#dc3545';
-                }
+                showMediaMTXStatusMessage('Error loading configuration: ' + error.message, 'error');
             }
         }
 
-        // Simple YAML parser for port extraction
-        function parseYamlConfig(yamlContent) {
-            const config = {};
-            const lines = yamlContent.split('\n');
-            
-            for (let line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('webrtcAddress:')) {
-                    config.webrtcPort = trimmed.split(':')[1]?.replace(':', '') || '8889';
-                } else if (trimmed.startsWith('hlsAddress:')) {
-                    config.hlsPort = trimmed.split(':')[1]?.replace(':', '') || '8888';
-                } else if (trimmed.startsWith('rtspAddress:')) {
-                    config.rtspPort = trimmed.split(':')[1]?.replace(':', '') || '8554';
-                } else if (trimmed.startsWith('rtmpAddress:')) {
-                    config.rtmpPort = trimmed.split(':')[1]?.replace(':', '') || '1935';
-                } else if (trimmed.startsWith('apiAddress:')) {
-                    config.apiPort = trimmed.split(':')[1]?.replace(':', '') || '9997';
-                } else if (trimmed.startsWith('metricsAddress:')) {
-                    config.metricsPort = trimmed.split(':')[1]?.replace(':', '') || '9998';
-                }
-            }
-            
-            return config;
-        }
 
         async function saveMediaMTXConfig() {
             try {
-                // Check if we're on the settings page
-                const settingsSection = document.getElementById('settings-section');
-                if (!settingsSection || settingsSection.style.display === 'none') {
-                    alert('Please navigate to the Settings page first.');
-                    return;
-                }
-                
-                // Get form elements with null checks
+                // Get form elements
                 const webrtcPortEl = document.getElementById('webrtcPort');
                 const hlsPortEl = document.getElementById('hlsPort');
                 const rtspPortEl = document.getElementById('rtspPort');
@@ -4062,72 +4259,34 @@
                     }
                 }
                 
-                // Load current YAML file
-                const response = await fetch('/mediamtx/mediamtx/mediamtxconfig');
-                if (!response.ok) throw new Error('Failed to load MediaMTX config file');
-                
-                const yamlContent = await response.text();
-                
-                // Update YAML content with new port values
-                const updatedYaml = updateYamlConfig(yamlContent, config);
-                
-                // Save updated YAML file
-                const saveResponse = await fetch('/api/mediamtx/save', {
+                // Save configuration via API
+                const response = await fetch('/api/mediamtx/config', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'text/plain'
+                        'Content-Type': 'application/json'
                     },
-                    body: updatedYaml
+                    body: JSON.stringify(config)
                 });
                 
-                if (!saveResponse.ok) {
-                    throw new Error('Failed to save MediaMTX config file');
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to save MediaMTX configuration');
                 }
+                
+                const result = await response.json();
                 
                 // Update URL displays
                 updateUrlDisplays();
                 
-                // Update status
-                const statusEl = document.getElementById('mediamtxStatus');
-                if (statusEl) {
-                    statusEl.textContent = 'Config Saved';
-                    statusEl.style.color = '#28a745';
-                }
-                
-                alert('MediaMTX configuration saved successfully!');
+                // Show success message
+                showMediaMTXStatusMessage('Configuration saved successfully', 'success');
                 
             } catch (error) {
                 console.error('Error saving MediaMTX config:', error);
-                alert('Failed to save MediaMTX configuration: ' + error.message);
+                showMediaMTXStatusMessage('Error saving configuration: ' + error.message, 'error');
             }
         }
 
-        // Update YAML content with new port values
-        function updateYamlConfig(yamlContent, config) {
-            const lines = yamlContent.split('\n');
-            const updatedLines = [];
-            
-            for (let line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('webrtcAddress:')) {
-                    updatedLines.push(`webrtcAddress: :${config.webrtcPort}`);
-                } else if (trimmed.startsWith('hlsAddress:')) {
-                    updatedLines.push(`hlsAddress: :${config.hlsPort}`);
-                } else if (trimmed.startsWith('rtspAddress:')) {
-                    updatedLines.push(`rtspAddress: :${config.rtspPort}`);
-                } else if (trimmed.startsWith('rtmpAddress:')) {
-                    updatedLines.push(`rtmpAddress: :${config.rtmpPort}`);
-                } else if (trimmed.startsWith('apiAddress:')) {
-                    updatedLines.push(`apiAddress: :${config.apiPort}`);
-                } else if (trimmed.startsWith('metricsAddress:')) {
-                    updatedLines.push(`metricsAddress: :${config.metricsPort}`);
-                } else {
-                    updatedLines.push(line);
-                }
-            }
-            
-            return updatedLines.join('\n');
-        }
 
         async function restartMediaMTX() {
             if (!confirm('Are you sure you want to restart MediaMTX? This will temporarily interrupt live streams.')) {
@@ -4144,44 +4303,23 @@
                     throw new Error(error.error || 'Failed to restart MediaMTX');
                 }
                 
-                alert('MediaMTX restart initiated. Please wait a moment for the service to come back online.');
-                
-                // Update status
-                const statusEl = document.getElementById('mediamtxStatus');
-                if (statusEl) {
-                    statusEl.textContent = 'Restarting...';
-                    statusEl.style.color = '#ffc107';
-                }
+                showMediaMTXStatusMessage('MediaMTX restart initiated. Please wait a moment for the service to come back online.', 'info');
                 
             } catch (error) {
                 console.error('Error restarting MediaMTX:', error);
-                alert('Failed to restart MediaMTX: ' + error.message);
+                showMediaMTXStatusMessage('Failed to restart MediaMTX: ' + error.message, 'error');
             }
         }
 
         function updateUrlDisplays() {
-            const webrtcPortEl = document.getElementById('webrtcPort');
-            const hlsPortEl = document.getElementById('hlsPort');
-            const rtspPortEl = document.getElementById('rtspPort');
-            
-            const webrtcUrlEl = document.getElementById('webrtcUrl');
-            const hlsUrlEl = document.getElementById('hlsUrl');
-            const rtspUrlEl = document.getElementById('rtspUrl');
-            
-            if (webrtcPortEl && webrtcUrlEl) {
-                webrtcUrlEl.textContent = `http://localhost:${webrtcPortEl.value || 8889}`;
-            }
-            if (hlsPortEl && hlsUrlEl) {
-                hlsUrlEl.textContent = `http://localhost:${hlsPortEl.value || 8888}`;
-            }
-            if (rtspPortEl && rtspUrlEl) {
-                rtspUrlEl.textContent = `rtsp://localhost:${rtspPortEl.value || 8554}`;
-            }
+            // This function is called after loading MediaMTX config
+            // Currently no URL displays are implemented for MediaMTX ports
+            console.log('MediaMTX configuration loaded and form fields updated');
         }
 
         // Add event listeners for port changes to update URLs in real-time
         document.addEventListener('DOMContentLoaded', function() {
-            const portInputs = ['webrtcPort', 'hlsPort', 'rtspPort'];
+            const portInputs = ['webrtcPort', 'hlsPort', 'rtspPort', 'rtmpPort', 'apiPort', 'metricsPort'];
             portInputs.forEach(inputId => {
                 const input = document.getElementById(inputId);
                 if (input) {
@@ -4189,6 +4327,229 @@
                 }
             });
         });
+
+        // MediaMTX Status Message Function
+        function showMediaMTXStatusMessage(message, type = 'info') {
+            const statusEl = document.getElementById('mediamtxStatusMessage');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status-message ${type}`;
+                statusEl.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // FRP Configuration Functions
+        function showFRPStatusMessage(message, type = 'info') {
+            const statusEl = document.getElementById('frpStatusMessage');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = `status-message ${type}`;
+                statusEl.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        async function loadFRPConfig() {
+            try {
+                const response = await fetch('/api/frp/config');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const config = data.config;
+                    
+                    // Load common configuration
+                    document.getElementById('frp_server_addr').value = config.common.server_addr || '';
+                    document.getElementById('frp_server_port').value = config.common.server_port || '';
+                    document.getElementById('frp_log_level').value = config.common.log_level || 'info';
+                    document.getElementById('frp_log_file').value = config.common.log_file || '';
+                    document.getElementById('frp_log_max_days').value = config.common.log_max_days || '';
+                    
+                    // Load TCP WebRTC configuration
+                    document.getElementById('frp_tcp_remote_port').value = config.tcp_webrtc.remote_port || '';
+                    document.getElementById('frp_tcp_local_ip').value = config.tcp_webrtc.local_ip || '';
+                    document.getElementById('frp_tcp_local_port').value = config.tcp_webrtc.local_port || '';
+                    
+                    // Load UDP WebRTC configuration
+                    document.getElementById('frp_udp_remote_port').value = config.udp_webrtc.remote_port || '';
+                    document.getElementById('frp_udp_local_ip').value = config.udp_webrtc.local_ip || '';
+                    document.getElementById('frp_udp_local_port').value = config.udp_webrtc.local_port || '';
+                    
+                    // Load ICE WebRTC configuration
+                    document.getElementById('frp_ice_remote_port').value = config.ice_webrtc.remote_port || '';
+                    document.getElementById('frp_ice_local_ip').value = config.ice_webrtc.local_ip || '';
+                    document.getElementById('frp_ice_local_port').value = config.ice_webrtc.local_port || '';
+                    
+                    // Load HLS configuration
+                    document.getElementById('frp_hls_remote_port').value = config.hls.remote_port || '';
+                    document.getElementById('frp_hls_local_ip').value = config.hls.local_ip || '';
+                    document.getElementById('frp_hls_local_port').value = config.hls.local_port || '';
+                    
+                    showFRPStatusMessage('Configuration loaded successfully', 'success');
+                } else {
+                    showFRPStatusMessage('Failed to load configuration: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading FRP config:', error);
+                showFRPStatusMessage('Error loading configuration: ' + error.message, 'error');
+            }
+        }
+
+        async function saveFRPConfig() {
+            try {
+                const config = {
+                    common: {
+                        server_addr: document.getElementById('frp_server_addr').value,
+                        server_port: parseInt(document.getElementById('frp_server_port').value) || 7000,
+                        log_level: document.getElementById('frp_log_level').value,
+                        log_file: document.getElementById('frp_log_file').value,
+                        log_max_days: parseInt(document.getElementById('frp_log_max_days').value) || 3
+                    },
+                    tcp_webrtc: {
+                        type: 'tcp',
+                        remote_port: parseInt(document.getElementById('frp_tcp_remote_port').value) || 10556,
+                        local_ip: document.getElementById('frp_tcp_local_ip').value,
+                        local_port: parseInt(document.getElementById('frp_tcp_local_port').value) || 8189
+                    },
+                    udp_webrtc: {
+                        type: 'udp',
+                        remote_port: parseInt(document.getElementById('frp_udp_remote_port').value) || 10555,
+                        local_ip: document.getElementById('frp_udp_local_ip').value,
+                        local_port: parseInt(document.getElementById('frp_udp_local_port').value) || 8889
+                    },
+                    ice_webrtc: {
+                        type: 'tcp',
+                        remote_port: parseInt(document.getElementById('frp_ice_remote_port').value) || 10556,
+                        local_ip: document.getElementById('frp_ice_local_ip').value,
+                        local_port: parseInt(document.getElementById('frp_ice_local_port').value) || 8189
+                    },
+                    hls: {
+                        type: 'tcp',
+                        remote_port: parseInt(document.getElementById('frp_hls_remote_port').value) || 10557,
+                        local_ip: document.getElementById('frp_hls_local_ip').value,
+                        local_port: parseInt(document.getElementById('frp_hls_local_port').value) || 8888
+                    }
+                };
+
+                const response = await fetch('/api/frp/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFRPStatusMessage('Configuration saved successfully', 'success');
+                } else {
+                    showFRPStatusMessage('Failed to save configuration: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving FRP config:', error);
+                showFRPStatusMessage('Error saving configuration: ' + error.message, 'error');
+            }
+        }
+
+        async function generateFRPIni() {
+            try {
+                const response = await fetch('/api/frp/generate-ini', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const previewEl = document.getElementById('frpConfigPreview');
+                    if (previewEl) {
+                        previewEl.textContent = data.ini_content;
+                        previewEl.style.display = 'block';
+                    }
+                    showFRPStatusMessage('INI file generated successfully', 'success');
+                } else {
+                    showFRPStatusMessage('Failed to generate INI: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error generating FRP INI:', error);
+                showFRPStatusMessage('Error generating INI: ' + error.message, 'error');
+            }
+        }
+
+        async function storeFRPIni() {
+            try {
+                const response = await fetch('/api/frp/store-ini', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFRPStatusMessage(`INI file stored successfully: ${data.file_path} (${data.file_size} bytes)`, 'success');
+                } else {
+                    showFRPStatusMessage('Failed to store INI file: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error storing FRP INI:', error);
+                showFRPStatusMessage('Error storing INI file: ' + error.message, 'error');
+            }
+        }
+
+        async function resetFRPConfig() {
+            if (!confirm('Are you sure you want to reset the FRP configuration to defaults? This will overwrite all current settings.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/frp/reset', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFRPStatusMessage('Configuration reset to defaults', 'success');
+                    // Reload the configuration to show defaults
+                    await loadFRPConfig();
+                } else {
+                    showFRPStatusMessage('Failed to reset configuration: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error resetting FRP config:', error);
+                showFRPStatusMessage('Error resetting configuration: ' + error.message, 'error');
+            }
+        }
+
+        async function restartFRPClient() {
+            if (!confirm('Are you sure you want to restart the FRP client? This will temporarily interrupt FRP connections.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/frp/restart', {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showFRPStatusMessage('FRP client restart initiated', 'success');
+                } else {
+                    showFRPStatusMessage('Failed to restart FRP client: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error restarting FRP client:', error);
+                showFRPStatusMessage('Error restarting FRP client: ' + error.message, 'error');
+            }
+        }
     </script>
 </body>
 
