@@ -1573,7 +1573,56 @@
 
             <div class="camera-list-section" id="settings-section">
                 <div class="section-title">⚙️ Settings</div>
-                <div class="camera-info">Adjust application settings here.</div>
+                
+                <!-- MediaMTX Configuration Settings -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-cog"></i>
+                        MediaMTX Configuration
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="webrtcPort">WebRTC Port</label>
+                            <input type="number" id="webrtcPort" name="webrtc_port" value="8889" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for WebRTC live streaming (default: 8889)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="hlsPort">HLS Port</label>
+                            <input type="number" id="hlsPort" name="hls_port" value="8888" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for HLS streaming (default: 8888)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rtspPort">RTSP Port</label>
+                            <input type="number" id="rtspPort" name="rtsp_port" value="8554" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for RTSP streaming (default: 8554)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="rtmpPort">RTMP Port</label>
+                            <input type="number" id="rtmpPort" name="rtmp_port" value="1935" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for RTMP streaming (default: 1935)</small>
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="loadMediaMTXConfig()">
+                            <i class="fas fa-download"></i> Load Current Config
+                        </button>
+                        <button class="btn btn-success" onclick="saveMediaMTXConfig()">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                        <button class="btn btn-secondary" onclick="restartMediaMTX()">
+                            <i class="fas fa-redo"></i> Restart MediaMTX
+                        </button>
+                    </div>
+                </div>
+                
+             
             </div>
             </div>
 
@@ -3607,6 +3656,8 @@
                     if (analyticsSec) analyticsSec.style.display = "block";
                 } else if (sectionKey === "settings") {
                     if (settingsSec) settingsSec.style.display = "block";
+                    // Load MediaMTX config when settings page is shown
+                    loadMediaMTXConfig();
                 }
             }
 
@@ -3794,6 +3845,244 @@
         // Initialize authentication check
         document.addEventListener('DOMContentLoaded', function() {
             checkAuthStatus();
+            // Don't load MediaMTX config on page load - load it when settings page is shown
+        });
+
+        // MediaMTX Configuration Management
+        async function loadMediaMTXConfig() {
+            try {
+                // Load the YAML file directly
+                const response = await fetch('/mediamtx/mediamtx/mediamtxconfig');
+                if (!response.ok) throw new Error('Failed to load MediaMTX config file');
+                
+                const yamlContent = await response.text();
+                console.log('Loaded MediaMTX config:', yamlContent);
+                // Parse YAML content to extract port information
+                const config = parseYamlConfig(yamlContent);
+                
+                // Populate form fields only if they exist
+                const webrtcPortEl = document.getElementById('webrtcPort');
+                const hlsPortEl = document.getElementById('hlsPort');
+                const rtspPortEl = document.getElementById('rtspPort');
+                const rtmpPortEl = document.getElementById('rtmpPort');
+                const apiPortEl = document.getElementById('apiPort');
+                const metricsPortEl = document.getElementById('metricsPort');
+                
+                if (webrtcPortEl) webrtcPortEl.value = config.webrtcPort || 8889;
+                if (hlsPortEl) hlsPortEl.value = config.hlsPort || 8888;
+                if (rtspPortEl) rtspPortEl.value = config.rtspPort || 8554;
+                if (rtmpPortEl) rtmpPortEl.value = config.rtmpPort || 1935;
+                if (apiPortEl) apiPortEl.value = config.apiPort || 9997;
+                if (metricsPortEl) metricsPortEl.value = config.metricsPort || 9998;
+                
+                // Update URL displays
+                updateUrlDisplays();
+                
+                // Set status as loaded
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Config Loaded';
+                    statusEl.style.color = '#28a745';
+                }
+                
+            } catch (error) {
+                console.error('Error loading MediaMTX config:', error);
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Error loading config';
+                    statusEl.style.color = '#dc3545';
+                }
+            }
+        }
+
+        // Simple YAML parser for port extraction
+        function parseYamlConfig(yamlContent) {
+            const config = {};
+            const lines = yamlContent.split('\n');
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('webrtcAddress:')) {
+                    config.webrtcPort = trimmed.split(':')[1]?.replace(':', '') || '8889';
+                } else if (trimmed.startsWith('hlsAddress:')) {
+                    config.hlsPort = trimmed.split(':')[1]?.replace(':', '') || '8888';
+                } else if (trimmed.startsWith('rtspAddress:')) {
+                    config.rtspPort = trimmed.split(':')[1]?.replace(':', '') || '8554';
+                } else if (trimmed.startsWith('rtmpAddress:')) {
+                    config.rtmpPort = trimmed.split(':')[1]?.replace(':', '') || '1935';
+                } else if (trimmed.startsWith('apiAddress:')) {
+                    config.apiPort = trimmed.split(':')[1]?.replace(':', '') || '9997';
+                } else if (trimmed.startsWith('metricsAddress:')) {
+                    config.metricsPort = trimmed.split(':')[1]?.replace(':', '') || '9998';
+                }
+            }
+            
+            return config;
+        }
+
+        async function saveMediaMTXConfig() {
+            try {
+                // Check if we're on the settings page
+                const settingsSection = document.getElementById('settings-section');
+                if (!settingsSection || settingsSection.style.display === 'none') {
+                    alert('Please navigate to the Settings page first.');
+                    return;
+                }
+                
+                // Get form elements with null checks
+                const webrtcPortEl = document.getElementById('webrtcPort');
+                const hlsPortEl = document.getElementById('hlsPort');
+                const rtspPortEl = document.getElementById('rtspPort');
+                const rtmpPortEl = document.getElementById('rtmpPort');
+                const apiPortEl = document.getElementById('apiPort');
+                const metricsPortEl = document.getElementById('metricsPort');
+                
+                if (!webrtcPortEl || !hlsPortEl || !rtspPortEl || !rtmpPortEl || !apiPortEl || !metricsPortEl) {
+                    throw new Error('Settings form not found. Please refresh the page and try again.');
+                }
+                
+                const config = {
+                    webrtcPort: parseInt(webrtcPortEl.value) || 8889,
+                    hlsPort: parseInt(hlsPortEl.value) || 8888,
+                    rtspPort: parseInt(rtspPortEl.value) || 8554,
+                    rtmpPort: parseInt(rtmpPortEl.value) || 1935,
+                    apiPort: parseInt(apiPortEl.value) || 9997,
+                    metricsPort: parseInt(metricsPortEl.value) || 9998
+                };
+                
+                // Validate port numbers
+                for (const [key, value] of Object.entries(config)) {
+                    if (isNaN(value) || value < 1000 || value > 65535) {
+                        throw new Error(`Invalid port number for ${key}: ${value}. Port must be between 1000 and 65535.`);
+                    }
+                }
+                
+                // Load current YAML file
+                const response = await fetch('/mediamtx/mediamtx/mediamtxconfig');
+                if (!response.ok) throw new Error('Failed to load MediaMTX config file');
+                
+                const yamlContent = await response.text();
+                
+                // Update YAML content with new port values
+                const updatedYaml = updateYamlConfig(yamlContent, config);
+                
+                // Save updated YAML file
+                const saveResponse = await fetch('/api/mediamtx/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: updatedYaml
+                });
+                
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save MediaMTX config file');
+                }
+                
+                // Update URL displays
+                updateUrlDisplays();
+                
+                // Update status
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Config Saved';
+                    statusEl.style.color = '#28a745';
+                }
+                
+                alert('MediaMTX configuration saved successfully!');
+                
+            } catch (error) {
+                console.error('Error saving MediaMTX config:', error);
+                alert('Failed to save MediaMTX configuration: ' + error.message);
+            }
+        }
+
+        // Update YAML content with new port values
+        function updateYamlConfig(yamlContent, config) {
+            const lines = yamlContent.split('\n');
+            const updatedLines = [];
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('webrtcAddress:')) {
+                    updatedLines.push(`webrtcAddress: :${config.webrtcPort}`);
+                } else if (trimmed.startsWith('hlsAddress:')) {
+                    updatedLines.push(`hlsAddress: :${config.hlsPort}`);
+                } else if (trimmed.startsWith('rtspAddress:')) {
+                    updatedLines.push(`rtspAddress: :${config.rtspPort}`);
+                } else if (trimmed.startsWith('rtmpAddress:')) {
+                    updatedLines.push(`rtmpAddress: :${config.rtmpPort}`);
+                } else if (trimmed.startsWith('apiAddress:')) {
+                    updatedLines.push(`apiAddress: :${config.apiPort}`);
+                } else if (trimmed.startsWith('metricsAddress:')) {
+                    updatedLines.push(`metricsAddress: :${config.metricsPort}`);
+                } else {
+                    updatedLines.push(line);
+                }
+            }
+            
+            return updatedLines.join('\n');
+        }
+
+        async function restartMediaMTX() {
+            if (!confirm('Are you sure you want to restart MediaMTX? This will temporarily interrupt live streams.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/mediamtx/restart', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to restart MediaMTX');
+                }
+                
+                alert('MediaMTX restart initiated. Please wait a moment for the service to come back online.');
+                
+                // Update status
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Restarting...';
+                    statusEl.style.color = '#ffc107';
+                }
+                
+            } catch (error) {
+                console.error('Error restarting MediaMTX:', error);
+                alert('Failed to restart MediaMTX: ' + error.message);
+            }
+        }
+
+        function updateUrlDisplays() {
+            const webrtcPortEl = document.getElementById('webrtcPort');
+            const hlsPortEl = document.getElementById('hlsPort');
+            const rtspPortEl = document.getElementById('rtspPort');
+            
+            const webrtcUrlEl = document.getElementById('webrtcUrl');
+            const hlsUrlEl = document.getElementById('hlsUrl');
+            const rtspUrlEl = document.getElementById('rtspUrl');
+            
+            if (webrtcPortEl && webrtcUrlEl) {
+                webrtcUrlEl.textContent = `http://localhost:${webrtcPortEl.value || 8889}`;
+            }
+            if (hlsPortEl && hlsUrlEl) {
+                hlsUrlEl.textContent = `http://localhost:${hlsPortEl.value || 8888}`;
+            }
+            if (rtspPortEl && rtspUrlEl) {
+                rtspUrlEl.textContent = `rtsp://localhost:${rtspPortEl.value || 8554}`;
+            }
+        }
+
+        // Add event listeners for port changes to update URLs in real-time
+        document.addEventListener('DOMContentLoaded', function() {
+            const portInputs = ['webrtcPort', 'hlsPort', 'rtspPort'];
+            portInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', updateUrlDisplays);
+                }
+            });
         });
     </script>
 </body>

@@ -2598,6 +2598,141 @@ def update_config():
         print(f"Error updating config: {e}")
         return jsonify({'error': 'Failed to update config'}), 500
 
+@app.route('/api/mediamtx/config', methods=['GET'])
+def get_mediamtx_config():
+    """Get MediaMTX configuration"""
+    try:
+        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        if not os.path.exists(config_path):
+            return jsonify({'error': 'MediaMTX config file not found'}), 404
+        
+        # Parse YAML config to extract port information
+        import yaml
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        # Extract port information
+        result = {
+            'webrtcPort': config.get('webrtcAddress', ':8889').split(':')[-1],
+            'hlsPort': config.get('hlsAddress', ':8888').split(':')[-1],
+            'rtspPort': config.get('rtspAddress', ':8554').split(':')[-1],
+            'rtmpPort': config.get('rtmpAddress', ':1935').split(':')[-1],
+            'apiPort': config.get('apiAddress', ':9997').split(':')[-1],
+            'metricsPort': config.get('metricsAddress', ':9998').split(':')[-1]
+        }
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mediamtx/config', methods=['POST'])
+def save_mediamtx_config():
+    """Save MediaMTX configuration"""
+    try:
+        data = request.get_json()
+        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        
+        if not os.path.exists(config_path):
+            return jsonify({'error': 'MediaMTX config file not found'}), 404
+        
+        # Read current config
+        import yaml
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        # Update port configurations
+        if 'webrtcPort' in data:
+            config['webrtcAddress'] = f":{data['webrtcPort']}"
+        if 'hlsPort' in data:
+            config['hlsAddress'] = f":{data['hlsPort']}"
+        if 'rtspPort' in data:
+            config['rtspAddress'] = f":{data['rtspPort']}"
+        if 'rtmpPort' in data:
+            config['rtmpAddress'] = f":{data['rtmpPort']}"
+        if 'apiPort' in data:
+            config['apiAddress'] = f":{data['apiPort']}"
+        if 'metricsPort' in data:
+            config['metricsAddress'] = f":{data['metricsPort']}"
+        
+        # Write updated config
+        with open(config_path, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+        
+        return jsonify({'message': 'MediaMTX configuration updated successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mediamtx/status', methods=['GET'])
+def get_mediamtx_status():
+    """Get MediaMTX service status"""
+    try:
+        # Check if MediaMTX process is running
+        import psutil
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if 'mediamtx' in proc.info['name'].lower() or any('mediamtx' in str(cmd).lower() for cmd in proc.info['cmdline']):
+                    return jsonify({'running': True, 'pid': proc.info['pid']})
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+        
+        return jsonify({'running': False})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mediamtx/restart', methods=['POST'])
+def restart_mediamtx():
+    """Restart MediaMTX service"""
+    try:
+        # Find and kill existing MediaMTX process
+        import psutil
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if 'mediamtx' in proc.info['name'].lower() or any('mediamtx' in str(cmd).lower() for cmd in proc.info['cmdline']):
+                    proc.terminate()
+                    proc.wait(timeout=5)
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.TimeoutExpired):
+                continue
+        
+        # Start MediaMTX in a new thread
+        def start_mediamtx():
+            time.sleep(2)  # Wait a moment before restarting
+            start_mediamtx_server()
+        
+        threading.Thread(target=start_mediamtx, daemon=True).start()
+        
+        return jsonify({'message': 'MediaMTX restart initiated'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mediamtx/save', methods=['POST'])
+def save_mediamtx_yaml():
+    """Save MediaMTX YAML configuration file"""
+    try:
+        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        
+        # Get the YAML content from request body
+        yaml_content = request.get_data(as_text=True)
+        
+        if not yaml_content:
+            return jsonify({'error': 'No YAML content provided'}), 400
+        
+        # Write the updated YAML content to file
+        with open(config_path, 'w') as f:
+            f.write(yaml_content)
+        
+        return jsonify({'message': 'MediaMTX YAML configuration saved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/mediamtx/mediamtx/mediamtxconfig')
+def serve_mediamtx_yaml():
+    """Serve MediaMTX YAML configuration file"""
+    try:
+        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        return send_file(config_path, mimetype='text/yaml')
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 def update_mediamtx_config(camera_guid, rtsp_url):
     """Update mediamtx.yml file with new camera entry using YAML"""
     try:
