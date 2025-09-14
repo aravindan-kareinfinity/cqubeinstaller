@@ -1,79 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Camera Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer"
+    />
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
+
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
             color: #333;
         }
+
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 0px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0px 0px 0px 0px;
+            box-sizing: border-box;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: white;
+            /* border-radius: 10px; */
+            padding: 20px;
+            /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); */
+            height: auto;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar .nav-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e6ebf2;
+        }
+
+        .sidebar .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar .nav-list li {
+            margin: 10px 0;
+        }
+
+        .nav-link {
+            opacity: 0;
+            /* hidden by default */
+            transform: translateX(-20px);
+            /* shifted left */
+        }
+
+        .sidebar .nav-link {
+            display: block;
+            padding: 10px 15px;
+            border-radius: 6px;
+            color: #495057;
+            text-decoration: none;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar .nav-link:hover {
+            background: #e9ecef;
+            color: #007bff;
+        }
+
+        .content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            /* gap: 20px; */
+        }
+
         .main-container {
             display: flex;
             gap: 20px;
-            max-width: 1400px;
-            margin: 0 auto;
+            padding: 1px;
         }
+
+        .main-container>.camera-list-section:first-child {
+            margin-top: 10px;
+        }
+
         .camera-list-section {
             flex: 1;
             background: white;
-            border-radius: 10px;
+            /* border-radius: 10px; */
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin: 10px;
         }
+
         .live-view-section {
-            flex: 2;
+            flex: 3;
             background: white;
-            border-radius: 10px;
+            /* border-radius: 10px; */
             padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            /* min-height: 80vh; */
         }
+
         .section-title {
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 20px;
             color: #333;
-            border-bottom: 2px solid #007bff;
+            border-bottom: 2px solid #e6ebf2;
             padding-bottom: 10px;
         }
+
         .camera-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 15px;
         }
+
         .camera-card {
             background: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #e6ebf2;
             transition: all 0.3s ease;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
+
         .camera-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
+
         .camera-name {
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 8px;
             color: #333;
         }
+
         .camera-info {
             margin-bottom: 12px;
             color: #666;
             font-size: 14px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
+
         .camera-info p {
             margin: 3px 0;
         }
+
         .status-badge {
             display: inline-block;
             padding: 3px 8px;
@@ -82,30 +188,39 @@
             font-weight: bold;
             text-transform: uppercase;
         }
+
         .status-active {
             background-color: #d4edda;
             color: #155724;
         }
+
         .status-maintenance {
             background-color: #fff3cd;
             color: #856404;
         }
+
         .recording-toggle {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
         }
+
         .toggle-switch {
             position: relative;
             display: inline-block;
             width: 50px;
             height: 24px;
         }
+
         .toggle-switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
+
         .slider {
             position: absolute;
             cursor: pointer;
@@ -114,9 +229,10 @@
             right: 0;
             bottom: 0;
             background-color: #ccc;
-            transition: .4s;
+            transition: 0.4s;
             border-radius: 24px;
         }
+
         .slider:before {
             position: absolute;
             content: "";
@@ -125,76 +241,79 @@
             left: 3px;
             bottom: 3px;
             background-color: white;
-            transition: .4s;
+            transition: 0.4s;
             border-radius: 50%;
         }
-        input:checked + .slider {
-            background-color: #2196F3;
+
+        input:checked+.slider {
+            background-color: #2196f3;
         }
-        input:checked + .slider:before {
+
+        input:checked+.slider:before {
             transform: translateX(26px);
         }
+
         .toggle-label {
             font-weight: bold;
             color: #333;
             font-size: 12px;
         }
+
         .recording-on {
             color: #28a745;
         }
+
         .recording-off {
             color: #dc3545;
         }
+
         .live-view-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 20px;
         }
+
         .live-camera-card {
             background: #000;
             border-radius: 8px;
             overflow: hidden;
             position: relative;
         }
+
         .live-camera-header {
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 10px;
             font-weight: bold;
             font-size: 14px;
         }
+
         .live-camera-feed {
             width: 100%;
-            height: 240px;
+            height: 200px;
             background: #1a1a1a;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #666;
             font-size: 14px;
-            position: relative;
         }
+
         .live-camera-feed img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            border-radius: 0 0 8px 8px;
         }
-        .live-camera-feed div {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
+
         .no-active-cameras {
             text-align: center;
             color: #666;
             font-style: italic;
             padding: 40px;
         }
+
         .refresh-button {
-            background: #007bff;
+            background: #979ba1;
             color: white;
             border: none;
             padding: 10px 20px;
@@ -202,116 +321,2210 @@
             cursor: pointer;
             font-size: 14px;
             margin-bottom: 20px;
+            transition: background 0.2s ease;
         }
+
         .refresh-button:hover {
-            background: #0056b3;
+            background: #55585d;
         }
+
         .stats {
             display: flex;
             gap: 20px;
             margin-bottom: 20px;
+        }
+
+        .stat-item {
+            flex: 1;
+            /* makes all cards equal width */
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 10px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #212529;
+            margin-bottom: 6px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .discovered-section-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 16px 0 8px 0;
+            color: #333;
+        }
+
+        .discovered-list {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            border-left: 4px solid #e6ebf2;
+            color: #333;
             font-size: 14px;
         }
-        .stat-item {
-            background: #e9ecef;
+
+        .discovered-item {
+            padding: 6px 0;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .discovered-item:last-child {
+            border-bottom: none;
+        }
+
+        .discovered-meta {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .group-controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0 16px 0;
+        }
+
+        .group-select {
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+            font-size: 14px;
+        }
+
+        .inline-btn {
+            background: #17a2b8;
+            color: white;
+            border: none;
             padding: 8px 12px;
             border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+
+        /* .inline-btn:hover {
+            background: #138496;
+        } */
+
+        .group-form {
+            display: none;
+            margin: 8px 0 16px 0;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .group-form input {
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            width: 100%;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+
+        .camera-checkboxes {
+            max-height: 140px;
+            overflow: auto;
+            background: white;
+            border: 1px solid #e9ecef;
+            padding: 8px;
+            border-radius: 6px;
+        }
+
+        .camera-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+
+        .section-title,
+        .camera-list-section,
+        .live-view-section {
+            opacity: 0;
+            /* hidden initially */
+            transform: translateY(20px);
+            /* slightly pushed down */
+        }
+
+        /* Responsive adjustments */
+
+        @media (max-width: 1200px) {
+            .main-container {
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-wrapper {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                position: static;
+                margin-bottom: 20px;
+            }
+
+            .group-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* menu active */
+
+        .sidebar .nav-link.active {
+            /* border-left: 4px solid #007bff; */
+            background: #0f172a;
+            color: #fff;
+            font-weight: 600;
+            transform: scale(1.03);
+            /* small emphasis */
+        }
+
+        /* Camera Modal Styles */
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border: none;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #434751, #1f2533);
+            color: white;
+            padding: 20px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .close {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close:hover {
+            opacity: 0.7;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #e6ebf2;
+        }
+
+        .form-section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        .checkbox-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            margin: 0;
+            transform: scale(1.1);
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-radius: 0 0 10px 10px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #1e7e34;
+        }
+
+        .form-tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+
+        .form-tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .form-tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .form-tab:hover {
+            color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .camera-details-display {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #28a745;
+        }
+
+        .camera-details-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .camera-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .camera-detail-item {
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+        }
+
+        .camera-detail-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .camera-detail-value {
+            font-size: 14px;
+            color: #333;
+            margin-top: 2px;
+        }
+
+        /* Video Playback Styles */
+
+        .video-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .video-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .video-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-color: #007bff;
+        }
+
+        .video-item.selected {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .video-info {
+            margin-top: 10px;
+        }
+
+        .video-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .video-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .video-duration {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .no-videos {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .video-player-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .video-info h4 {
+            margin: 15px 0 5px 0;
+            color: #333;
+        }
+
+        .video-info p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .video-controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-play {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Live Stream Styles */
+
+        .live-camera-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .live-camera-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-stream {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            background: #28a745;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-stream:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .btn-stream.btn-stop {
+            background: #dc3545;
+        }
+
+        .btn-stream.btn-stop:hover {
+            background: #c82333;
+        }
+
+        .stream-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            color: #6c757d;
+        }
+
+        .stream-placeholder i {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .stream-placeholder p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .stream-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #007bff;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .stream-loading i {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .stream-loading p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .stream-error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 200px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 8px;
+            color: #721c24;
+        }
+
+        .stream-error i {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .stream-error p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .error-details {
+            font-size: 12px !important;
+            color: #6c757d !important;
+        }
+
+        .live-camera-feed {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .live-camera-feed img {
+            width: 100%;
+            height: auto;
+            max-height: 500px;
+            object-fit: cover;
+        }
+
+        /* Live View Controls */
+
+        .live-view-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .camera-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .camera-selector label {
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .camera-selector select {
+            padding: 8px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            background: white;
+            font-size: 14px;
+            min-width: 200px;
+        }
+
+        .live-view-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-refresh {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            background: #007bff;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-refresh:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-show-all {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            background: #6c757d;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .btn-show-all:hover {
+            background: #545b62;
+            transform: translateY(-1px);
+        }
+
+        .live-camera-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 25px;
+            min-height: 60vh;
+        }
+
+        .live-camera-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Single camera view - larger display */
+
+        .live-camera-grid:has(.live-camera-card:only-child) .live-camera-card {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .live-camera-grid:has(.live-camera-card:only-child) .live-camera-feed img {
+            max-height: 500px;
+        }
+
+        /* Hour-based Video Organization */
+
+        .hour-section {
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .hour-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hour-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .hour-header h3 i {
+            color: #007bff;
+            margin-right: 8px;
+        }
+
+        .video-count {
+            background: #007bff;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .hour-videos {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .video-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .video-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-color: #007bff;
+        }
+
+        .video-item.selected {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .video-info {
+            margin-top: 10px;
+        }
+
+        .video-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .video-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 3px;
+        }
+
+        .video-duration {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .no-videos {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .video-player-container {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .video-info h4 {
+            margin: 15px 0 5px 0;
+            color: #333;
+        }
+
+        .video-info p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .video-controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-play {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+        }
+
+        .logout-button {
+            display: block;
+            padding: 10px 15px;
+            border-radius: 6px;
             color: #495057;
-        }
-        
-        .live-url-link {
-            color: #28a745;
-            text-decoration: underline;
-            word-break: break-all;
-        }
-        
-        .live-url-link:hover {
-            color: #1e7e34;
             text-decoration: none;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+            cursor: pointer;
         }
+
+        .main-heading {
+            font-size: 24px;
+            font-weight: semi-bold;
+        }
+
+        #camera-section {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
     </style>
 </head>
+
 <body>
-    <div class="header">
-        <h1>📹 Camera Management System</h1>
-        <p>Monitor and control your surveillance cameras with live view</p>
-    </div>
-    
-    <div class="main-container">
-        <!-- Camera List Section -->
-        <div class="camera-list-section">
-            <div class="section-title">📋 Camera List</div>
-            <div class="stats">
-                <div class="stat-item">Total: <span id="totalCameras">0</span></div>
-                <div class="stat-item">Active: <span id="activeCameras">0</span></div>
-                <div class="stat-item">Recording: <span id="recordingCameras">0</span></div>
+
+    <div class="main-wrapper">
+        <aside class="sidebar">
+            
+            <div class="nav-title">
+                <img src="logo.jpg" alt="cqube" width="200" height="65">
             </div>
-            <div class="camera-grid" id="cameraGrid">
-                <!-- Cameras will be loaded here -->
-            </div>
-        </div>
-        
-        <!-- Live View Section -->
-        <div class="live-view-section">
-            <div class="section-title">🎥 Live View</div>
-            <button class="refresh-button" onclick="refreshLiveView()">🔄 Refresh Live View</button>
-            <div class="live-view-grid" id="liveViewGrid">
-                <div class="no-active-cameras">
-                    No active cameras. Turn on recording to see live feeds.
+         
+            <ul class="nav-list">
+                <li>
+                    <a class="nav-link active" href="#camera-section">📋 Camera List</a>
+                </li>
+                <li><a class="nav-link" href="#live-section">🎥 Live View</a></li>
+                <li><a class="nav-link" href="#video-playback-section">📹 Video Playback</a></li>
+                <li><a class="nav-link" href="#groups-section">👥 Groups</a></li>
+                <li>
+                    <a class="nav-link" href="#discovery-section">🔍 Discovery</a>
+                </li>
+                <!-- <li>
+                    <a class="nav-link" href="#analytics-section">📊 Analytics</a>
+                </li> -->
+               
+                <li><a class="nav-link" href="#settings-section">⚙️ Settings</a></li>
+            </ul>
+        </aside>
+
+        <div class="content-container">
+            <div class="navbar">
+                <div>
+                    <h6 id="user-info">Loading...</h6>
                 </div>
+
+                <div>
+                    <div class="stat-link" id="auth-link" onclick="handleAuth()">
+                        <i class="fas fa-sign-in-alt"></i> <span id="auth-text">Sign In</span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="main-container" style="flex:1; min-height: 0; overflow-y: auto;">
+                <!-- Camera List Section -->
+                <div class="camera-list-section" id="camera-section" >
+                    <div class="section-title">📋 Camera List (Recording Only)</div>
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-value" id="totalCameras">0</div>
+                            <div class="stat-label">Total Cameras</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="activeCameras">0</div>
+                            <div class="stat-label">Active Cameras</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value" id="recordingCameras">0</div>
+                            <div class="stat-label">Recording Cameras</div>
+                        </div>
+                    </div>
+                    <div id="discovery-section">
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="refresh-button" id="searchButton" onclick="searchCameras()">
+                🔍 Search Cameras
+              </button>
+                            <button class="refresh-button" onclick="addNewCamera()" style="background: #2a303f;">
+                                ➕ Add Camera
+                            </button>
+                        </div>
+                        <div class="discovered-section-title">Discovered Cameras</div>
+                        <div id="discoverResults" class="discovered-list">
+                            Press "Search Cameras" to discover cameras on your network.
+                        </div>
+                        <div id="discoveryAddForm" class="group-form" style="display: none; margin-top: 10px">
+                            <div class="discovered-section-title">Add Camera</div>
+                            <input id="discName" type="text" placeholder="Camera name" />
+                            <input id="discIP" type="text" placeholder="IP address" readonly />
+                            <input id="discLocation" type="text" placeholder="Location" />
+                            <input id="discModel" type="text" placeholder="Model (optional)" />
+                            <input id="discOrganization" type="text" placeholder="Organization ID (optional)" />
+                            <select id="discStatus" class="group-select" style="width: 100%">
+                  <option value="Active" selected>Active</option>
+                  <option value="Maintenance">Maintenance</option>
+                </select>
+                            <textarea id="discDescription" placeholder="Description (optional)" style="
+                    padding: 8px;
+                    border: 1px solid #ced4da;
+                    border-radius: 6px;
+                    width: 100%;
+                    box-sizing: border-box;
+                    min-height: 60px;
+                  "></textarea>
+                            <div class="discovered-section-title" style="margin-top: 8px">
+                                RTSP Details
+                            </div>
+                            <input id="discUsername" type="text" placeholder="Username (optional)" />
+                            <input id="discPassword" type="password" placeholder="Password (optional)" />
+                            <input id="discPort" type="text" placeholder="Port (optional, e.g. 554)" />
+                            <input id="discPath" type="text" placeholder="Path (optional, e.g. /axis-media/media.amp)" />
+                            <input id="discURL" type="text" placeholder="Or paste full RTSP URL (overrides above)" />
+                            <label style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 8px;
+                  ">
+                  <input id="discRecord" type="checkbox" />
+                  <span>Start recording now</span>
+                </label>
+                            <div style="display: flex; gap: 8px; margin-top: 8px">
+                                <button class="inline-btn" onclick="submitDiscoveryAddForm()">
+                    Save
+                  </button>
+                                <button class="inline-btn" style="background: #6c757d" onclick="cancelDiscoveryAddForm()">
+                    Cancel
+                  </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="groups-section">
+                        <div class="discovered-section-title">Groups</div>
+                        <div class="group-controls">
+                            <select id="groupSelect" class="group-select" onchange="onGroupChange()">
+                  <option value="__all__">All cameras</option>
+                </select>
+                            <button class="inline-btn" style="background:#2a303f;" onclick="startCreateGroup()">
+                  ➕ Create Group
+                </button>
+                            <button class="inline-btn" id="editGroupBtn" style="background: #2a303f;" onclick="startEditGroup()" disabled>
+                  ✏️ Edit Group
+                </button>
+                            <button class="inline-btn" id="deleteGroupBtn" style="background: #2a303f;" onclick="deleteGroup()" disabled>
+                  🗑️ Delete
+                </button>
+                        </div>
+                        <div id="groupMembers" class="discovered-list" style="display: none; margin-top: 8px"></div>
+                        <div id="groupForm" class="group-form">
+                            <div id="groupFormTitle" class="discovered-section-title">
+                                Create Group
+                            </div>
+                            <input id="groupName" type="text" placeholder="Group name" />
+                            <div class="camera-checkboxes" id="groupCameraList"></div>
+                            <div style="display: flex; gap: 8px; margin-top: 8px">
+                                <button class="inline-btn" onclick="saveGroup()" style="background:#2a303f; color: white">Save</button>
+                                <button class="inline-btn" style="background: #6c757d" onclick="toggleGroupForm()">
+                    Cancel
+                  </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="camera-grid" id="cameraGrid">
+                        <!-- Cameras will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Live View Section -->
+                <div class="live-view-section" id="live-section" style="margin: 10px; padding: 10px">
+                    <div class="section-title">🎥 Live View</div>
+                    <div style="
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                margin-bottom: 10px;
+              ">
+                        <select id="groupSelectLive" class="group-select" onchange="onLiveGroupChange()">
+                <option value="__all__">All cameras</option>
+              </select>
+                        <button class="refresh-button" onclick="refreshLiveView()" style="margin-bottom: 0px">
+                🔄 Refresh Live View
+              </button>
+                    </div>
+                    <div class="live-view-grid" id="liveViewGrid">
+                        <div class="no-active-cameras">
+                            No active cameras. Turn on recording to see live feeds.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video Playback Section -->
+            <div class="camera-list-section" id="video-playback-section" style="flex:1; min-height: 0; overflow-y: auto;">
+                <div class="section-title">📹 Video Playback</div>
+                
+                <!-- Video Selection Controls -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Select Date, Camera and Hour
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="videoDate">Select Date</label>
+                            <input type="date" id="videoDate" onchange="loadVideoList()">
+                        </div>
+                        <div class="form-group">
+                            <label for="videoCamera">Select Camera</label>
+                            <select id="videoCamera" onchange="loadVideoList()">
+                                <option value="">All Cameras</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="videoHour">Select Hour</label>
+                            <select id="videoHour" onchange="loadVideoList()">
+                                <option value="">All Hours</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for=""><br></label>
+                            <button class="btn" onclick="loadVideoList()">
+                                <i class="fas fa-search"></i> Load Videos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video List -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-video"></i>
+                        Available Videos
+                    </div>
+                    <div id="videoList" class="video-list">
+                        <div class="no-videos">Select a date and camera to view videos.</div>
+                    </div>
+                </div>
+
+                <!-- Video Player -->
+                <div class="form-section" id="videoPlayerSection" style="display: none;">
+                    <div class="form-section-title">
+                        <i class="fas fa-play"></i>
+                        Video Player
+                    </div>
+                    <div class="video-player-container">
+                        <video id="videoPlayer" controls width="100%" height="400">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-info">
+                            <h4 id="videoTitle">Video Title</h4>
+                            <p id="videoDetails">Video Details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional sections -->
+            <div class="camera-list-section" id="analytics-section">
+                <div class="section-title">📊 Analytics</div>
+                <div class="camera-info">Analytics dashboard coming soon.</div>
+            </div>
+
+            <div class="camera-list-section" id="settings-section">
+                <div class="section-title">⚙️ Settings</div>
+                
+                <!-- MediaMTX Configuration Settings -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-cog"></i>
+                        MediaMTX Configuration
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="webrtcPort">WebRTC Port</label>
+                            <input type="number" id="webrtcPort" name="webrtc_port" value="8889" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for WebRTC live streaming (default: 8889)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="hlsPort">HLS Port</label>
+                            <input type="number" id="hlsPort" name="hls_port" value="8888" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for HLS streaming (default: 8888)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rtspPort">RTSP Port</label>
+                            <input type="number" id="rtspPort" name="rtsp_port" value="8554" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for RTSP streaming (default: 8554)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="rtmpPort">RTMP Port</label>
+                            <input type="number" id="rtmpPort" name="rtmp_port" value="1935" min="1000" max="65535">
+                            <small style="color: #666; font-size: 12px;">Port for RTMP streaming (default: 1935)</small>
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="loadMediaMTXConfig()">
+                            <i class="fas fa-download"></i> Load Current Config
+                        </button>
+                        <button class="btn btn-success" onclick="saveMediaMTXConfig()">
+                            <i class="fas fa-save"></i> Save Configuration
+                        </button>
+                        <button class="btn btn-secondary" onclick="restartMediaMTX()">
+                            <i class="fas fa-redo"></i> Restart MediaMTX
+                        </button>
+                    </div>
+                </div>
+                
+             
+            </div>
+            </div>
+
+            
+        </div>
+    </div>
+
+    <!-- Camera Add/Edit Modal -->
+    <div id="cameraModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add Camera</h2>
+                <button class="close" onclick="closeCameraModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-tabs">
+                    <button class="form-tab active" onclick="switchTab('basic')">Basic Info</button>
+                    <button class="form-tab" onclick="switchTab('settings')">Camera Settings</button>
+                    <button class="form-tab" onclick="switchTab('detection')">Detection Features</button>
+                    <button class="form-tab" onclick="switchTab('alerts')">Alert Settings</button>
+                </div>
+
+                <form id="cameraForm">
+                    <!-- Basic Information Tab -->
+                    <div id="basic-tab" class="tab-content active">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-camera"></i>
+                                Basic Information
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraName">Camera Name *</label>
+                                    <input type="text" id="cameraName" name="name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraLocation">Location</label>
+                                    <input type="text" id="cameraLocation" name="location">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraIP">IP Address *</label>
+                                    <input type="text" id="cameraIP" name="ip_address" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraMAC">MAC Address</label>
+                                    <input type="text" id="cameraMAC" name="mac_address" placeholder="00:17:88:12:34:56">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraModel">Model</label>
+                                    <input type="text" id="cameraModel" name="model">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraSerial">Serial Number</label>
+                                    <input type="text" id="cameraSerial" name="serial_number" placeholder="Optional">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraStatus">Status</label>
+                                    <select id="cameraStatus" name="status">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Maintenance">Maintenance</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraOrganization">Organization ID</label>
+                                    <input type="text" id="cameraOrganization" name="organization_id">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraUsername">Username</label>
+                                    <input type="text" id="cameraUsername" name="username" placeholder="root">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraPassword">Password</label>
+                                    <input type="password" id="cameraPassword" name="password" placeholder="password">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraPort">Port</label>
+                                    <input type="number" id="cameraPort" name="port" placeholder="554" value="554">
+                                </div>
+                                <div class="form-group">
+                                    <label for="cameraPath">Path</label>
+                                    <input type="text" id="cameraPath" name="path" placeholder="/axis-media/media.amp" value="/axis-media/media.amp">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraURL">RTSP URL (Auto-generated)</label>
+                                    <input type="text" id="cameraURL" name="url" placeholder="rtsp://username:password@ip:port/path" readonly>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="cameraDescription">Description</label>
+                                    <textarea id="cameraDescription" name="description" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Settings Tab -->
+                    <div id="settings-tab" class="tab-content">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-cog"></i>
+                                Video Encoding Settings
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="frameRate">Frame Rate (fps)</label>
+                                    <select id="frameRate" name="frame_rate">
+                                        <option value="15">15 fps</option>
+                                        <option value="24">24 fps</option>
+                                        <option value="25">25 fps</option>
+                                        <option value="30" selected>30 fps</option>
+                                        <option value="60">60 fps</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="resolution">Resolution</label>
+                                    <select id="resolution" name="resolution">
+                                        <option value="640x480">640x480 (VGA)</option>
+                                        <option value="1280x720">1280x720 (HD)</option>
+                                        <option value="1920x1080" selected>1920x1080 (Full HD)</option>
+                                        <option value="2560x1440">2560x1440 (2K)</option>
+                                        <option value="3840x2160">3840x2160 (4K)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="videoBitrate">Video Bitrate (kbps)</label>
+                                    <input type="number" id="videoBitrate" name="video_bitrate" value="4000" min="500" max="50000">
+                                </div>
+                                <div class="form-group">
+                                    <label for="audioBitrate">Audio Bitrate (kbps)</label>
+                                    <input type="number" id="audioBitrate" name="audio_bitrate" value="128" min="64" max="320">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="preset">Encoding Preset</label>
+                                    <select id="preset" name="preset">
+                                        <option value="ultrafast">Ultrafast</option>
+                                        <option value="superfast">Superfast</option>
+                                        <option value="veryfast">Veryfast</option>
+                                        <option value="faster">Faster</option>
+                                        <option value="fast">Fast</option>
+                                        <option value="medium" selected>Medium</option>
+                                        <option value="slow">Slow</option>
+                                        <option value="slower">Slower</option>
+                                        <option value="veryslow">Veryslow</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="crf">CRF (Quality)</label>
+                                    <input type="number" id="crf" name="crf" value="23" min="0" max="51">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="segmentTime">Segment Time (seconds)</label>
+                                    <input type="number" id="segmentTime" name="segment_time" value="10" min="1" max="300">
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="enableAudio" name="enable_audio" checked>
+                                        Enable Audio Recording
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detection Features Tab -->
+                    <div id="detection-tab" class="tab-content">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-eye"></i>
+                                AI Detection Features
+                            </div>
+                            
+                            <!-- Person & Vehicle Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-users"></i>
+                                    Person & Vehicle Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="people_detection" name="people_detection">
+                                        <label for="people_detection">People Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="vehicle_detection" name="vehicle_detection">
+                                        <label for="vehicle_detection">Vehicle Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="people_counting" name="people_counting">
+                                        <label for="people_counting">People Counting</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="vehicle_counting" name="vehicle_counting">
+                                        <label for="vehicle_counting">Vehicle Counting</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Face Features -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-user-circle"></i>
+                                    Face Recognition Features
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="face_detection" name="face_detection">
+                                        <label for="face_detection">Face Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="face_recognition" name="face_recognition">
+                                        <label for="face_recognition">Face Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="mask_detection" name="mask_detection">
+                                        <label for="mask_detection">Mask Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="face_mask_compliance" name="face_mask_compliance">
+                                        <label for="face_mask_compliance">Face Mask Compliance</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Behavior Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    Behavior Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="intrusion_detection" name="intrusion_detection">
+                                        <label for="intrusion_detection">Intrusion Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="line_crossing_detection" name="line_crossing_detection">
+                                        <label for="line_crossing_detection">Line Crossing Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="loitering_detection" name="loitering_detection">
+                                        <label for="loitering_detection">Loitering Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="aggressive_behavior_detection" name="aggressive_behavior_detection">
+                                        <label for="aggressive_behavior_detection">Aggressive Behavior Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="suspicious_behavior_detection" name="suspicious_behavior_detection">
+                                        <label for="suspicious_behavior_detection">Suspicious Behavior Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fall_detection" name="fall_detection">
+                                        <label for="fall_detection">Fall Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="social_distancing_detection" name="social_distancing_detection">
+                                        <label for="social_distancing_detection">Social Distancing Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Object Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-box"></i>
+                                    Object Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="object_left_behind" name="object_left_behind">
+                                        <label for="object_left_behind">Object Left Behind</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="object_removed" name="object_removed">
+                                        <label for="object_removed">Object Removed</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="bag_detection" name="bag_detection">
+                                        <label for="bag_detection">Bag Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="gun_detection" name="gun_detection">
+                                        <label for="gun_detection">Gun Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Safety & Compliance -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-hard-hat"></i>
+                                    Safety & Compliance
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="helmet_detection" name="helmet_detection">
+                                        <label for="helmet_detection">Helmet Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="ppe_detection" name="ppe_detection">
+                                        <label for="ppe_detection">PPE Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="smoking_detection" name="smoking_detection">
+                                        <label for="smoking_detection">Smoking Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="phone_usage_detection" name="phone_usage_detection">
+                                        <label for="phone_usage_detection">Phone Usage Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Traffic & Parking -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-car"></i>
+                                    Traffic & Parking
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="license_plate_recognition" name="license_plate_recognition">
+                                        <label for="license_plate_recognition">License Plate Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="parking_occupancy_detection" name="parking_occupancy_detection">
+                                        <label for="parking_occupancy_detection">Parking Occupancy Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="wrong_way_detection" name="wrong_way_detection">
+                                        <label for="wrong_way_detection">Wrong Way Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="speed_detection" name="speed_detection">
+                                        <label for="speed_detection">Speed Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="illegal_parking_detection" name="illegal_parking_detection">
+                                        <label for="illegal_parking_detection">Illegal Parking Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Analytics -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-chart-line"></i>
+                                    Analytics
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="crowd_density_estimation" name="crowd_density_estimation">
+                                        <label for="crowd_density_estimation">Crowd Density Estimation</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="dwell_time_analysis" name="dwell_time_analysis">
+                                        <label for="dwell_time_analysis">Dwell Time Analysis</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="heatmap_generation" name="heatmap_generation">
+                                        <label for="heatmap_generation">Heatmap Generation</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="queue_monitoring" name="queue_monitoring">
+                                        <label for="queue_monitoring">Queue Monitoring</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="footfall_analysis" name="footfall_analysis">
+                                        <label for="footfall_analysis">Footfall Analysis</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="wait_time_analysis" name="wait_time_analysis">
+                                        <label for="wait_time_analysis">Wait Time Analysis</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Environmental -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-leaf"></i>
+                                    Environmental Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="fire_detection" name="fire_detection">
+                                        <label for="fire_detection">Fire Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="smoke_detection" name="smoke_detection">
+                                        <label for="smoke_detection">Smoke Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="flood_water_level_detection" name="flood_water_level_detection">
+                                        <label for="flood_water_level_detection">Flood/Water Level Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="night_time_movement_detection" name="night_time_movement_detection">
+                                        <label for="night_time_movement_detection">Night Time Movement Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Audio Detection -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-volume-up"></i>
+                                    Audio Detection
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="scream_gunshot_detection" name="scream_gunshot_detection">
+                                        <label for="scream_gunshot_detection">Scream/Gunshot Detection</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="glass_break_detection" name="glass_break_detection">
+                                        <label for="glass_break_detection">Glass Break Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Advanced Features -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-robot"></i>
+                                    Advanced Features
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="re_identification" name="re_identification">
+                                        <label for="re_identification">Re-identification</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="multi_camera_tracking" name="multi_camera_tracking">
+                                        <label for="multi_camera_tracking">Multi-Camera Tracking</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="pose_estimation" name="pose_estimation">
+                                        <label for="pose_estimation">Pose Estimation</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="action_recognition" name="action_recognition">
+                                        <label for="action_recognition">Action Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="gesture_recognition" name="gesture_recognition">
+                                        <label for="gesture_recognition">Gesture Recognition</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="scene_anomaly_detection" name="scene_anomaly_detection">
+                                        <label for="scene_anomaly_detection">Scene Anomaly Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Zone & Area Features -->
+                            <div class="form-section">
+                                <div class="form-section-title" style="font-size: 16px; color: #666;">
+                                    <i class="fas fa-map-marked-alt"></i>
+                                    Zone & Area Features
+                                </div>
+                                <div class="checkbox-grid">
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="zone_based_alerts" name="zone_based_alerts">
+                                        <label for="zone_based_alerts">Zone-Based Alerts</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="virtual_tripwire" name="virtual_tripwire">
+                                        <label for="virtual_tripwire">Virtual Tripwire</label>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <input type="checkbox" id="retail_zone_interaction" name="retail_zone_interaction">
+                                        <label for="retail_zone_interaction">Retail Zone Interaction</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alert Settings Tab -->
+                    <div id="alerts-tab" class="tab-content">
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-bell"></i>
+                                Alert Configuration
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="realTimeAlerts" name="real_time_alerts">
+                                        Enable Real-time Alerts
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="inAppAlerts" name="in_app_alerts" checked>
+                                        Enable In-App Alerts
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="smsAlerts" name="sms_alerts">
+                                        Enable SMS Alerts
+                                    </label>
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px;">
+                                        <input type="checkbox" id="emailAlerts" name="email_alerts">
+                                        Enable Email Alerts
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="alertSensitivity">Alert Sensitivity</label>
+                                    <select id="alertSensitivity" name="alert_sensitivity">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="High">High</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="notificationCooldown">Notification Cooldown (minutes)</label>
+                                    <input type="number" id="notificationCooldown" name="notification_cooldown" value="5" min="1" max="60">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="phoneNumbers">Phone Numbers (comma-separated)</label>
+                                    <textarea id="phoneNumbers" name="phone_numbers" rows="2" placeholder="+1234567890, +0987654321"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="emailAddresses">Email Addresses (comma-separated)</label>
+                                    <textarea id="emailAddresses" name="email_addresses" rows="2" placeholder="admin@company.com, security@company.com"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camera Details Display -->
+                    <div id="cameraDetailsDisplay" class="camera-details-display" style="display: none;">
+                        <div class="camera-details-title">Selected Camera Details</div>
+                        <div id="cameraDetailsContent" class="camera-details-grid">
+                            <!-- Details will be populated here -->
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">Cancel</button>
+                <button type="button" class="btn" style="background:#2a303f; color: white" onclick="saveCamera()">Save Camera</button>
             </div>
         </div>
     </div>
 
     <script>
+        // All JavaScript code remains exactly the same as in the original
         let cameras = [];
         let activeCameras = new Set();
+        let groups = [];
+        let selectedGroupId = "__all__";
+        let editingGroupId = null;
 
         // Load cameras from the server
         async function loadCameras() {
             try {
-                const response = await fetch('/api/cameras');
+                const response = await fetch("/api/cameras");
                 cameras = await response.json();
+                console.log('Loaded cameras:', cameras);
+                console.log('Number of cameras:', cameras.length);
                 displayCameras(cameras);
                 updateStats();
                 updateLiveView();
+                populateCameraDropdown();
+                await loadGroups();
             } catch (error) {
-                console.error('Error loading cameras:', error);
-                document.getElementById('cameraGrid').innerHTML = '<p>Error loading cameras</p>';
+                console.error("Error loading cameras:", error);
+                document.getElementById("cameraGrid").innerHTML =
+                    "<p>Error loading cameras</p>";
             }
+        }
+
+        // Load groups
+        async function loadGroups() {
+            try {
+                const res = await fetch("/api/groups");
+                groups = await res.json();
+                const select = document.getElementById("groupSelect");
+                const selectLive = document.getElementById("groupSelectLive");
+                const current = selectedGroupId;
+                select.innerHTML =
+                    '<option value="__all__">All cameras</option>' +
+                    groups
+                    .map((g) => `<option value="${g.id}">${g.name}</option>`)
+                    .join("");
+                if (selectLive) {
+                    selectLive.innerHTML =
+                        '<option value="__all__">All cameras</option>' +
+                        groups
+                        .map((g) => `<option value="${g.id}">${g.name}</option>`)
+                        .join("");
+                }
+                if (["__all__", ...groups.map((g) => g.id)].includes(current)) {
+                    selectedGroupId = current;
+                } else {
+                    selectedGroupId = "__all__";
+                }
+                select.value = selectedGroupId;
+                if (selectLive) selectLive.value = selectedGroupId;
+                populateGroupCameraList();
+                renderGroupMembers();
+            } catch (e) {
+                console.error("Error loading groups", e);
+            }
+        }
+
+        function onGroupChange() {
+            const select = document.getElementById("groupSelect");
+            selectedGroupId = select.value;
+            // Enable/disable edit/delete buttons
+            const isAll = selectedGroupId === "__all__";
+            document.getElementById("editGroupBtn").disabled = isAll;
+            document.getElementById("deleteGroupBtn").disabled = isAll;
+            const selectLive = document.getElementById("groupSelectLive");
+            if (selectLive) selectLive.value = selectedGroupId;
+            updateLiveView();
+            displayCameras(cameras);
+            renderGroupMembers();
+        }
+
+        function onLiveGroupChange() {
+            const selectLive = document.getElementById("groupSelectLive");
+            selectedGroupId = selectLive.value;
+            const select = document.getElementById("groupSelect");
+            if (select) select.value = selectedGroupId;
+            updateLiveView();
+            displayCameras(cameras);
+            renderGroupMembers();
+        }
+
+        function toggleGroupForm() {
+            const form = document.getElementById("groupForm");
+            form.style.display =
+                form.style.display === "none" || form.style.display === "" ?
+                "block" :
+                "none";
+            if (form.style.display === "block") populateGroupCameraList();
+        }
+
+        function startCreateGroup() {
+            editingGroupId = null;
+            document.getElementById("groupFormTitle").textContent = "Create Group";
+            document.getElementById("groupName").value = "";
+            toggleGroupForm();
+            // Clear checks
+            setTimeout(() => populateGroupCameraList(), 0);
+        }
+
+        function startEditGroup() {
+            if (selectedGroupId === "__all__") return;
+            editingGroupId = selectedGroupId;
+            const group = groups.find((g) => g.id === editingGroupId);
+            if (!group) return;
+            document.getElementById("groupFormTitle").textContent = "Edit Group";
+            document.getElementById("groupName").value = group.name || "";
+            toggleGroupForm();
+            setTimeout(() => populateGroupCameraList(group.camera_ids || []), 0);
+        }
+
+        function populateGroupCameraList(precheckedIds = []) {
+            const list = document.getElementById("groupCameraList");
+            const checked = new Set(precheckedIds);
+            list.innerHTML = cameras
+                .map(
+                    (c) => `
+                <label>
+                    <input type="checkbox" value="${c.id}" ${
+              checked.has(c.id) ? "checked" : ""
+            } />
+                    <span>${c.name} (${c.ip_address})</span>
+                </label>
+            `
+                )
+                .join("");
+        }
+
+        async function saveGroup() {
+            const name = document.getElementById("groupName").value.trim();
+            const cameraIds = Array.from(
+                document.querySelectorAll(
+                    '#groupCameraList input[type="checkbox"]:checked'
+                )
+            ).map((i) => i.value);
+            if (!name) {
+                alert("Enter a group name");
+                return;
+            }
+            try {
+                if (!editingGroupId) {
+                    // create
+                    const res = await fetch("/api/groups", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name,
+                            camera_ids: cameraIds,
+                        }),
+                    });
+                    if (!res.ok) throw new Error("Failed to create group");
+                } else {
+                    // update
+                    const res = await fetch("/api/groups/" + editingGroupId, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            name,
+                            camera_ids: cameraIds,
+                        }),
+                    });
+                    if (!res.ok) throw new Error("Failed to update group");
+                }
+                document.getElementById("groupName").value = "";
+                toggleGroupForm();
+                await loadGroups();
+                // keep selection
+                if (editingGroupId) {
+                    selectedGroupId = editingGroupId;
+                    document.getElementById("groupSelect").value = selectedGroupId;
+                }
+                editingGroupId = null;
+                updateLiveView();
+                displayCameras(cameras);
+                renderGroupMembers();
+            } catch (e) {
+                console.error("Save group error", e);
+                alert("Failed to save group");
+            }
+        }
+
+        async function deleteGroup() {
+            if (selectedGroupId === "__all__") return;
+            if (!confirm("Delete this group?")) return;
+            try {
+                const res = await fetch("/api/groups/" + selectedGroupId, {
+                    method: "DELETE",
+                });
+                if (!res.ok) throw new Error("Failed to delete group");
+                selectedGroupId = "__all__";
+                document.getElementById("groupSelect").value = selectedGroupId;
+                await loadGroups();
+                updateLiveView();
+                displayCameras(cameras);
+                renderGroupMembers();
+            } catch (e) {
+                console.error("Delete group error", e);
+                alert("Failed to delete group");
+            }
+        }
+
+        function renderGroupMembers() {
+            const container = document.getElementById("groupMembers");
+            if (!container) return;
+            const isAll = selectedGroupId === "__all__";
+            const group = groups.find((g) => g.id === selectedGroupId);
+            if (!group && !isAll) {
+                container.style.display = "none";
+                container.innerHTML = "";
+                return;
+            }
+            let members = [];
+            if (isAll) {
+                members = cameras.slice();
+            } else {
+                const ids = new Set(group.camera_ids || []);
+                members = cameras.filter((c) => ids.has(c.id));
+            }
+            if (members.length === 0) {
+                container.style.display = "block";
+                container.innerHTML =
+                    '<div class="discovered-item" style="font-style:italic;">No cameras in this group</div>';
+                return;
+            }
+            let header = isAll ? "All Cameras" : "Group Cameras";
+            let html = `<div class="discovered-item" style="font-weight:bold;">${header}</div>`;
+            members.forEach((c) => {
+                html += `<div class="discovered-item"><div>${c.name}</div><div class="discovered-meta">${c.ip_address}</div></div>`;
+            });
+            container.style.display = "block";
+            container.innerHTML = html;
         }
 
         // Display cameras in the grid
         function displayCameras(cameras) {
-            const grid = document.getElementById('cameraGrid');
-            grid.innerHTML = '';
+            const grid = document.getElementById("cameraGrid");
+            grid.innerHTML = "";
 
-            cameras.forEach(camera => {
-                const card = document.createElement('div');
-                card.className = 'camera-card';
-                
-                const statusClass = (camera.status === 'Active') ? 'status-active' : 'status-maintenance';
-                const recordingClass = camera.is_recording ? 'recording-on' : 'recording-off';
-                const recordingText = camera.is_recording ? 'Recording' : 'Not Recording';
+            // Show all cameras (both recording and non-recording)
+            let visible = cameras;
+            
+            // Optionally filter by selected group for list as well
+            if (selectedGroupId !== "__all__") {
+                const group = groups.find((g) => g.id === selectedGroupId);
+                const ids = new Set((group && group.camera_ids) || []);
+                visible = visible.filter((c) => ids.has(c.id));
+            }
+
+            // Show message if no cameras
+            if (visible.length === 0) {
+                grid.innerHTML = '<div class="no-active-cameras">No cameras found. Add cameras to see them here.</div>';
+                return;
+            }
+
+            visible.forEach((camera) => {
+                const card = document.createElement("div");
+                card.className = "camera-card";
+
+                const statusClass =
+                    camera.status === "Active" ? "status-active" : "status-maintenance";
+                const recordingClass = camera.is_recording ?
+                    "recording-on" :
+                    "recording-off";
+                const recordingText = camera.is_recording ?
+                    "Recording" :
+                    "Not Recording";
+
+                // Get camera details
+                const resolution = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
+                const frameRate = camera.frame_rate || camera.camera_settings?.frame_rate || 30;
+                const detectionFeatures = camera.detection_features || {};
+                const enabledFeatures = Object.values(detectionFeatures).filter(Boolean).length;
+                const alertSettings = camera.alert_settings || {};
+                const alertTypes = [];
+                if (alertSettings.real_time_alerts) alertTypes.push('Real-time');
+                if (alertSettings.sms_alerts) alertTypes.push('SMS');
+                if (alertSettings.email_alerts) alertTypes.push('Email');
+                if (alertSettings.in_app_alerts !== false) alertTypes.push('In-App');
 
                 card.innerHTML = `
                     <div class="camera-name">${camera.name}</div>
                     <div class="camera-info">
                         <p><strong>ID:</strong> ${camera.id}</p>
-                        <p><strong>Location:</strong> ${camera.location || 'N/A'}</p>
-                        <p><strong>IP:</strong> ${camera.ip_address || 'N/A'}</p>
-                        <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${camera.status || 'Unknown'}</span></p>
+                        <p><strong>Location:</strong> ${camera.location}</p>
+                        <p><strong>IP:</strong> ${camera.ip_address}</p>
+                        <p><strong>MAC:</strong> ${camera.mac_address || 'Not specified'}</p>
+                        <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${
+            camera.status
+          }</span></p>
+                        <p><strong>Resolution:</strong> ${resolution}</p>
+                        <p><strong>Frame Rate:</strong> ${frameRate} fps</p>
+                        <p><strong>AI Features:</strong> ${enabledFeatures} enabled</p>
+                        <p><strong>Alerts:</strong> ${alertTypes.length > 0 ? alertTypes.join(', ') : 'None'}</p>
                     </div>
                     <div class="recording-toggle">
                         <label class="toggle-switch">
-                            <input type="checkbox" ${camera.is_recording ? 'checked' : ''} 
-                                   onchange="toggleRecording('${camera.id}', this.checked, this)">
+                            <input type="checkbox" ${
+                              camera.is_recording ? "checked" : ""
+                            } 
+                                   onchange="toggleRecording('${
+                                     camera.id
+                                   }', this.checked, this)">
                             <span class="slider"></span>
                         </label>
-                        <span class="toggle-label ${recordingClass}" id="label-${camera.id}">${recordingText}</span>
+                        <span class="toggle-label ${recordingClass}" id="label-${
+            camera.id
+          }">${recordingText}</span>
+                        <button class="inline-btn" style="margin-left:8px;" onclick="promptEditCamera('${
+                          camera.id
+                        }')">Edit</button>
+                        <button class="inline-btn" style="margin-left:8px;background:#dc3545" onclick="deleteCamera('${
+                          camera.id
+                        }')">Delete</button>
                     </div>
                 `;
-                
+
                 grid.appendChild(card);
             });
         }
@@ -319,173 +2532,1647 @@
         // Update statistics
         function updateStats() {
             const total = cameras.length;
-            const active = cameras.filter(c => c.status === 'Active').length;
-            const recording = cameras.filter(c => c.is_recording).length;
-            
-            document.getElementById('totalCameras').textContent = total;
-            document.getElementById('activeCameras').textContent = active;
-            document.getElementById('recordingCameras').textContent = recording;
+            const active = cameras.filter((c) => c.status === "Active").length;
+            const recording = cameras.filter((c) => c.is_recording).length;
+
+            document.getElementById("totalCameras").textContent = total;
+            document.getElementById("activeCameras").textContent = active;
+            document.getElementById("recordingCameras").textContent = recording;
         }
+
+        // Global variable to track selected camera for live view
+        let selectedLiveCamera = null;
 
         // Update live view
         function updateLiveView() {
-            const liveGrid = document.getElementById('liveViewGrid');
-            const recordingCameras = cameras.filter(c => c.is_recording);
-            
+            const liveGrid = document.getElementById("liveViewGrid");
+            let recordingCameras = cameras.filter((c) => c.is_recording);
+            if (selectedGroupId !== "__all__") {
+                const group = groups.find((g) => g.id === selectedGroupId);
+                const ids = new Set((group && group.camera_ids) || []);
+                recordingCameras = recordingCameras.filter((c) => ids.has(c.id));
+            }
+
             if (recordingCameras.length === 0) {
-                liveGrid.innerHTML = '<div class="no-active-cameras">No active cameras. Turn on recording to see live feeds.</div>';
+                liveGrid.innerHTML =
+                    '<div class="no-active-cameras">No active cameras. Turn on recording to see live feeds.</div>';
                 return;
             }
+
+            // Add camera selection controls
+            liveGrid.innerHTML = `
+              
+                <div id="liveCameraGrid" class="live-camera-grid"></div>
+            `;
+
+            // Display cameras based on selection
+            displayLiveCameras(recordingCameras);
+        }
+
+        // Display live cameras based on selection
+        function displayLiveCameras(recordingCameras) {
+            const cameraGrid = document.getElementById("liveCameraGrid");
             
-            liveGrid.innerHTML = '';
-            recordingCameras.forEach(camera => {
-                const liveCard = document.createElement('div');
-                liveCard.className = 'live-camera-card';
-                liveCard.innerHTML = `
-                    <div class="live-camera-header">${camera.name}</div>
-                    <div class="live-camera-feed" id="feed-${camera.id}">
-                        <div id="loading-${camera.id}" style="display: block; color: #666;">Loading live feed...</div>
-                        <div id="error-${camera.id}" style="display: none; color: #ff6b6b;">Stream not available</div>
-                        <div id="info-${camera.id}" style="display: none; color: #28a745;">
-                            Camera: ${camera.name}<br>
-                            RTSP: ${camera.rtsp_url || 'N/A'}<br>
-                            Live URL: <span id="live-url-${camera.id}">Loading...</span>
+            if (selectedLiveCamera) {
+                // Show only selected camera
+                const numericSelectedCamera = parseInt(selectedLiveCamera);
+                const camera = recordingCameras.find(c => c.id === numericSelectedCamera);
+                if (camera) {
+                    cameraGrid.innerHTML = createLiveCameraCard(camera);
+                } else {
+                    cameraGrid.innerHTML = '<div class="no-active-cameras">Selected camera not found.</div>';
+                }
+            } else {
+                // Show all cameras
+                cameraGrid.innerHTML = "";
+            recordingCameras.forEach((camera) => {
+                const liveCard = document.createElement("div");
+                liveCard.className = "live-camera-card";
+                    liveCard.innerHTML = createLiveCameraCard(camera);
+                    cameraGrid.appendChild(liveCard);
+                });
+            }
+        }
+
+        // Create live camera card HTML
+        function createLiveCameraCard(camera) {
+            const cameraGuid = camera?.GUID;
+            if (!cameraGuid) {
+                return `
+                    <div class="live-camera-header">
+                        <span>${camera.name}</span>
+                        <div class="live-camera-controls">
+                            <span style="color: #dc3545;">No GUID found</span>
+                        </div>
+                    </div>
+                    <div class="live-camera-feed">
+                        <div class="stream-error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Camera GUID not found</p>
+                            <p class="error-details">Cannot generate live URL</p>
                         </div>
                     </div>
                 `;
-                liveGrid.appendChild(liveCard);
-                
-                // Start polling for frame updates as fallback
-                startFramePolling(camera.id);
-                
-                // Immediately fetch and display the live URL
-                fetchLiveUrl(camera.id);
-            });
-        }
-
-
-
-        // Start frame polling for cameras
-        function startFramePolling(cameraId) {
-            // Wait 2 seconds before starting to poll to allow camera threads to start
-            setTimeout(() => {
-                // Poll every 2 seconds for status updates
-                setInterval(async () => {
-                    try {
-                        const response = await fetch(`/api/cameras/${cameraId}/frame`);
-                        const data = await response.json();
-                        
-                        if (data.status === 'live') {
-                            const loadingDiv = document.getElementById(`loading-${cameraId}`);
-                            const errorDiv = document.getElementById(`error-${cameraId}`);
-                            const infoDiv = document.getElementById(`info-${cameraId}`);
-                            const liveUrlSpan = document.getElementById(`live-url-${cameraId}`);
-                            
-                            if (loadingDiv) loadingDiv.style.display = 'none';
-                            if (errorDiv) errorDiv.style.display = 'none';
-                            if (infoDiv) infoDiv.style.display = 'block';
-                            
-                            // Update the live URL display
-                            if (liveUrlSpan && data.live_url) {
-                                liveUrlSpan.innerHTML = `<a href="${data.live_url}" target="_blank" class="live-url-link">${data.live_url}</a>`;
-                            }
-                        } else {
-                            const loadingDiv = document.getElementById(`loading-${cameraId}`);
-                            const errorDiv = document.getElementById(`error-${cameraId}`);
-                            const infoDiv = document.getElementById(`info-${cameraId}`);
-                            
-                            if (loadingDiv) loadingDiv.style.display = 'none';
-                            if (errorDiv) errorDiv.style.display = 'block';
-                            if (infoDiv) infoDiv.style.display = 'none';
-                        }
-                    } catch (error) {
-                        console.error(`Error polling frame for camera ${cameraId}:`, error);
-                        const loadingDiv = document.getElementById(`loading-${cameraId}`);
-                        const errorDiv = document.getElementById(`error-${cameraId}`);
-                        const infoDiv = document.getElementById(`info-${cameraId}`);
-                        
-                        if (loadingDiv) loadingDiv.style.display = 'none';
-                        if (errorDiv) errorDiv.style.display = 'block';
-                        if (infoDiv) infoDiv.style.display = 'none';
-                    }
-                }, 2000);
-            }, 2000);
-        }
-
-        // Fetch and display live URL for a specific camera
-        async function fetchLiveUrl(cameraId) {
-            try {
-                const response = await fetch(`/api/cameras/${cameraId}/frame`);
-                const data = await response.json();
-                
-                const liveUrlSpan = document.getElementById(`live-url-${cameraId}`);
-                if (liveUrlSpan && data.live_url) {
-                    liveUrlSpan.innerHTML = `<a href="${data.live_url}" target="_blank" class="live-url-link">${data.live_url}</a>`;
-                }
-            } catch (error) {
-                console.error(`Error fetching live URL for camera ${cameraId}:`, error);
             }
+
+            // Get camera resolution for iframe dimensions
+            const resolution = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
+            const [width, height] = resolution.split('x').map(Number);
+            
+            // Calculate responsive dimensions (max 1280x720, maintain aspect ratio)
+            let iframeWidth = Math.min(width, 1280);
+            let iframeHeight = Math.min(height, 720);
+            
+            // Maintain aspect ratio
+            if (width > height) {
+                iframeHeight = (iframeWidth * height) / width;
+            } else {
+                iframeWidth = (iframeHeight * width) / height;
+            }
+
+            return `
+                <div class="live-camera-header">
+                    <span>${camera.name}</span>
+                    <div class="live-camera-controls">
+                        <button onclick="refreshCameraStream('${camera.id}')" class="btn-stream" style="background: #007bff;">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                        ${selectedLiveCamera ? `
+                            <button onclick="selectLiveCamera('')" class="btn-show-all">
+                                <i class="fas fa-th"></i> Show All
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="live-camera-feed" id="feed-${camera.id}">
+                    <iframe src="http://localhost:8889/${cameraGuid}/" 
+                            width="${Math.round(iframeWidth)}" 
+                            height="${Math.round(iframeHeight)}" 
+                            frameborder="0"
+                            allowfullscreen
+                            style="border: none; border-radius: 8px; max-width: 100%;"
+                            onload="handleIframeLoad('${camera.id}')"
+                            onerror="handleIframeError('${camera.id}')">
+                    </iframe>
+                    <div class="stream-loading" id="loading-${camera.id}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 8px;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>Loading live stream...</p>
+                    </div>
+                </div>
+            `;
         }
+
+        // Select specific camera for live view
+        function selectLiveCamera(cameraId) {
+            selectedLiveCamera = cameraId || null;
+            const select = document.getElementById("liveCameraSelect");
+            if (select) {
+                select.value = cameraId || "";
+            }
+            
+            // Refresh the display
+            let recordingCameras = cameras.filter((c) => c.is_recording);
+            if (selectedGroupId !== "__all__") {
+                const group = groups.find((g) => g.id === selectedGroupId);
+                const ids = new Set((group && group.camera_ids) || []);
+                recordingCameras = recordingCameras.filter((c) => ids.has(c.id));
+            }
+            
+            displayLiveCameras(recordingCameras);
+        }
+
+
 
         // Refresh live view
         function refreshLiveView() {
             updateLiveView();
+        }
+
+        // Handle iframe load success
+        function handleIframeLoad(cameraId) {
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+            console.log(`Live stream loaded for camera ${cameraId}`);
+        }
+
+        // Handle iframe error
+        function handleIframeError(cameraId) {
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
+            if (loadingDiv) {
+                loadingDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Failed to load stream</p>
+                    <p style="font-size: 12px;">Click Refresh to retry</p>
+                `;
+            }
+            console.error(`Live stream failed for camera ${cameraId}`);
+        }
+
+        // Refresh individual camera stream
+        function refreshCameraStream(cameraId) {
+            const numericCameraId = parseInt(cameraId);
+            const camera = cameras.find(c => c.id === numericCameraId);
+            if (!camera || !camera.guid) return;
+
+            const feedDiv = document.getElementById(`feed-${cameraId}`);
+            const loadingDiv = document.getElementById(`loading-${cameraId}`);
             
-            // Also refresh live URLs for all active cameras
-            const recordingCameras = cameras.filter(c => c.is_recording);
-            recordingCameras.forEach(camera => {
-                fetchLiveUrl(camera.id);
+            if (loadingDiv) {
+                loadingDiv.style.display = 'block';
+                loadingDiv.innerHTML = `
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Refreshing stream...</p>
+                `;
+            }
+
+            // Force iframe reload by changing src
+            const iframe = feedDiv.querySelector('iframe');
+            if (iframe) {
+                const currentSrc = iframe.src;
+                iframe.src = '';
+                setTimeout(() => {
+                    iframe.src = currentSrc + '?t=' + Date.now(); // Add timestamp to force reload
+                }, 100);
+            }
+        }
+
+        // Search for cameras (LAN discovery)
+        async function searchCameras() {
+            const button = document.getElementById("searchButton");
+            const container = document.getElementById("discoverResults");
+            try {
+                button.disabled = true;
+                button.textContent = "🔎 Searching...";
+                container.innerHTML = "Searching your network for cameras...";
+
+                const res = await fetch("/api/discover/cameras");
+                if (!res.ok) throw new Error("Discovery failed");
+                const devices = await res.json();
+
+                if (!Array.isArray(devices) || devices.length === 0) {
+                    container.innerHTML =
+                        '<div class="no-active-cameras">No cameras found.</div>';
+                    return;
+                }
+
+                let html =
+                    '<div class="discovered-item" style="font-weight:bold;">Cameras</div>';
+                devices.forEach((d) => {
+                    html += `<div class="discovered-item">
+                        <div>${d.ip_address}</div>
+                        <div>
+                            <span class="discovered-meta">${
+                              d.vendor || "Unknown"
+                            } • ${d.mac_address || ""}</span>
+                            <button class="inline-btn" style="margin-left:8px;" onclick="openDiscoveryAddForm('${
+                              d.ip_address
+                            }', '${(d.vendor || "").replace(
+              /'/g,
+              "&#39;"
+            )}', '${d.mac_address || ''}')">Add</button>
+                        </div>
+                    </div>`;
+                });
+
+                container.innerHTML = html;
+            } catch (e) {
+                console.error("Discovery error:", e);
+                container.innerHTML =
+                    '<div class="no-active-cameras">Error during discovery.</div>';
+            } finally {
+                button.disabled = false;
+                button.textContent = "🔍 Search Cameras";
+            }
+        }
+
+        function openDiscoveryAddForm(ip, vendor, macAddress = '') {
+            // Open the same camera modal as the regular "Add Camera" button
+            openCameraModal();
+            
+            // Populate the regular camera modal with discovered camera data
+            setTimeout(() => {
+                document.getElementById("cameraName").value = vendor ? vendor + " Camera" : "";
+                document.getElementById("cameraIP").value = ip || "";
+                document.getElementById("cameraMAC").value = macAddress || "";
+                document.getElementById("cameraLocation").value = "";
+                document.getElementById("cameraModel").value = vendor || "";
+                document.getElementById("cameraSerial").value = "";
+                document.getElementById("cameraUsername").value = "root";
+                document.getElementById("cameraPassword").value = "";
+                document.getElementById("cameraPort").value = "554";
+                document.getElementById("cameraPath").value = "/axis-media/media.amp";
+                document.getElementById("cameraOrganization").value = "";
+                document.getElementById("cameraStatus").value = "Active"; // Use "Active" not "active"
+                document.getElementById("cameraDescription").value = "";
+                
+                // Update RTSP URL using the regular camera modal function
+                updateRTSPURL();
+            }, 100);
+        }
+
+        function cancelDiscoveryAddForm() {
+            const form = document.getElementById("discoveryAddForm");
+            form.style.display = "none";
+        }
+
+
+        async function submitDiscoveryAddForm() {
+            const name = document.getElementById("discName").value.trim();
+            const ip = document.getElementById("discIP").value.trim();
+            const location = document.getElementById("discLocation").value.trim();
+            const model = document.getElementById("discModel").value.trim();
+            const organization_id = document
+                .getElementById("discOrganization")
+                .value.trim();
+            const status = document.getElementById("discStatus").value;
+            const description = document
+                .getElementById("discDescription")
+                .value.trim();
+            const username = document.getElementById("discUsername").value.trim();
+            const password = document.getElementById("discPassword").value.trim();
+            const port = document.getElementById("discPort").value.trim();
+            const path = document.getElementById("discPath").value.trim();
+            let url = document.getElementById("discURL").value.trim();
+            const is_recording = document.getElementById("discRecord").checked;
+
+            if (!name || !ip) {
+                alert("Name and IP are required");
+                return;
+            }
+            // Build URL if not provided
+            if (!url) {
+                const auth =
+                    username && password ?
+                    `${encodeURIComponent(username)}:${encodeURIComponent(
+                  password
+                )}@` :
+                    "";
+                const host = ip + (port ? `:${port}` : "");
+                const p = path ? (path.startsWith("/") ? path : `/${path}`) : "";
+                url = `rtsp://${auth}${host}${p}`;
+            }
+
+            await addCamera({
+                name,
+                ip_address: ip,
+                mac_address: '', // Will be populated from discovery if available
+                location,
+                username,
+                password,
+                port,
+                path,
+                url,
+                model,
+                serial_number: '',
+                organization_id,
+                status,
+                description,
+                is_recording,
             });
+            cancelDiscoveryAddForm();
+        }
+
+        // Function to construct RTSP URL from components
+        function constructRTSPURL(username, password, ip, port, path) {
+            if (!username || !password || !ip) return '';
+            
+            const encodedPassword = encodeURIComponent(password);
+            const portStr = port ? `:${port}` : '';
+            const pathStr = path ? (path.startsWith('/') ? path : `/${path}`) : '';
+            
+            return `rtsp://${username}:${encodedPassword}@${ip}${portStr}${pathStr}`;
+        }
+
+        // Function to update RTSP URL when fields change
+        function updateRTSPURL() {
+            const username = document.getElementById('cameraUsername').value;
+            const password = document.getElementById('cameraPassword').value;
+            const ip = document.getElementById('cameraIP').value;
+            const port = document.getElementById('cameraPort').value;
+            const path = document.getElementById('cameraPath').value;
+            
+            console.log('updateRTSPURL called with:', { username, password, ip, port, path });
+            
+            const rtspURL = constructRTSPURL(username, password, ip, port, path);
+            console.log('Generated RTSP URL:', rtspURL);
+            
+            document.getElementById('cameraURL').value = rtspURL;
+        }
+
+        function collectFormData() {
+            const formData = new FormData(document.getElementById('cameraForm'));
+            const data = {};
+            
+            // Basic fields
+            data.name = formData.get('name');
+            data.location = formData.get('location');
+            data.ip_address = formData.get('ip_address');
+            data.mac_address = formData.get('mac_address');
+            data.model = formData.get('model');
+            data.serial_number = formData.get('serial_number');
+            data.status = formData.get('status');
+            data.organization_id = formData.get('organization_id');
+            data.username = formData.get('username');
+            data.password = formData.get('password');
+            data.port = formData.get('port');
+            data.path = formData.get('path');
+            data.url = formData.get('url');
+            data.description = formData.get('description');
+            
+            console.log('collectFormData - collected data:', data);
+            
+            // Camera settings
+            data.frame_rate = parseInt(formData.get('frame_rate'));
+            data.resolution = formData.get('resolution');
+            data.video_bitrate = parseInt(formData.get('video_bitrate'));
+            data.audio_bitrate = parseInt(formData.get('audio_bitrate'));
+            data.preset = formData.get('preset');
+            data.crf = parseInt(formData.get('crf'));
+            data.segment_time = parseInt(formData.get('segment_time'));
+            data.enable_audio = formData.get('enable_audio') === 'on';
+            
+            // Detection features
+            const detectionFeatures = {};
+            const detectionCheckboxes = document.querySelectorAll('#detection-tab input[type="checkbox"]');
+            detectionCheckboxes.forEach(checkbox => {
+                detectionFeatures[checkbox.name] = checkbox.checked;
+            });
+            data.detection_features = detectionFeatures;
+            
+            // Alert settings
+            const alertSettings = {
+                real_time_alerts: formData.get('real_time_alerts') === 'on',
+                in_app_alerts: formData.get('in_app_alerts') === 'on',
+                sms_alerts: formData.get('sms_alerts') === 'on',
+                email_alerts: formData.get('email_alerts') === 'on',
+                alert_sensitivity: formData.get('alert_sensitivity'),
+                notification_cooldown: parseInt(formData.get('notification_cooldown')),
+                phone_numbers: formData.get('phone_numbers') ? 
+                    formData.get('phone_numbers').split(',').map(p => p.trim()).filter(p => p) : [],
+                email_addresses: formData.get('email_addresses') ? 
+                    formData.get('email_addresses').split(',').map(e => e.trim()).filter(e => e) : []
+            };
+            data.alert_settings = alertSettings;
+            
+            return data;
+        }
+
+        function displayCameraDetails(camera) {
+            const detailsDisplay = document.getElementById('cameraDetailsDisplay');
+            const detailsContent = document.getElementById('cameraDetailsContent');
+            
+            if (!detailsDisplay || !detailsContent) return;
+            
+            const details = [];
+            
+            // Basic info
+            details.push({ label: 'Name', value: camera.name });
+            details.push({ label: 'Location', value: camera.location || 'Not specified' });
+            details.push({ label: 'IP Address', value: camera.ip_address });
+            details.push({ label: 'Status', value: camera.status });
+            
+            // Camera settings
+            details.push({ label: 'Resolution', value: camera.resolution || camera.camera_settings?.resolution || '1920x1080' });
+            details.push({ label: 'Frame Rate', value: (camera.frame_rate || camera.camera_settings?.frame_rate || 30) + ' fps' });
+            details.push({ label: 'Video Bitrate', value: (camera.video_bitrate || camera.camera_settings?.video_bitrate || 4000) + ' kbps' });
+            details.push({ label: 'Audio', value: (camera.enable_audio !== false && camera.camera_settings?.enable_audio !== false) ? 'Enabled' : 'Disabled' });
+            
+            // Detection features count
+            const detectionFeatures = camera.detection_features || {};
+            const enabledFeatures = Object.values(detectionFeatures).filter(Boolean).length;
+            details.push({ label: 'AI Features', value: `${enabledFeatures} enabled` });
+            
+            // Alert settings
+            const alertSettings = camera.alert_settings || {};
+            const alertTypes = [];
+            if (alertSettings.real_time_alerts) alertTypes.push('Real-time');
+            if (alertSettings.sms_alerts) alertTypes.push('SMS');
+            if (alertSettings.email_alerts) alertTypes.push('Email');
+            if (alertSettings.in_app_alerts !== false) alertTypes.push('In-App');
+            details.push({ label: 'Alerts', value: alertTypes.length > 0 ? alertTypes.join(', ') : 'None' });
+            
+            // Build HTML
+            const html = details.map(detail => `
+                <div class="camera-detail-item">
+                    <div class="camera-detail-label">${detail.label}</div>
+                    <div class="camera-detail-value">${detail.value}</div>
+                </div>
+            `).join('');
+            
+            detailsContent.innerHTML = html;
+            detailsDisplay.style.display = 'block';
+        }
+
+        // Helper function to call external camera API
+        async function callExternalCameraAPI(data, operation, cameraId = null) {
+            const apiPayload = {
+                name: data.name,
+                url: data.url || data.URL || '',
+                location: data.location || 'Unassigned',
+                ip_address: data.ip_address,
+                model: data.model || '',
+                status: data.status || 'Active',
+                detection_features: data.detection_features || {},
+                alert_settings: data.alert_settings || {},
+                frame_rate: data.frame_rate || 30,
+                resolution: data.resolution || '1920x1080',
+                video_bitrate: data.video_bitrate || 2000,
+                enable_audio: data.enable_audio !== undefined ? data.enable_audio : true,
+                audio_bitrate: data.audio_bitrate || 128,
+                preset: data.preset || 'medium',
+                crf: data.crf || 23,
+                segment_time: data.segment_time || 60,
+                organization_id: 17, // Default organization ID
+                guid: data.GUID || data.guid || ''
+            };
+
+            // For update operations, pass camera_id as URL parameter, not in body
+            const url = operation === 'update' && cameraId 
+                ? `http://127.0.0.1:9000/cameras/${cameraId}`
+                : 'http://127.0.0.1:9000/cameras/';
+            
+            const method = operation === 'update' ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(apiPayload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`External API error: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        }
+
+        // Helper function to merge external API response with local camera data
+        async function updateConfigWithExternalResponse(localCameraId, externalApiResponse) {
+            try {
+                const response = await fetch('/api/merge-camera-external-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        local_camera_id: localCameraId,
+                        external_camera_data: externalApiResponse
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to merge external camera data');
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error merging external camera data:', error);
+                throw error;
+            }
+        }
+
+        async function saveCamera() {
+            try {
+                const data = collectFormData();
+                
+                if (!data.name || !data.ip_address) {
+                    alert('Name and IP address are required');
+                    return;
+                }
+                
+                let response;
+                if (editingCameraId) {
+                    // Update existing camera
+                    response = await fetch(`/api/cameras/${editingCameraId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // Create new camera
+                    response = await fetch('/api/cameras', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to save camera');
+                }
+                
+                const savedCamera = await response.json();
+                
+                // Call external API to create/update camera and get full response
+                try {
+                    const externalApiResponse = await callExternalCameraAPI(data, editingCameraId ? 'update' : 'create', editingCameraId);
+                    if (externalApiResponse && externalApiResponse.id) {
+                        // Replace local camera data with external API response
+                        await updateConfigWithExternalResponse(savedCamera.id, externalApiResponse);
+                        console.log('External camera data stored:', externalApiResponse);
+                    }
+                } catch (externalError) {
+                    console.warn('External API call failed:', externalError);
+                    // Continue with local save even if external API fails
+                }
+                
+                await loadCameras();
+                
+                // Display the saved camera details
+                displayCameraDetails(savedCamera);
+                
+                // Show success message
+                alert(editingCameraId ? 'Camera updated successfully!' : 'Camera added successfully!');
+                
+                // Close modal after a short delay to show the details
+                setTimeout(() => {
+                    closeCameraModal();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Save camera error:', error);
+                alert('Failed to save camera: ' + error.message);
+            }
+        }
+
+        async function addCamera(payload) {
+            try {
+                const res = await fetch("/api/cameras", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || "Failed to add camera");
+                }
+                await loadCameras();
+                alert("Camera added");
+            } catch (e) {
+                console.error("Add camera error", e);
+                alert("Failed to add camera");
+            }
+        }
+
+        // Modal management
+        let editingCameraId = null;
+
+        function openCameraModal(cameraId = null) {
+            console.log('openCameraModal called with cameraId:', cameraId);
+            const modal = document.getElementById('cameraModal');
+            const title = document.getElementById('modalTitle');
+            const form = document.getElementById('cameraForm');
+            
+            console.log('Modal element:', modal);
+            console.log('Title element:', title);
+            console.log('Form element:', form);
+            
+            if (!modal) {
+                console.error('Modal element not found!');
+                return;
+            }
+            
+            if (cameraId) {
+                // Edit mode
+                // Convert cameraId to number for comparison with external API IDs
+                const numericCameraId = parseInt(cameraId);
+                editingCameraId = numericCameraId;
+                const camera = cameras.find(c => c.id === numericCameraId);
+                console.log('Camera found for editing:', camera);
+                if (!camera) {
+                    console.error('Camera not found for ID:', cameraId, 'numeric:', numericCameraId);
+                    alert('Camera not found!');
+                    return;
+                }
+                
+                title.textContent = 'Edit Camera';
+                console.log('About to populate form with camera data');
+                populateCameraForm(camera);
+                console.log('Form populated');
+            } else {
+                // Add mode
+                editingCameraId = null;
+                title.textContent = 'Add Camera';
+                form.reset();
+                setDefaultValues();
+            }
+            
+            console.log('Setting modal display to block');
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            console.log('Modal should be visible now');
+        }
+
+        function closeCameraModal() {
+            const modal = document.getElementById('cameraModal');
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+            editingCameraId = null;
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.form-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        function setDefaultValues() {
+            // Set default camera settings
+            document.getElementById('frameRate').value = '30';
+            document.getElementById('resolution').value = '1920x1080';
+            document.getElementById('videoBitrate').value = '4000';
+            document.getElementById('audioBitrate').value = '128';
+            document.getElementById('preset').value = 'medium';
+            document.getElementById('crf').value = '23';
+            document.getElementById('segmentTime').value = '10';
+            document.getElementById('enableAudio').checked = true;
+            
+            // Set default alert settings
+            document.getElementById('inAppAlerts').checked = true;
+            document.getElementById('alertSensitivity').value = 'Medium';
+            document.getElementById('notificationCooldown').value = '5';
+        }
+
+        // Function to parse RTSP URL and extract components
+        function parseRTSPURL(rtspUrl) {
+            if (!rtspUrl) return { username: 'root', password: '', port: '554', path: '/axis-media/media.amp' };
+            
+            try {
+                const url = new URL(rtspUrl);
+                const username = url.username || 'root';
+                const password = url.password || '';
+                const port = url.port || '554';
+                const path = url.pathname || '/axis-media/media.amp';
+                
+                return { username, password, port, path };
+            } catch (e) {
+                console.warn('Failed to parse RTSP URL:', rtspUrl, e);
+                return { username: 'root', password: '', port: '554', path: '/axis-media/media.amp' };
+            }
+        }
+
+        function populateCameraForm(camera) {
+            try {
+                console.log('Populating form with camera data:', camera);
+                
+                // Basic info
+                const nameEl = document.getElementById('cameraName');
+                if (nameEl) nameEl.value = camera.name || '';
+                
+                const locationEl = document.getElementById('cameraLocation');
+                if (locationEl) locationEl.value = camera.location || '';
+                
+                const ipEl = document.getElementById('cameraIP');
+                if (ipEl) ipEl.value = camera.ip_address || '';
+                
+                const macEl = document.getElementById('cameraMAC');
+                if (macEl) macEl.value = camera.mac_address || '';
+                
+                const modelEl = document.getElementById('cameraModel');
+                if (modelEl) modelEl.value = camera.model || '';
+                
+                const serialEl = document.getElementById('cameraSerial');
+                if (serialEl) serialEl.value = camera.serial_number || '';
+                
+                const statusEl = document.getElementById('cameraStatus');
+                if (statusEl) statusEl.value = camera.status || 'Active';
+                
+                const orgEl = document.getElementById('cameraOrganization');
+                if (orgEl) orgEl.value = camera.organization_id || '';
+                
+                // Parse RTSP URL to extract components
+                const rtspUrl = camera.url || camera.URL || '';
+                const rtspComponents = parseRTSPURL(rtspUrl);
+                
+                // RTSP URL components
+                const usernameEl = document.getElementById('cameraUsername');
+                if (usernameEl) usernameEl.value = camera.username || rtspComponents.username;
+                
+                const passwordEl = document.getElementById('cameraPassword');
+                if (passwordEl) passwordEl.value = camera.password || rtspComponents.password;
+                
+                const portEl = document.getElementById('cameraPort');
+                if (portEl) portEl.value = camera.port || rtspComponents.port;
+                
+                const pathEl = document.getElementById('cameraPath');
+                if (pathEl) pathEl.value = camera.path || rtspComponents.path;
+                
+                const urlEl = document.getElementById('cameraURL');
+                if (urlEl) urlEl.value = rtspUrl;
+                
+                const descEl = document.getElementById('cameraDescription');
+                if (descEl) descEl.value = camera.description || '';
+                
+                console.log('Form fields populated, updating RTSP URL');
+                // Update RTSP URL after populating fields
+                updateRTSPURL();
+                
+                // Camera settings
+                const frameRateEl = document.getElementById('frameRate');
+                if (frameRateEl) frameRateEl.value = camera.frame_rate || camera.camera_settings?.frame_rate || '30';
+                
+                const resolutionEl = document.getElementById('resolution');
+                if (resolutionEl) resolutionEl.value = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
+                
+                const videoBitrateEl = document.getElementById('videoBitrate');
+                if (videoBitrateEl) videoBitrateEl.value = camera.video_bitrate || camera.camera_settings?.video_bitrate || '4000';
+                
+                const audioBitrateEl = document.getElementById('audioBitrate');
+                if (audioBitrateEl) audioBitrateEl.value = camera.audio_bitrate || camera.camera_settings?.audio_bitrate || '128';
+                
+                const presetEl = document.getElementById('preset');
+                if (presetEl) presetEl.value = camera.preset || camera.camera_settings?.preset || 'medium';
+                
+                const crfEl = document.getElementById('crf');
+                if (crfEl) crfEl.value = camera.crf || camera.camera_settings?.crf || '23';
+                
+                const segmentTimeEl = document.getElementById('segmentTime');
+                if (segmentTimeEl) segmentTimeEl.value = camera.segment_time || camera.camera_settings?.segment_time || '10';
+                
+                const enableAudioEl = document.getElementById('enableAudio');
+                if (enableAudioEl) enableAudioEl.checked = camera.enable_audio !== false && camera.camera_settings?.enable_audio !== false;
+                
+                // Detection features
+                const detectionFeatures = camera.detection_features || {};
+                Object.keys(detectionFeatures).forEach(feature => {
+                    const checkbox = document.getElementById(feature);
+                    if (checkbox) {
+                        checkbox.checked = detectionFeatures[feature] || false;
+                    }
+                });
+                
+                // Alert settings
+                const alertSettings = camera.alert_settings || {};
+                const realTimeAlertsEl = document.getElementById('realTimeAlerts');
+                if (realTimeAlertsEl) realTimeAlertsEl.checked = alertSettings.real_time_alerts || false;
+                
+                const inAppAlertsEl = document.getElementById('inAppAlerts');
+                if (inAppAlertsEl) inAppAlertsEl.checked = alertSettings.in_app_alerts !== false;
+                
+                const smsAlertsEl = document.getElementById('smsAlerts');
+                if (smsAlertsEl) smsAlertsEl.checked = alertSettings.sms_alerts || false;
+                
+                const emailAlertsEl = document.getElementById('emailAlerts');
+                if (emailAlertsEl) emailAlertsEl.checked = alertSettings.email_alerts || false;
+                
+                const alertSensitivityEl = document.getElementById('alertSensitivity');
+                if (alertSensitivityEl) alertSensitivityEl.value = alertSettings.alert_sensitivity || 'Medium';
+                
+                const notificationCooldownEl = document.getElementById('notificationCooldown');
+                if (notificationCooldownEl) notificationCooldownEl.value = alertSettings.notification_cooldown || 5;
+                
+                const phoneNumbersEl = document.getElementById('phoneNumbers');
+                if (phoneNumbersEl) phoneNumbersEl.value = (alertSettings.phone_numbers || []).join(', ');
+                
+                const emailAddressesEl = document.getElementById('emailAddresses');
+                if (emailAddressesEl) emailAddressesEl.value = (alertSettings.email_addresses || []).join(', ');
+                
+            } catch (error) {
+                console.error('Error populating camera form:', error);
+            }
+        }
+
+        function promptEditCamera(cameraId) {
+            console.log('Edit button clicked for camera ID:', cameraId);
+            openCameraModal(cameraId);
+        }
+
+        function addNewCamera() {
+            openCameraModal();
+        }
+
+        async function updateCamera(cameraId, payload) {
+            try {
+                const res = await fetch("/api/cameras/" + cameraId, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(payload),
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || "Failed to update camera");
+                }
+                await loadCameras();
+                alert("Camera updated");
+            } catch (e) {
+                console.error("Update camera error", e);
+                alert("Failed to update camera");
+            }
+        }
+
+        async function deleteCamera(cameraId) {
+            if (!confirm("Delete this camera?")) return;
+            try {
+                const res = await fetch("/api/cameras/" + cameraId, {
+                    method: "DELETE",
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || "Failed to delete camera");
+                }
+                await loadCameras();
+                alert("Camera deleted");
+            } catch (e) {
+                console.error("Delete camera error", e);
+                alert("Failed to delete camera");
+            }
         }
 
         // Toggle recording status
         async function toggleRecording(cameraId, isRecording, checkboxElement) {
             try {
-                const response = await fetch('/api/cameras/' + cameraId + '/toggle', {
-                    method: 'POST',
+                const response = await fetch("/api/cameras/" + cameraId + "/toggle", {
+                    method: "POST",
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ is_recording: isRecording })
+                    body: JSON.stringify({
+                        is_recording: isRecording,
+                    }),
                 });
 
                 if (response.ok) {
                     // Update the label text
-                    const label = document.getElementById('label-' + cameraId);
+                    const label = document.getElementById("label-" + cameraId);
                     if (label) {
                         if (isRecording) {
-                            label.textContent = 'Recording';
-                            label.className = 'toggle-label recording-on';
+                            label.textContent = "Recording";
+                            label.className = "toggle-label recording-on";
                         } else {
-                            label.textContent = 'Not Recording';
-                            label.className = 'toggle-label recording-off';
+                            label.textContent = "Not Recording";
+                            label.className = "toggle-label recording-off";
                         }
                     }
-                    
+
                     // Reload cameras and update UI
                     await loadCameras();
                 } else {
                     // Revert the toggle if the request failed
                     checkboxElement.checked = !isRecording;
-                    alert('Failed to update recording status');
+                    alert("Failed to update recording status");
                 }
             } catch (error) {
-                console.error('Error toggling recording:', error);
+                console.error("Error toggling recording:", error);
                 // Revert the toggle if there was an error
                 checkboxElement.checked = !isRecording;
-                alert('Error updating recording status');
+                alert("Error updating recording status");
             }
         }
 
-        // Auto-refresh live view every 5 seconds
+        // Auto-refresh live view every 30 seconds to keep streams alive
         setInterval(() => {
-            if (cameras.some(c => c.is_recording)) {
-                refreshLiveView();
+            if (cameras.some((c) => c.is_recording)) {
+                // Only refresh if we're on the live view section
+                const liveSection = document.getElementById('live-section');
+                if (liveSection && liveSection.style.display !== 'none') {
+                    // Refresh individual camera streams instead of full reload
+                    cameras.filter(c => c.is_recording).forEach(camera => {
+                        const iframe = document.querySelector(`#feed-${camera.id} iframe`);
+                        if (iframe) {
+                            // Add timestamp to force reload and keep stream alive
+                            const currentSrc = iframe.src.split('?')[0];
+                            iframe.src = currentSrc + '?t=' + Date.now();
+                        }
+                    });
+                }
             }
-        }, 5000);
+        }, 30000); // Refresh every 30 seconds
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('cameraModal');
+            if (event.target === modal) {
+                closeCameraModal();
+            }
+        }
+
+        // Video playback functionality
+        let currentVideos = [];
+        let selectedVideo = null;
+
+        async function loadVideoList() {
+            const date = document.getElementById('videoDate').value;
+            const cameraId = document.getElementById('videoCamera').value;
+            const hour = document.getElementById('videoHour').value;
+            
+            if (!date) {
+                document.getElementById('videoList').innerHTML = '<div class="no-videos">Please select a date to view videos.</div>';
+                return;
+            }
+
+            try {
+                const params = new URLSearchParams({ date });
+                if (cameraId) params.append('camera_id', cameraId);
+                if (hour) params.append('hour', hour);
+                
+                const response = await fetch(`/api/videos?${params}`);
+                if (!response.ok) throw new Error('Failed to load videos');
+                
+                const videos = await response.json();
+                currentVideos = videos;
+                displayVideoList(videos);
+                populateHourDropdown(videos);
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                document.getElementById('videoList').innerHTML = '<div class="no-videos">Error loading videos. Please try again.</div>';
+            }
+        }
+
+        function displayVideoList(videos) {
+            const videoList = document.getElementById('videoList');
+            
+            if (!videos || videos.length === 0) {
+                videoList.innerHTML = '<div class="no-videos">No videos found for the selected date, camera and hour.</div>';
+                return;
+            }
+
+            // Group videos by hour
+            const videosByHour = {};
+            videos.forEach(video => {
+                const hour = video.hour || 'Unknown';
+                if (!videosByHour[hour]) {
+                    videosByHour[hour] = [];
+                }
+                videosByHour[hour].push(video);
+            });
+
+            // Sort hours
+            const sortedHours = Object.keys(videosByHour).sort((a, b) => {
+                if (a === 'Unknown') return 1;
+                if (b === 'Unknown') return -1;
+                return parseInt(a) - parseInt(b);
+            });
+
+            let html = '';
+            sortedHours.forEach(hour => {
+                const hourVideos = videosByHour[hour];
+                const hourLabel = hour === 'Unknown' ? 'Unknown Hour' : `${hour}:00 - ${hour}:59`;
+                
+                html += `
+                    <div class="hour-section">
+                        <div class="hour-header">
+                            <h3><i class="fas fa-clock"></i> ${hourLabel}</h3>
+                            <span class="video-count">${hourVideos.length} video(s)</span>
+                        </div>
+                        <div class="hour-videos">
+                            ${hourVideos.map(video => `
+                                <div class="video-item" onclick="selectVideo('${video.filename}')" data-filename="${video.filename}">
+                                    <div class="video-thumbnail">
+                                        <i class="fas fa-play-circle"></i>
+                                    </div>
+                                    <div class="video-info">
+                                        <div class="video-name">${video.filename}</div>
+                                        <div class="video-meta">Camera: ${video.camera_name}</div>
+                                        <div class="video-meta">Hour: ${video.hour || 'Unknown'}</div>
+                                        <div class="video-meta">Size: ${formatFileSize(video.size)}</div>
+                                        <div class="video-meta">Created: ${new Date(video.created_at).toLocaleString()}</div>
+                                    </div>
+                                    <div class="video-controls">
+                                        <button class="btn-play" onclick="event.stopPropagation(); playVideo('${video.filename}')">
+                                            <i class="fas fa-play"></i> Play
+                                        </button>
+                                        <button class="btn-download" onclick="event.stopPropagation(); downloadVideo('${video.filename}')">
+                                            <i class="fas fa-download"></i> Download
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            videoList.innerHTML = html;
+        }
+
+        function populateHourDropdown(videos) {
+            const hourSelect = document.getElementById('videoHour');
+            const currentHour = hourSelect.value;
+            
+            // Get unique hours from videos
+            const hours = [...new Set(videos.map(video => video.hour).filter(hour => hour))].sort((a, b) => parseInt(a) - parseInt(b));
+            
+            hourSelect.innerHTML = '<option value="">All Hours</option>';
+            hours.forEach(hour => {
+                const option = document.createElement('option');
+                option.value = hour;
+                option.textContent = `${hour}:00 - ${hour}:59`;
+                hourSelect.appendChild(option);
+            });
+            
+            // Restore selection if it still exists
+            if (currentHour && hours.includes(currentHour)) {
+                hourSelect.value = currentHour;
+            }
+        }
+
+        function selectVideo(filename) {
+            // Remove previous selection
+            document.querySelectorAll('.video-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Add selection to clicked item
+            const selectedItem = document.querySelector(`[data-filename="${filename}"]`);
+            if (selectedItem) {
+                selectedItem.classList.add('selected');
+            }
+            
+            selectedVideo = filename;
+        }
+
+        function playVideo(filename) {
+            const video = currentVideos.find(v => v.filename === filename);
+            if (!video) return;
+
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoPlayerSection = document.getElementById('videoPlayerSection');
+            const videoTitle = document.getElementById('videoTitle');
+            const videoDetails = document.getElementById('videoDetails');
+
+            videoPlayer.src = `/api/videos/play/${filename}`;
+            videoTitle.textContent = video.filename;
+            videoDetails.innerHTML = `
+                <strong>Camera:</strong> ${video.camera_name}<br>
+                <strong>Date:</strong> ${new Date(video.created_at).toLocaleString()}<br>
+                <strong>Size:</strong> ${formatFileSize(video.size)}
+            `;
+            
+            videoPlayerSection.style.display = 'block';
+            videoPlayerSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function downloadVideo(filename) {
+            window.open(`/api/videos/download/${filename}`, '_blank');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function populateCameraDropdown() {
+            const select = document.getElementById('videoCamera');
+            select.innerHTML = '<option value="">All Cameras</option>';
+            
+            cameras.forEach(camera => {
+                const option = document.createElement('option');
+                option.value = camera.id;
+                option.textContent = `${camera.name} (${camera.GUID})`;
+                select.appendChild(option);
+            });
+        }
 
         // Load cameras when page loads
-        document.addEventListener('DOMContentLoaded', loadCameras);
+        document.addEventListener("DOMContentLoaded", () => {
+            loadCameras();
+            
+            // Add event listeners for RTSP URL construction
+            const rtspFields = ['cameraUsername', 'cameraPassword', 'cameraIP', 'cameraPort', 'cameraPath'];
+            rtspFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.addEventListener('input', updateRTSPURL);
+                }
+            });
+
+            // Sidebar navigation: show only selected area
+            function showOnlySection(sectionKey) {
+                const cameraSec = document.getElementById("camera-section");
+                const liveSec = document.getElementById("live-section");
+                const analyticsSec = document.getElementById("analytics-section");
+                const settingsSec = document.getElementById("settings-section");
+                const discoverySec = document.getElementById("discovery-section");
+                const groupsSec = document.getElementById("groups-section");
+                const videoPlaybackSec = document.getElementById("video-playback-section");
+                const statsEl = cameraSec ? cameraSec.querySelector(".stats") : null;
+                const gridEl = document.getElementById("cameraGrid");
+
+                // Hide ALL sections first
+                if (cameraSec) cameraSec.style.display = "none";
+                if (liveSec) liveSec.style.display = "none";
+                if (analyticsSec) analyticsSec.style.display = "none";
+                if (settingsSec) settingsSec.style.display = "none";
+                if (discoverySec) discoverySec.style.display = "none";
+                if (groupsSec) groupsSec.style.display = "none";
+                if (videoPlaybackSec) videoPlaybackSec.style.display = "none";
+
+                // Show only the selected section
+                if (sectionKey === "camera") {
+                    if (cameraSec) cameraSec.style.display = "block";
+                    if (statsEl) statsEl.style.display = "";
+                    if (gridEl) gridEl.style.display = "";
+                } else if (sectionKey === "live") {
+                    if (liveSec) liveSec.style.display = "block";
+                } else if (sectionKey === "video-playback") {
+                    if (videoPlaybackSec) videoPlaybackSec.style.display = "block";
+                } else if (sectionKey === "groups") {
+                    if (cameraSec) cameraSec.style.display = "block";
+                    if (groupsSec) groupsSec.style.display = "block";
+                    if (statsEl) statsEl.style.display = "none";
+                    if (gridEl) gridEl.style.display = "none";
+                } else if (sectionKey === "discovery") {
+                    if (cameraSec) cameraSec.style.display = "block";
+                    if (discoverySec) discoverySec.style.display = "block";
+                    if (statsEl) statsEl.style.display = "none";
+                    if (gridEl) gridEl.style.display = "none";
+                } else if (sectionKey === "analytics") {
+                    if (analyticsSec) analyticsSec.style.display = "block";
+                } else if (sectionKey === "settings") {
+                    if (settingsSec) settingsSec.style.display = "block";
+                    // Load MediaMTX config when settings page is shown
+                    loadMediaMTXConfig();
+                }
+            }
+
+            document.querySelectorAll(".sidebar .nav-link").forEach((a) => {
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    const href = a.getAttribute("href") || "";
+                    const key = href.replace("#", "").replace("-section", "");
+                    showOnlySection(key);
+                    const target = document.querySelector(href);
+                    if (target)
+                        target.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        });
+                });
+            });
+
+            // Default view: Camera List only (list + discovery)
+            showOnlySection("camera");
+        });
+    </script>
+
+    <!-- GSAP transition animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Animate sidebar nav links
+            gsap.to(".nav-link", {
+                x: 0,
+                opacity: 1,
+                duration: 0.5,
+                stagger: 0.15,
+                ease: "power2.out",
+            });
+
+            // Animate section titles
+            gsap.to(".section-title", {
+                y: 0,
+                opacity: 1,
+                duration: 0.6,
+                stagger: 0.2,
+                ease: "power2.out",
+            });
+
+            // Animate whole sections (Camera list, Analytics, Settings, Live View)
+            gsap.to([".camera-list-section", ".live-view-section"], {
+                y: 0,
+                opacity: 1,
+                duration: 0.8,
+                stagger: 0.25,
+                ease: "power2.out",
+            });
+        });
+
+        // highlight menus
+        const navLinks = document.querySelectorAll(".sidebar .nav-link");
+
+        navLinks.forEach((link) => {
+            link.addEventListener("click", () => {
+                navLinks.forEach((l) => l.classList.remove("active"));
+                link.classList.add("active");
+            });
+        });
+
+        // Authentication functions
+        let currentUser = null;
+        let isAuthenticated = false;
+
+        // Check authentication status on page load
+        async function checkAuthStatus() {
+            try {
+                // First try to get auth status from API
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    isAuthenticated = true;
+                    updateNavbar(true);
+                } else {
+                    // If not authenticated, check config file for organization details
+                    await checkConfigForOrganization();
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                // If API fails, check config file for organization details
+                await checkConfigForOrganization();
+            }
+        }
+
+        // Check config file for organization details
+        async function checkConfigForOrganization() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                
+                if (config.organizations && config.organizations.length > 0) {
+                    // Show organization details from config
+                    const org = config.organizations[0]; // Use first organization
+                    currentUser = {
+                        name: org.name || 'Organization User',
+                        username: org.upload_username || 'admin',
+                        organization_id: org.id,
+                        role: 'admin',
+                        email: org.contact_email || ''
+                    };
+                    isAuthenticated = true;
+                    updateNavbar(true);
+                } else {
+                    updateNavbar(false);
+                }
+            } catch (error) {
+                console.error('Config check failed:', error);
+                updateNavbar(false);
+            }
+        }
+
+        // Update navbar based on authentication status
+        function updateNavbar(authenticated) {
+            const userInfo = document.getElementById('user-info');
+            const authLink = document.getElementById('auth-link');
+            const authText = document.getElementById('auth-text');
+            const authIcon = authLink.querySelector('i');
+
+            if (authenticated && currentUser) {
+                // Check if this is config-based auth (no email field) or API-based auth
+                if (currentUser.email) {
+                    // API-based auth - show full details
+                    userInfo.textContent = `${currentUser.name} - ${currentUser.username} (Org: ${currentUser.organization_id}) (${currentUser.role})`;
+                } else {
+                    // Config-based auth - show organization details
+                    userInfo.textContent = `${currentUser.name} (Organization ID: ${currentUser.organization_id}) - ${currentUser.role}`;
+                }
+                authText.textContent = 'Logout';
+                authIcon.className = 'fas fa-sign-out-alt';
+            } else {
+                userInfo.textContent = 'Please sign in to continue';
+                authText.textContent = 'Sign In';
+                authIcon.className = 'fas fa-sign-in-alt';
+            }
+        }
+
+        // Handle authentication action
+        async function handleAuth() {
+            if (isAuthenticated) {
+                // Check if we're using config-based auth or API auth
+                try {
+                    const response = await fetch('/api/auth/status');
+                    const data = await response.json();
+                    
+                    if (data.authenticated) {
+                        // API-based auth - perform logout
+                        const logoutResponse = await fetch('/api/auth/logout', {
+                            method: 'POST'
+                        });
+                        
+                        if (logoutResponse.ok) {
+                            currentUser = null;
+                            isAuthenticated = false;
+                            updateNavbar(false);
+                            // Clear session storage
+                            sessionStorage.removeItem('user');
+                            sessionStorage.removeItem('isAuthenticated');
+                        }
+                    } else {
+                        // Config-based auth - just reset to sign in
+                        currentUser = null;
+                        isAuthenticated = false;
+                        updateNavbar(false);
+                    }
+                } catch (error) {
+                    console.error('Auth check failed:', error);
+                    // Config-based auth - just reset to sign in
+                    currentUser = null;
+                    isAuthenticated = false;
+                    updateNavbar(false);
+                }
+            } else {
+                // Redirect to login
+                window.location.href = '/login';
+            }
+        }
+
+        // Initialize authentication check
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+            // Don't load MediaMTX config on page load - load it when settings page is shown
+        });
+
+        // MediaMTX Configuration Management
+        async function loadMediaMTXConfig() {
+            try {
+                // Load the YAML file directly
+                const response = await fetch('/mediamtx/mediamtx/mediamtxconfig');
+                if (!response.ok) throw new Error('Failed to load MediaMTX config file');
+                
+                const yamlContent = await response.text();
+                console.log('Loaded MediaMTX config:', yamlContent);
+                // Parse YAML content to extract port information
+                const config = parseYamlConfig(yamlContent);
+                
+                // Populate form fields only if they exist
+                const webrtcPortEl = document.getElementById('webrtcPort');
+                const hlsPortEl = document.getElementById('hlsPort');
+                const rtspPortEl = document.getElementById('rtspPort');
+                const rtmpPortEl = document.getElementById('rtmpPort');
+                const apiPortEl = document.getElementById('apiPort');
+                const metricsPortEl = document.getElementById('metricsPort');
+                
+                if (webrtcPortEl) webrtcPortEl.value = config.webrtcPort || 8889;
+                if (hlsPortEl) hlsPortEl.value = config.hlsPort || 8888;
+                if (rtspPortEl) rtspPortEl.value = config.rtspPort || 8554;
+                if (rtmpPortEl) rtmpPortEl.value = config.rtmpPort || 1935;
+                if (apiPortEl) apiPortEl.value = config.apiPort || 9997;
+                if (metricsPortEl) metricsPortEl.value = config.metricsPort || 9998;
+                
+                // Update URL displays
+                updateUrlDisplays();
+                
+                // Set status as loaded
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Config Loaded';
+                    statusEl.style.color = '#28a745';
+                }
+                
+            } catch (error) {
+                console.error('Error loading MediaMTX config:', error);
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Error loading config';
+                    statusEl.style.color = '#dc3545';
+                }
+            }
+        }
+
+        // Simple YAML parser for port extraction
+        function parseYamlConfig(yamlContent) {
+            const config = {};
+            const lines = yamlContent.split('\n');
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('webrtcAddress:')) {
+                    config.webrtcPort = trimmed.split(':')[1]?.replace(':', '') || '8889';
+                } else if (trimmed.startsWith('hlsAddress:')) {
+                    config.hlsPort = trimmed.split(':')[1]?.replace(':', '') || '8888';
+                } else if (trimmed.startsWith('rtspAddress:')) {
+                    config.rtspPort = trimmed.split(':')[1]?.replace(':', '') || '8554';
+                } else if (trimmed.startsWith('rtmpAddress:')) {
+                    config.rtmpPort = trimmed.split(':')[1]?.replace(':', '') || '1935';
+                } else if (trimmed.startsWith('apiAddress:')) {
+                    config.apiPort = trimmed.split(':')[1]?.replace(':', '') || '9997';
+                } else if (trimmed.startsWith('metricsAddress:')) {
+                    config.metricsPort = trimmed.split(':')[1]?.replace(':', '') || '9998';
+                }
+            }
+            
+            return config;
+        }
+
+        async function saveMediaMTXConfig() {
+            try {
+                // Check if we're on the settings page
+                const settingsSection = document.getElementById('settings-section');
+                if (!settingsSection || settingsSection.style.display === 'none') {
+                    alert('Please navigate to the Settings page first.');
+                    return;
+                }
+                
+                // Get form elements with null checks
+                const webrtcPortEl = document.getElementById('webrtcPort');
+                const hlsPortEl = document.getElementById('hlsPort');
+                const rtspPortEl = document.getElementById('rtspPort');
+                const rtmpPortEl = document.getElementById('rtmpPort');
+                const apiPortEl = document.getElementById('apiPort');
+                const metricsPortEl = document.getElementById('metricsPort');
+                
+                if (!webrtcPortEl || !hlsPortEl || !rtspPortEl || !rtmpPortEl || !apiPortEl || !metricsPortEl) {
+                    throw new Error('Settings form not found. Please refresh the page and try again.');
+                }
+                
+                const config = {
+                    webrtcPort: parseInt(webrtcPortEl.value) || 8889,
+                    hlsPort: parseInt(hlsPortEl.value) || 8888,
+                    rtspPort: parseInt(rtspPortEl.value) || 8554,
+                    rtmpPort: parseInt(rtmpPortEl.value) || 1935,
+                    apiPort: parseInt(apiPortEl.value) || 9997,
+                    metricsPort: parseInt(metricsPortEl.value) || 9998
+                };
+                
+                // Validate port numbers
+                for (const [key, value] of Object.entries(config)) {
+                    if (isNaN(value) || value < 1000 || value > 65535) {
+                        throw new Error(`Invalid port number for ${key}: ${value}. Port must be between 1000 and 65535.`);
+                    }
+                }
+                
+                // Load current YAML file
+                const response = await fetch('/mediamtx/mediamtx/mediamtxconfig');
+                if (!response.ok) throw new Error('Failed to load MediaMTX config file');
+                
+                const yamlContent = await response.text();
+                
+                // Update YAML content with new port values
+                const updatedYaml = updateYamlConfig(yamlContent, config);
+                
+                // Save updated YAML file
+                const saveResponse = await fetch('/api/mediamtx/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain'
+                    },
+                    body: updatedYaml
+                });
+                
+                if (!saveResponse.ok) {
+                    throw new Error('Failed to save MediaMTX config file');
+                }
+                
+                // Update URL displays
+                updateUrlDisplays();
+                
+                // Update status
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Config Saved';
+                    statusEl.style.color = '#28a745';
+                }
+                
+                alert('MediaMTX configuration saved successfully!');
+                
+            } catch (error) {
+                console.error('Error saving MediaMTX config:', error);
+                alert('Failed to save MediaMTX configuration: ' + error.message);
+            }
+        }
+
+        // Update YAML content with new port values
+        function updateYamlConfig(yamlContent, config) {
+            const lines = yamlContent.split('\n');
+            const updatedLines = [];
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('webrtcAddress:')) {
+                    updatedLines.push(`webrtcAddress: :${config.webrtcPort}`);
+                } else if (trimmed.startsWith('hlsAddress:')) {
+                    updatedLines.push(`hlsAddress: :${config.hlsPort}`);
+                } else if (trimmed.startsWith('rtspAddress:')) {
+                    updatedLines.push(`rtspAddress: :${config.rtspPort}`);
+                } else if (trimmed.startsWith('rtmpAddress:')) {
+                    updatedLines.push(`rtmpAddress: :${config.rtmpPort}`);
+                } else if (trimmed.startsWith('apiAddress:')) {
+                    updatedLines.push(`apiAddress: :${config.apiPort}`);
+                } else if (trimmed.startsWith('metricsAddress:')) {
+                    updatedLines.push(`metricsAddress: :${config.metricsPort}`);
+                } else {
+                    updatedLines.push(line);
+                }
+            }
+            
+            return updatedLines.join('\n');
+        }
+
+        async function restartMediaMTX() {
+            if (!confirm('Are you sure you want to restart MediaMTX? This will temporarily interrupt live streams.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/mediamtx/restart', {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    throw new Error(error.error || 'Failed to restart MediaMTX');
+                }
+                
+                alert('MediaMTX restart initiated. Please wait a moment for the service to come back online.');
+                
+                // Update status
+                const statusEl = document.getElementById('mediamtxStatus');
+                if (statusEl) {
+                    statusEl.textContent = 'Restarting...';
+                    statusEl.style.color = '#ffc107';
+                }
+                
+            } catch (error) {
+                console.error('Error restarting MediaMTX:', error);
+                alert('Failed to restart MediaMTX: ' + error.message);
+            }
+        }
+
+        function updateUrlDisplays() {
+            const webrtcPortEl = document.getElementById('webrtcPort');
+            const hlsPortEl = document.getElementById('hlsPort');
+            const rtspPortEl = document.getElementById('rtspPort');
+            
+            const webrtcUrlEl = document.getElementById('webrtcUrl');
+            const hlsUrlEl = document.getElementById('hlsUrl');
+            const rtspUrlEl = document.getElementById('rtspUrl');
+            
+            if (webrtcPortEl && webrtcUrlEl) {
+                webrtcUrlEl.textContent = `http://localhost:${webrtcPortEl.value || 8889}`;
+            }
+            if (hlsPortEl && hlsUrlEl) {
+                hlsUrlEl.textContent = `http://localhost:${hlsPortEl.value || 8888}`;
+            }
+            if (rtspPortEl && rtspUrlEl) {
+                rtspUrlEl.textContent = `rtsp://localhost:${rtspPortEl.value || 8554}`;
+            }
+        }
+
+        // Add event listeners for port changes to update URLs in real-time
+        document.addEventListener('DOMContentLoaded', function() {
+            const portInputs = ['webrtcPort', 'hlsPort', 'rtspPort'];
+            portInputs.forEach(inputId => {
+                const input = document.getElementById(inputId);
+                if (input) {
+                    input.addEventListener('input', updateUrlDisplays);
+                }
+            });
+        });
     </script>
 </body>
-</html> 
+
+</html>

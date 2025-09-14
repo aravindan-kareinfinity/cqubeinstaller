@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - CQUBEPRO AI-Powered Video Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer"
+    />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #0f172a;
+        }
+
+        .login-header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .login-header p {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .login-form {
+            padding: 40px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f9fafb;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .password-container {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .password-toggle:hover {
+            color: #374151;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .remember-forgot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .remember-me {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .remember-me input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .remember-me label {
+            margin: 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .forgot-password {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-error {
+            background-color: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .alert-success {
+            background-color: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #bbf7d0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .demo-credentials {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .demo-credentials h4 {
+            color: #374151;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .demo-credentials p {
+            color: #6b7280;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+
+            .login-header {
+                padding: 30px 20px;
+            }
+
+            .login-form {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>CQUBEPRO</h1>
+            <p>AI-Powered Video Management</p>
+        </div>
+
+        <div class="login-form">
+            <div id="alert-container"></div>
+
+            <form id="loginForm">
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                        </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="password-container">
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="remember-forgot">
+                    <div class="remember-me">
+                        <input type="checkbox" id="rememberMe" name="rememberMe">
+                        <label for="rememberMe">Remember me</label>
+                    </div>
+                    <a href="#" class="forgot-password" onclick="forgotPassword()">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="login-button" id="loginButton">
+                    <i class="fas fa-sign-in-alt"></i> Sign In
+                </button>
+
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>Signing in...</p>
+                </div>
+            </form>
+
+            <div class="demo-credentials">
+                <h4>Demo Credentials:</h4>
+                <p><strong>Username:</strong> admin</p>
+                <p><strong>Password:</strong> admin123</p>
+                <p><em>Or use any username/password for testing</em></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Toggle password visibility
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const toggleIcon = document.getElementById('passwordToggleIcon');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleIcon.classList.remove('fa-eye');
+                toggleIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                toggleIcon.classList.remove('fa-eye-slash');
+                toggleIcon.classList.add('fa-eye');
+            }
+        }
+
+        // Handle forgot password
+        function forgotPassword() {
+            showAlert('Please contact your system administrator to reset your password.', 'error');
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            container.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Handle form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            // Show loading state
+            document.getElementById('loginButton').disabled = true;
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/auth/installerlogin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Update config.json with the response data
+                    await updateConfigWithLoginData(result);
+                    
+                    showAlert('Login successful! Redirecting...', 'success');
+                    
+                    // Store user info in sessionStorage
+                    sessionStorage.setItem('user', JSON.stringify(result.users[0]));
+                    sessionStorage.setItem('isAuthenticated', 'true');
+                    
+                    // Redirect to main page after short delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    showAlert(result.message || result.error || 'Login failed. Please check your credentials.', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert('Login failed. Please try again.', 'error');
+            } finally {
+                // Hide loading state
+                document.getElementById('loginButton').disabled = false;
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+
+        // Function to update config.json with login response data
+        async function updateConfigWithLoginData(loginData) {
+            try {
+                // First, get the current config
+                const configResponse = await fetch('/api/config');
+                let config = await configResponse.json();
+                
+                // Update organization data
+                if (loginData.organization) {
+                    const orgIndex = config.organizations.findIndex(org => org.id === loginData.organization.id);
+                    if (orgIndex !== -1) {
+                        // Update existing organization
+                        config.organizations[orgIndex] = loginData.organization;
+                    } else {
+                        // Add new organization
+                        config.organizations.push(loginData.organization);
+                    }
+                }
+                
+                // Update users data
+                if (loginData.users && loginData.users.length > 0) {
+                    loginData.users.forEach(user => {
+                        const userIndex = config.users.findIndex(u => u.id === user.id);
+                        if (userIndex !== -1) {
+                            // Update existing user
+                            config.users[userIndex] = user;
+                        } else {
+                            // Add new user
+                            config.users.push(user);
+                        }
+                    });
+                }
+                
+                // Save updated config
+                await fetch('/api/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                console.log('Config updated successfully with login data');
+            } catch (error) {
+                console.error('Error updating config with login data:', error);
+            }
+        }
+
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            // Only redirect if we have both authentication status and user data
+            const isAuthenticated = sessionStorage.getItem('isAuthenticated');
+            const user = sessionStorage.getItem('user');
+            
+            if (isAuthenticated === 'true' && user) {
+                try {
+                    const userData = JSON.parse(user);
+                    if (userData && userData.id) {
+                        window.location.href = '/';
+                    }
+                } catch (e) {
+                    // If user data is invalid, clear it and stay on login page
+                    sessionStorage.removeItem('isAuthenticated');
+                    sessionStorage.removeItem('user');
+                }
+            }
+        });
+    </script>
+
+    <!-- Signup Link -->
+    <div style="text-align: center; margin-top: 20px; padding: 20px;">
+        <p style="color: #6b7280; font-size: 14px;">
+            Don't have an account? 
+            <a href="signup.html" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                Sign up here
+            </a>
+        </p>
+    </div>
+</body>
+
+</html>

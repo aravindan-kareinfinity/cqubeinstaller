@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Organizations - Camera Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer"
+    />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0px 20px 20px 20px;
+            box-sizing: border-box;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .sidebar .nav-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e6ebf2;
+        }
+        
+        .sidebar .nav-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar .nav-list li {
+            margin: 10px 0;
+        }
+        
+        .sidebar .nav-link {
+            display: block;
+            padding: 10px 15px;
+            border-radius: 6px;
+            color: #495057;
+            text-decoration: none;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: #e9ecef;
+            color: #007bff;
+        }
+        
+        .sidebar .nav-link.active {
+            /* border-left: 4px solid #007bff; */
+            background: #0f172a;
+            color: #fff;
+            font-weight: 600;
+            transform: scale(1.03);
+        }
+        
+        .content-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .main-container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .organizations-section {
+            flex: 1;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #e6ebf2;
+            padding-bottom: 10px;
+        }
+        
+        .organizations-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .export-import-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        .organizations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .organization-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+        }
+        
+        .organization-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .organization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .organization-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .organization-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .organization-info {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .organization-info p {
+            margin: 5px 0;
+        }
+        
+        .organization-info strong {
+            color: #333;
+        }
+        
+        .form-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .storage-config {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .storage-config h4 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .nav-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin: 0;
+        }
+
+        .stat-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #374151;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-link:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+
+        @media (max-width: 900px) {
+            .main-wrapper {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                position: static;
+                margin-bottom: 20px;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .organizations-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-wrapper">
+        <aside class="sidebar">
+            <div class="nav-title">
+                <img src="logo.jpg" alt="cqube" width="200" height="65">
+            </div>
+            <div class="nav-title">Navigation</div>
+            <ul class="nav-list">
+                <li><a class="nav-link" href="index.html">📋 Camera List</a></li>
+                <li><a class="nav-link" href="index.html#live-section">🎥 Live View</a></li>
+                <li><a class="nav-link" href="index.html#video-playback-section">📹 Video Playback</a></li>
+                <li><a class="nav-link" href="index.html#groups-section">👥 Groups</a></li>
+                <li><a class="nav-link" href="index.html#discovery-section">🔍 Discovery</a></li>
+                <li><a class="nav-link" href="index.html#analytics-section">📊 Analytics</a></li>
+                <li><a class="nav-link active" href="organizations.html">🏢 Organizations</a></li>
+                <li><a class="nav-link" href="profile.html">👤 Profile</a></li>
+                <li><a class="nav-link" href="index.html#settings-section">⚙️ Settings</a></li>
+            </ul>
+        </aside>
+
+        <div class="content-container">
+            <div class="navbar">
+                <div>
+                    <p class="nav-title">Dashboard</p>
+                    <h6 id="user-info">Loading...</h6>
+                </div>
+
+                <div>
+                    <div class="stat-link" id="auth-link" onclick="handleAuth()">
+                        <i class="fas fa-sign-in-alt"></i> <span id="auth-text">Sign In</span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="main-container">
+                <div class="organizations-section">
+                    <div class="organizations-header">
+                        <h2 class="section-title">Organizations</h2>
+                        <div class="header-actions">
+                            <div class="export-import-buttons">
+                                <button class="btn btn-secondary" onclick="exportData('json')">
+                                    <i class="fas fa-download"></i> Export JSON
+                                </button>
+                                <button class="btn btn-secondary" onclick="exportData('csv')">
+                                    <i class="fas fa-file-csv"></i> Export CSV
+                                </button>
+                                <button class="btn btn-secondary" onclick="showImportModal()">
+                                    <i class="fas fa-upload"></i> Import
+                                </button>
+                            </div>
+                            <button class="btn" onclick="showCreateForm()">
+                                <i class="fas fa-plus"></i> Add Organization
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Alert Messages -->
+                    <div id="alert-container"></div>
+
+                    <!-- Create/Edit Form -->
+                    <div id="organization-form" class="form-container hidden">
+                        <h3 id="form-title">Create New Organization</h3>
+                        <form id="org-form">
+                            <input type="hidden" id="org-id" value="">
+                            
+                            <!-- Basic Information -->
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="org-name">Organization Name *</label>
+                                    <input type="text" id="org-name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="org-email">Contact Email *</label>
+                                    <input type="email" id="org-email" required>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="org-address">Address *</label>
+                                <input type="text" id="org-address" required>
+                            </div>
+
+                            <!-- Storage Configuration -->
+                            <div class="storage-config">
+                                <h4>Storage Configuration</h4>
+                                
+                                <div class="form-group">
+                                    <label for="storage-provider">Storage Provider</label>
+                                    <select id="storage-provider" onchange="updateStoragePaths()">
+                                        <option value="">Select storage provider</option>
+                                        <option value="aws-s3">AWS S3</option>
+                                        <option value="gcs">Google Cloud Storage</option>
+                                        <option value="azure-blob">Azure Blob Storage</option>
+                                        <option value="firebase">Firebase Storage</option>
+                                        <option value="cloudflare-r2">Cloudflare R2</option>
+                                        <option value="digitalocean-spaces">DigitalOcean Spaces</option>
+                                        <option value="local">Local Storage</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="server-video-path">Server Video Path</label>
+                                    <input type="text" id="server-video-path" placeholder="Server path for video storage">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="client-video-access-path">Client Video Access Path</label>
+                                    <input type="text" id="client-video-access-path" placeholder="Client URL for video access">
+                                </div>
+                            </div>
+
+                            <!-- General Configuration -->
+                            <div class="storage-config">
+                                <h4>General Configuration</h4>
+                                
+                                <div class="form-group">
+                                    <label for="retention">Retention (days) *</label>
+                                    <input type="number" id="retention" value="10" min="1" required>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="upload-username">Upload Username *</label>
+                                        <input type="text" id="upload-username" value="admin" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="upload-password">Upload Password *</label>
+                                        <input type="password" id="upload-password" value="admin" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i> Save Organization
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="hideForm()">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Organizations List -->
+                    <div id="organizations-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading organizations...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let organizations = [];
+        let isEditing = false;
+
+        // Storage provider examples
+        const storageExamples = {
+            'aws-s3': {
+                serverPath: 's3://your-bucket/videos/',
+                clientPath: 'https://your-bucket.s3.amazonaws.com/videos/'
+            },
+            'gcs': {
+                serverPath: 'gs://your-bucket/videos/',
+                clientPath: 'https://storage.googleapis.com/your-bucket/videos/'
+            },
+            'azure-blob': {
+                serverPath: 'azure://your-container/videos/',
+                clientPath: 'https://youraccount.blob.core.windows.net/your-container/videos/'
+            },
+            'firebase': {
+                serverPath: 'firebase://your-project/videos/',
+                clientPath: 'https://firebasestorage.googleapis.com/v0/b/your-project/o/videos/'
+            },
+            'cloudflare-r2': {
+                serverPath: 'r2://your-bucket/videos/',
+                clientPath: 'https://your-domain.r2.cloudflarestorage.com/videos/'
+            },
+            'digitalocean-spaces': {
+                serverPath: 'spaces://your-space/videos/',
+                clientPath: 'https://your-space.nyc3.digitaloceanspaces.com/videos/'
+            },
+            'local': {
+                serverPath: '/var/videos/',
+                clientPath: 'https://your-domain.com/videos/'
+            }
+        };
+
+        // Load organizations on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOrganizations();
+            checkAuthStatus();
+        });
+
+        // Authentication functions
+        let currentUser = null;
+        let isAuthenticated = false;
+
+        // Check authentication status on page load
+        async function checkAuthStatus() {
+            try {
+                const response = await fetch('/api/auth/status');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    isAuthenticated = true;
+                    updateNavbar(true);
+                } else {
+                    updateNavbar(false);
+                }
+            } catch (error) {
+                console.error('Auth check failed:', error);
+                updateNavbar(false);
+            }
+        }
+
+        // Update navbar based on authentication status
+        function updateNavbar(authenticated) {
+            const userInfo = document.getElementById('user-info');
+            const authLink = document.getElementById('auth-link');
+            const authText = document.getElementById('auth-text');
+            const authIcon = authLink.querySelector('i');
+
+            if (authenticated && currentUser) {
+                userInfo.textContent = `${currentUser.name} - ${currentUser.username} (Org: ${currentUser.organization_id}) (${currentUser.role})`;
+                authText.textContent = 'Logout';
+                authIcon.className = 'fas fa-sign-out-alt';
+            } else {
+                userInfo.textContent = 'Please sign in to continue';
+                authText.textContent = 'Sign In';
+                authIcon.className = 'fas fa-sign-in-alt';
+            }
+        }
+
+        // Handle authentication action
+        async function handleAuth() {
+            if (isAuthenticated) {
+                // Logout
+                try {
+                    const response = await fetch('/api/auth/logout', {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        currentUser = null;
+                        isAuthenticated = false;
+                        updateNavbar(false);
+                        // Clear session storage
+                        sessionStorage.removeItem('user');
+                        sessionStorage.removeItem('isAuthenticated');
+                    }
+                } catch (error) {
+                    console.error('Logout failed:', error);
+                }
+            } else {
+                // Redirect to login
+                window.location.href = '/login';
+            }
+        }
+
+        // Load organizations from API
+        async function loadOrganizations() {
+            try {
+                const response = await fetch('/api/organizations');
+                if (response.ok) {
+                    organizations = await response.json();
+                    renderOrganizations();
+                } else {
+                    showAlert('Failed to load organizations', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading organizations:', error);
+                showAlert('Failed to load organizations', 'error');
+            }
+        }
+
+        // Render organizations list
+        function renderOrganizations() {
+            const container = document.getElementById('organizations-list');
+            
+            if (organizations.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-building"></i>
+                        <h3>No Organizations Yet</h3>
+                        <p>Get started by creating your first organization.</p>
+                        <button class="btn" onclick="showCreateForm()">
+                            <i class="fas fa-plus"></i> Create Organization
+                        </button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="organizations-grid">
+                    ${organizations.map(org => `
+                        <div class="organization-card">
+                            <div class="organization-header">
+                                <div class="organization-name">${org.name}</div>
+                                <div class="organization-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="editOrganization('${org.id}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteOrganization('${org.id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="organization-info">
+                                <p><strong>Address:</strong> ${org.address}</p>
+                                <p><strong>Email:</strong> ${org.contact_email}</p>
+                                ${org.storage_provider ? `<p><strong>Storage:</strong> ${getStorageProviderName(org.storage_provider)}</p>` : ''}
+                                ${org.server_video_path ? `<p><strong>Server Path:</strong> ${org.server_video_path}</p>` : ''}
+                                ${org.client_video_access_path ? `<p><strong>Client Path:</strong> ${org.client_video_access_path}</p>` : ''}
+                                <p><strong>Retention:</strong> ${org.retention || 10} days</p>
+                                <p><strong>Upload User:</strong> ${org.upload_username || 'admin'}</p>
+                                <p><strong>Created:</strong> ${new Date(org.created_at).toLocaleDateString()}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Get storage provider display name
+        function getStorageProviderName(value) {
+            const providers = {
+                'aws-s3': 'AWS S3',
+                'gcs': 'Google Cloud Storage',
+                'azure-blob': 'Azure Blob Storage',
+                'firebase': 'Firebase Storage',
+                'cloudflare-r2': 'Cloudflare R2',
+                'digitalocean-spaces': 'DigitalOcean Spaces',
+                'local': 'Local Storage'
+            };
+            return providers[value] || value;
+        }
+
+        // Show create form
+        function showCreateForm() {
+            isEditing = false;
+            document.getElementById('form-title').textContent = 'Create New Organization';
+            document.getElementById('org-form').reset();
+            document.getElementById('org-id').value = '';
+            document.getElementById('organization-form').classList.remove('hidden');
+        }
+
+        // Edit organization
+        function editOrganization(id) {
+            const org = organizations.find(o => o.id === id);
+            if (!org) return;
+
+            isEditing = true;
+            document.getElementById('form-title').textContent = 'Edit Organization';
+            document.getElementById('org-id').value = org.id;
+            document.getElementById('org-name').value = org.name;
+            document.getElementById('org-email').value = org.contact_email;
+            document.getElementById('org-address').value = org.address;
+            document.getElementById('storage-provider').value = org.storage_provider || '';
+            document.getElementById('server-video-path').value = org.server_video_path || '';
+            document.getElementById('client-video-access-path').value = org.client_video_access_path || '';
+            document.getElementById('retention').value = org.retention || 10;
+            document.getElementById('upload-username').value = org.upload_username || 'admin';
+            document.getElementById('upload-password').value = org.upload_password || 'admin';
+            
+            document.getElementById('organization-form').classList.remove('hidden');
+        }
+
+        // Hide form
+        function hideForm() {
+            document.getElementById('organization-form').classList.add('hidden');
+            isEditing = false;
+        }
+
+        // Update storage paths based on provider
+        function updateStoragePaths() {
+            const provider = document.getElementById('storage-provider').value;
+            const examples = storageExamples[provider];
+            
+            if (examples) {
+                document.getElementById('server-video-path').value = examples.serverPath;
+                document.getElementById('client-video-access-path').value = examples.clientPath;
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('org-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('org-name').value,
+                contact_email: document.getElementById('org-email').value,
+                address: document.getElementById('org-address').value,
+                storage_provider: document.getElementById('storage-provider').value,
+                server_video_path: document.getElementById('server-video-path').value,
+                client_video_access_path: document.getElementById('client-video-access-path').value,
+                retention: parseInt(document.getElementById('retention').value),
+                upload_username: document.getElementById('upload-username').value,
+                upload_password: document.getElementById('upload-password').value
+            };
+
+            try {
+                let response;
+                if (isEditing) {
+                    const id = document.getElementById('org-id').value;
+                    response = await fetch(`/api/organizations/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                } else {
+                    response = await fetch('/api/organizations', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(formData)
+                    });
+                }
+
+                if (response.ok) {
+                    const result = await response.json();
+                    showAlert(isEditing ? 'Organization updated successfully' : 'Organization created successfully', 'success');
+                    hideForm();
+                    loadOrganizations();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.message || 'Failed to save organization', 'error');
+                }
+            } catch (error) {
+                console.error('Error saving organization:', error);
+                showAlert('Failed to save organization', 'error');
+            }
+        });
+
+        // Delete organization
+        async function deleteOrganization(id) {
+            if (!confirm('Are you sure you want to delete this organization?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/organizations/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showAlert('Organization deleted successfully', 'success');
+                    loadOrganizations();
+                } else {
+                    const error = await response.json();
+                    showAlert(error.message || 'Failed to delete organization', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting organization:', error);
+                showAlert('Failed to delete organization', 'error');
+            }
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const container = document.getElementById('alert-container');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            container.innerHTML = `
+                <div class="alert ${alertClass}">
+                    ${message}
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 5000);
+        }
+
+        // Export data function
+        async function exportData(format) {
+            try {
+                const response = await fetch(`/api/organizations/export?format=${format}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `organizations.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showAlert(`Organizations exported successfully as ${format.toUpperCase()}`, 'success');
+                } else {
+                    const error = await response.json();
+                    showAlert(error.error || 'Export failed', 'error');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                showAlert('Export failed', 'error');
+            }
+        }
+
+        // Import modal functions
+        function showImportModal() {
+            document.getElementById('importModal').style.display = 'block';
+        }
+
+        function hideImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            document.getElementById('importForm').reset();
+        }
+
+        // Handle import form submission
+        document.getElementById('importForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('importFile');
+            
+            if (!fileInput.files[0]) {
+                showAlert('Please select a file to import', 'error');
+                return;
+            }
+            
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const response = await fetch('/api/organizations/import', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(result.message, 'success');
+                    hideImportModal();
+                    loadOrganizations(); // Reload the organizations list
+                } else {
+                    showAlert(result.error || 'Import failed', 'error');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showAlert('Import failed', 'error');
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('importModal');
+            if (event.target === modal) {
+                hideImportModal();
+            }
+        }
+    </script>
+
+    <!-- Import Modal -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Organizations</h3>
+                <span class="close" onclick="hideImportModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="importForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="importFile">Select File</label>
+                        <input type="file" id="importFile" name="file" accept=".json,.csv" required>
+                        <small>Supported formats: JSON, CSV</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-upload"></i> Import
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="hideImportModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Styles -->
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #374151;
+        }
+
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-body small {
+            color: #6b7280;
+            font-size: 12px;
+        }
+    </style>
+</body>
+
+</html>
