@@ -1115,8 +1115,8 @@ def start_camera_thread(camera):
     """Start a thread for a specific camera"""
     camera_id = camera['id']
     camera_name = camera['name']
-    camera_url = camera.get('URL', '')  # Get URL from camera config
-    camera_guid = camera.get('GUID', camera_id)  # Get GUID from camera config, fallback to ID
+    camera_url = camera.get('url', camera.get('URL', ''))  # Get URL from camera config (external API uses lowercase)
+    camera_guid = camera.get('guid', camera.get('GUID', camera_id))  # Get GUID from camera config (external API uses lowercase)
     
     if not camera_url:
         print(f"No URL found for camera: {camera_name} ({camera_id})")
@@ -1580,7 +1580,7 @@ def update_camera(camera_id):
         if camera.get('is_recording', False):
             start_camera_thread(camera)
         else:
-            stop_camera_thread(camera_id)
+            stop_camera_thread(numeric_camera_id)
 
     if save_cameras():
         # Call external API for camera update
@@ -1733,7 +1733,7 @@ def delete_camera(camera_id):
         return jsonify({'error': 'Camera not found'}), 404
 
     # Get camera GUID before removing
-    camera_guid = cameras_data[index].get('GUID', '')
+    camera_guid = cameras_data[index].get('guid', cameras_data[index].get('GUID', ''))
 
     # Stop any active recording
     stop_camera_thread(numeric_camera_id)
@@ -1881,7 +1881,7 @@ def toggle_camera_recording(camera_id):
         print(f"Recording turned ON for camera: {camera['name']}")
     else:
         # Stop thread if recording is turned OFF
-        stop_camera_thread(camera_id)
+        stop_camera_thread(numeric_camera_id)
         print(f"Recording turned OFF for camera: {camera['name']}")
     
     # Save to file
