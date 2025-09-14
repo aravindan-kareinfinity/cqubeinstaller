@@ -2575,7 +2575,8 @@
             
             if (selectedLiveCamera) {
                 // Show only selected camera
-                const camera = recordingCameras.find(c => c.id === selectedLiveCamera);
+                const numericSelectedCamera = parseInt(selectedLiveCamera);
+                const camera = recordingCameras.find(c => c.id === numericSelectedCamera);
                 if (camera) {
                     cameraGrid.innerHTML = createLiveCameraCard(camera);
                 } else {
@@ -2711,8 +2712,9 @@
 
         // Refresh individual camera stream
         function refreshCameraStream(cameraId) {
-            const camera = cameras.find(c => c.id === cameraId);
-            if (!camera || !camera.GUID) return;
+            const numericCameraId = parseInt(cameraId);
+            const camera = cameras.find(c => c.id === numericCameraId);
+            if (!camera || !camera.guid) return;
 
             const feedDiv = document.getElementById(`feed-${cameraId}`);
             const loadingDiv = document.getElementById(`loading-${cameraId}`);
@@ -3003,6 +3005,76 @@
             detailsDisplay.style.display = 'block';
         }
 
+        // Helper function to call external camera API
+        async function callExternalCameraAPI(data, operation, cameraId = null) {
+            const apiPayload = {
+                name: data.name,
+                url: data.url || data.URL || '',
+                location: data.location || 'Unassigned',
+                ip_address: data.ip_address,
+                model: data.model || '',
+                status: data.status || 'Active',
+                detection_features: data.detection_features || {},
+                alert_settings: data.alert_settings || {},
+                frame_rate: data.frame_rate || 30,
+                resolution: data.resolution || '1920x1080',
+                video_bitrate: data.video_bitrate || 2000,
+                enable_audio: data.enable_audio !== undefined ? data.enable_audio : true,
+                audio_bitrate: data.audio_bitrate || 128,
+                preset: data.preset || 'medium',
+                crf: data.crf || 23,
+                segment_time: data.segment_time || 60,
+                organization_id: 17, // Default organization ID
+                guid: data.GUID || data.guid || ''
+            };
+
+            // For update operations, pass camera_id as URL parameter, not in body
+            const url = operation === 'update' && cameraId 
+                ? `http://127.0.0.1:9000/cameras/${cameraId}`
+                : 'http://127.0.0.1:9000/cameras/';
+            
+            const method = operation === 'update' ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(apiPayload)
+            });
+
+            if (!response.ok) {
+                throw new Error(`External API error: ${response.status} - ${response.statusText}`);
+            }
+
+            return await response.json();
+        }
+
+        // Helper function to merge external API response with local camera data
+        async function updateConfigWithExternalResponse(localCameraId, externalApiResponse) {
+            try {
+                const response = await fetch('/api/merge-camera-external-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        local_camera_id: localCameraId,
+                        external_camera_data: externalApiResponse
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to merge external camera data');
+                }
+
+                return await response.json();
+            } catch (error) {
+                console.error('Error merging external camera data:', error);
+                throw error;
+            }
+        }
+
         async function saveCamera() {
             try {
                 const data = collectFormData();
@@ -3035,6 +3107,20 @@
                 }
                 
                 const savedCamera = await response.json();
+                
+                // Call external API to create/update camera and get full response
+                try {
+                    const externalApiResponse = await callExternalCameraAPI(data, editingCameraId ? 'update' : 'create', editingCameraId);
+                    if (externalApiResponse && externalApiResponse.id) {
+                        // Replace local camera data with external API response
+                        await updateConfigWithExternalResponse(savedCamera.id, externalApiResponse);
+                        console.log('External camera data stored:', externalApiResponse);
+                    }
+                } catch (externalError) {
+                    console.warn('External API call failed:', externalError);
+                    // Continue with local save even if external API fails
+                }
+                
                 await loadCameras();
                 
                 // Display the saved camera details
@@ -3095,11 +3181,13 @@
             
             if (cameraId) {
                 // Edit mode
-                editingCameraId = cameraId;
-                const camera = cameras.find(c => c.id === cameraId);
+                // Convert cameraId to number for comparison with external API IDs
+                const numericCameraId = parseInt(cameraId);
+                editingCameraId = numericCameraId;
+                const camera = cameras.find(c => c.id === numericCameraId);
                 console.log('Camera found for editing:', camera);
                 if (!camera) {
-                    console.error('Camera not found for ID:', cameraId);
+                    console.error('Camera not found for ID:', cameraId, 'numeric:', numericCameraId);
                     alert('Camera not found!');
                     return;
                 }

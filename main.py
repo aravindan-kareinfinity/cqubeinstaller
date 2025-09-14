@@ -40,7 +40,7 @@ merging_tasks = {}
 video_config = {
     'upload_to_api': True,  # Enabled - API server is running
     'store_locally': True,
-    'api_url': 'http://127.0.0.1:8000/api/video/upload',  # Original API endpoint
+    'api_url': 'http://127.0.0.1:9000/api/video/upload',  # Original API endpoint
     'api_key': 'your_api_key_here',
     'upload_retry_attempts': 3,
     'upload_timeout': 30,
@@ -1388,15 +1388,30 @@ def create_camera():
             if key in data['alert_settings']:
                 alert_settings[key] = data['alert_settings'][key]
 
+    # Load config to get organization_id
+    try:
+        with open('config.json', 'r') as f:
+            config_data = json.load(f)
+        organization_id = 17  # Default from config.json
+        if 'organizations' in config_data and len(config_data['organizations']) > 0:
+            organization_id = config_data['organizations'][0]['id']
+    except Exception as e:
+        print(f"⚠️ Error loading config.json: {e}")
+        organization_id = 17  # Default fallback
+
+    # Update video_bitrate default to match external API
+    if camera_settings['video_bitrate'] == 4000:
+        camera_settings['video_bitrate'] = 2000
+
+    # Create initial camera data (will be replaced by external API response)
     new_camera = {
-        'id': camera_id,
         'name': name,
         'location': location or 'Unassigned',
         'ip_address': ip_address,
         'mac_address': data.get('mac_address', ''),
         'model': data.get('model', ''),
         'serial_number': data.get('serial_number', ''),
-        'organization_id': data.get('organization_id', ''),
+        'organization_id': organization_id,
         'status': status,
         'username': data.get('username', 'root'),
         'password': data.get('password', ''),
@@ -1404,11 +1419,9 @@ def create_camera():
         'path': data.get('path', '/axis-media/media.amp'),
         'url': url_value,
         'URL': url_value,
-        'GUID': guid,
+        'guid': guid,
         'description': data.get('description', name),
         'is_recording': is_recording,
-        'created_at': datetime.now().isoformat(),
-        'updated_at': datetime.now().isoformat(),
         # Direct camera settings fields
         'frame_rate': camera_settings['frame_rate'],
         'resolution': camera_settings['resolution'],
@@ -1423,6 +1436,51 @@ def create_camera():
         'detection_features': detection_features,
         'alert_settings': alert_settings
     }
+
+    # Prepare data for external API
+    api_payload = {
+        "name": name,
+        "url": url_value,
+        "location": location or 'Unassigned',
+        "ip_address": ip_address,
+        "model": data.get('model', ''),
+        "status": status,
+        "detection_features": detection_features,
+        "alert_settings": alert_settings,
+        "frame_rate": camera_settings['frame_rate'],
+        "resolution": camera_settings['resolution'],
+        "video_bitrate": camera_settings['video_bitrate'],
+        "enable_audio": camera_settings['enable_audio'],
+        "audio_bitrate": camera_settings['audio_bitrate'],
+        "preset": camera_settings['preset'],
+        "crf": camera_settings['crf'],
+        "segment_time": camera_settings['segment_time'],
+        "organization_id": organization_id,
+        "guid": guid
+    }
+
+    # Send to external API
+    try:
+        print(f"📡 Sending camera data to external API: {name}")
+        api_response = requests.post(
+            'http://127.0.0.1:9000/cameras/',
+            json=api_payload,
+            headers={'Content-Type': 'application/json'},
+            timeout=10
+        )
+        
+        if api_response.status_code == 200 or api_response.status_code == 201:
+            api_data = api_response.json()
+            # Replace local camera data entirely with external API response
+            new_camera = api_data
+            print(f"✅ Camera successfully created in external API: {api_data.get('id', 'unknown')}")
+        else:
+            print(f"❌ External API error: {api_response.status_code} - {api_response.text}")
+            return jsonify({'error': f'External API error: {api_response.status_code}'}), 500
+            
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Failed to connect to external API: {str(e)}")
+        return jsonify({'error': f'Failed to connect to external API: {str(e)}'}), 500
 
     cameras_data.append(new_camera)
     if save_cameras():
@@ -1448,8 +1506,14 @@ def update_camera(camera_id):
     global cameras_data
     data = request.get_json(force=True) or {}
 
-    # Find camera
-    camera = next((c for c in cameras_data if c.get('id') == camera_id), None)
+    # Find camera by external ID (since we're now using external IDs as primary)
+    # Convert camera_id to int for comparison with external API IDs
+    try:
+        numeric_camera_id = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
+    camera = next((c for c in cameras_data if c.get('id') == numeric_camera_id), None)
     if not camera:
         return jsonify({'error': 'Camera not found'}), 404
 
@@ -1519,6 +1583,82 @@ def update_camera(camera_id):
             stop_camera_thread(camera_id)
 
     if save_cameras():
+        # Call external API for camera update
+        try:
+            # Prepare data for external API
+            api_payload = {
+                "name": camera['name'],
+                "url": camera.get('url', ''),
+                "location": camera.get('location', 'Unassigned'),
+                "ip_address": camera['ip_address'],
+                "model": camera.get('model', ''),
+                "status": camera.get('status', 'Active'),
+                "detection_features": camera.get('detection_features', {}),
+                "alert_settings": camera.get('alert_settings', {}),
+                "frame_rate": camera.get('frame_rate', 30),
+                "resolution": camera.get('resolution', '1920x1080'),
+                "video_bitrate": camera.get('video_bitrate', 2000),
+                "enable_audio": camera.get('enable_audio', True),
+                "audio_bitrate": camera.get('audio_bitrate', 128),
+                "preset": camera.get('preset', 'medium'),
+                "crf": camera.get('crf', 23),
+                "segment_time": camera.get('segment_time', 60),
+                "organization_id": 17,
+                "guid": camera.get('GUID', '')
+            }
+            
+            # Check if camera has external ID (merged into main camera data)
+            # Look for external_id field or check if id is numeric (from external API)
+            external_camera_id = camera.get('external_id')
+            if not external_camera_id:
+                # Check if the main ID is numeric (indicating it came from external API)
+                main_id = camera.get('id')
+                if isinstance(main_id, int):
+                    external_camera_id = main_id
+            
+            if external_camera_id:
+                # Update existing camera in external API (handle both string and numeric IDs)
+                api_response = requests.put(
+                    f'http://127.0.0.1:9000/cameras/{external_camera_id}',
+                    json=api_payload,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=10
+                )
+                
+                if api_response.status_code == 200:
+                    # Replace local camera data entirely with external response
+                    updated_external_data = api_response.json()
+                    # Clear existing camera data and replace with external data
+                    camera.clear()
+                    camera.update(updated_external_data)
+                    save_cameras()  # Save the external data
+                    print(f"✅ Camera successfully updated in external API: {external_camera_id} (type: {type(external_camera_id)})")
+                else:
+                    print(f"❌ External API update error: {api_response.status_code} - {api_response.text}")
+            else:
+                # Create new camera in external API if no external ID exists
+                api_response = requests.post(
+                    'http://127.0.0.1:9000/cameras/',
+                    json=api_payload,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=10
+                )
+                
+                if api_response.status_code == 200 or api_response.status_code == 201:
+                    api_data = api_response.json()
+                    external_camera_id = api_data.get('id')
+                    if external_camera_id:
+                        # Replace local camera data entirely with external data
+                        camera.clear()
+                        camera.update(api_data)
+                        save_cameras()  # Save the external data
+                        print(f"✅ Camera successfully created in external API: {external_camera_id} (type: {type(external_camera_id)})")
+                else:
+                    print(f"❌ External API create error: {api_response.status_code} - {api_response.text}")
+                    
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed to connect to external API: {str(e)}")
+        
         # Update mediamtx.yml if URL changed
         if url_changed and camera.get('GUID'):
             if camera.get('url'):
@@ -1532,11 +1672,63 @@ def update_camera(camera_id):
         return jsonify(camera)
     return jsonify({'error': 'Failed to save camera'}), 500
 
+@app.route('/api/merge-camera-external-data', methods=['POST'])
+def merge_camera_external_data():
+    """Merge external API response data with local camera data in config.json"""
+    try:
+        data = request.get_json(force=True) or {}
+        local_camera_id = data.get('local_camera_id')
+        external_camera_data = data.get('external_camera_data')
+        
+        if not local_camera_id or not external_camera_data:
+            return jsonify({'error': 'local_camera_id and external_camera_data are required'}), 400
+        
+        # Load current config
+        with open('config.json', 'r') as f:
+            config_data = json.load(f)
+        
+        # Find and replace the camera with external data
+        camera_updated = False
+        # Convert local_camera_id to int for comparison with external API IDs
+        try:
+            numeric_local_camera_id = int(local_camera_id)
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid local camera ID format'}), 400
+            
+        for i, camera in enumerate(config_data.get('cameras', [])):
+            if camera.get('id') == numeric_local_camera_id:
+                # Replace local camera data entirely with external data
+                config_data['cameras'][i] = external_camera_data
+                camera_updated = True
+                break
+        
+        if not camera_updated:
+            return jsonify({'error': 'Camera not found'}), 404
+        
+        # Save updated config
+        with open('config.json', 'w') as f:
+            json.dump(config_data, f, indent=2)
+        
+        external_id = external_camera_data.get('id', 'unknown')
+        print(f"✅ Merged external data with camera {local_camera_id}: {external_id} (type: {type(external_id)})")
+        return jsonify({'success': True, 'merged_data': external_camera_data})
+        
+    except Exception as e:
+        print(f"❌ Error updating camera external data: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/cameras/<camera_id>', methods=['DELETE'])
 def delete_camera(camera_id):
     """Delete a camera, stop recording thread, and remove from groups."""
     global cameras_data, groups_data
-    index = next((i for i, c in enumerate(cameras_data) if c.get('id') == camera_id), None)
+    
+    # Convert camera_id to int for comparison with external API IDs
+    try:
+        numeric_camera_id = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
+    index = next((i for i, c in enumerate(cameras_data) if c.get('id') == numeric_camera_id), None)
     if index is None:
         return jsonify({'error': 'Camera not found'}), 404
 
@@ -1544,7 +1736,7 @@ def delete_camera(camera_id):
     camera_guid = cameras_data[index].get('GUID', '')
 
     # Stop any active recording
-    stop_camera_thread(camera_id)
+    stop_camera_thread(numeric_camera_id)
 
     # Remove from cameras
     cameras_data.pop(index)
@@ -1659,10 +1851,16 @@ def toggle_camera_recording(camera_id):
     """API endpoint to toggle camera recording status"""
     global cameras_data
     
+    # Convert camera_id to int for comparison with external API IDs
+    try:
+        numeric_camera_id = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == numeric_camera_id:
             camera = cam
             break
     
@@ -1750,10 +1948,16 @@ def get_upload_thread_status():
 @app.route('/api/cameras/<camera_id>/frame')
 def get_camera_frame(camera_id):
     """API endpoint to get camera frame as MJPEG stream"""
+    # Convert camera_id to int for comparison with external API IDs
+    try:
+        numeric_camera_id = int(camera_id)
+    except ValueError:
+        return jsonify({'error': 'Invalid camera ID format'}), 400
+    
     # Find the camera
     camera = None
     for cam in cameras_data:
-        if cam['id'] == camera_id:
+        if cam['id'] == numeric_camera_id:
             camera = cam
             break
     

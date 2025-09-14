@@ -211,5 +211,5 @@ pathDefaults:
 paths:
   cam1:
     source: rtsp://root:k2bsecure%3F%3F%3F@192.168.1.12/axis-media/media.amp
-  8483a4c1-54f6-4e8a-82fb-9ecabde07d60:
+  98c9b45e-8ef5-41e7-b689-b81464ede864:
     source: rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp
