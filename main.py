@@ -20,6 +20,18 @@ app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
 # Global variable to store camera data
 cameras_data = []
 
+# Global variable to store external API configuration
+external_api_config = {
+    "base_url": "http://127.0.0.1:9000"
+}
+
+# Global variable to store server configuration
+server_config = {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": False
+}
+
 # MediaMTX process management
 mediamtx_process = None
 mediamtx_exe_path = os.path.abspath("mediamtx/mediamtx.exe")
@@ -1189,7 +1201,7 @@ def validate_camera_credentials(camera):
 
 def load_cameras():
     """Load cameras from config.json"""
-    global cameras_data, base_video_path, groups_data
+    global cameras_data, base_video_path, groups_data, external_api_config, server_config
     try:
         with open('config.json', 'r') as f:
             config = json.load(f)
@@ -1197,6 +1209,8 @@ def load_cameras():
         cameras_data = config.get('cameras', [])
         base_video_path = config.get('base_video_path', './videos')
         groups_data = config.get('groups', [])
+        external_api_config = config.get('external_api', external_api_config)
+        server_config = config.get('server', server_config)
         
         # Create base video directory if it doesn't exist
         os.makedirs(base_video_path, exist_ok=True)
@@ -1207,6 +1221,8 @@ def load_cameras():
         
         print(f"Loaded {len(cameras_data)} cameras from config.json")
         print(f"Base video path: {base_video_path}")
+        print(f"External API config: {external_api_config['base_url']}")
+        print(f"Server config: {server_config['host']}:{server_config['port']} (debug: {server_config['debug']})")
         print(f"Loaded {len(groups_data)} groups from config.json")
         
         # Start recording for cameras that were already recording
@@ -1256,6 +1272,11 @@ def save_cameras():
 def index():
     """Serve the main HTML page"""
     return send_from_directory('.', 'index.html')
+
+@app.route('/api/external-api-config')
+def get_external_api_config():
+    """API endpoint to get external API configuration"""
+    return jsonify(external_api_config)
 
 @app.route('/api/cameras')
 def get_cameras():
@@ -1462,8 +1483,9 @@ def create_camera():
     # Send to external API
     try:
         print(f"📡 Sending camera data to external API: {name}")
+        api_url = f"{external_api_config['base_url']}/cameras/"
         api_response = requests.post(
-            'http://127.0.0.1:9000/cameras/',
+            api_url,
             json=api_payload,
             headers={'Content-Type': 'application/json'},
             timeout=10
@@ -1618,8 +1640,9 @@ def update_camera(camera_id):
             
             if external_camera_id:
                 # Update existing camera in external API (handle both string and numeric IDs)
+                api_url = f"{external_api_config['base_url']}/cameras/{external_camera_id}"
                 api_response = requests.put(
-                    f'http://127.0.0.1:9000/cameras/{external_camera_id}',
+                    api_url,
                     json=api_payload,
                     headers={'Content-Type': 'application/json'},
                     timeout=10
@@ -1637,8 +1660,9 @@ def update_camera(camera_id):
                     print(f"❌ External API update error: {api_response.status_code} - {api_response.text}")
             else:
                 # Create new camera in external API if no external ID exists
+                api_url = f"{external_api_config['base_url']}/cameras/"
                 api_response = requests.post(
-                    'http://127.0.0.1:9000/cameras/',
+                    api_url,
                     json=api_payload,
                     headers={'Content-Type': 'application/json'},
                     timeout=10
@@ -3168,11 +3192,11 @@ def main():
     
     # Start the Flask server
     print("Starting Camera Management System...")
-    print("Web interface available at: http://localhost:5000")
+    print(f"Web interface available at: http://{server_config['host']}:{server_config['port']}")
     print("Press Ctrl+C to stop the server")
     
     try:
-        app.run(host='0.0.0.0', port=5000, debug=False)  # Set debug=False for production
+        app.run(host=server_config['host'], port=server_config['port'], debug=server_config['debug'])
     except KeyboardInterrupt:
         print("\nShutting down...")
         # Stop MediaMTX server

@@ -354,7 +354,7 @@
             document.getElementById('loading').style.display = 'block';
             
             try {
-                const response = await fetch('http://127.0.0.1:9000/api/auth/signup', {
+                const response = await fetch('http://127.0.0.1:8000/api/auth/signup', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -376,7 +376,7 @@
                 }
             } catch (error) {
                 console.error('Signup error:', error);
-                showAlert('Failed to create account. Please check if the API server is running on port 9000.', 'error');
+                showAlert('Failed to create account. Please check if the API server is running on port 8000.', 'error');
             } finally {
                 // Hide loading state
                 document.getElementById('signupButton').disabled = false;

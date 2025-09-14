@@ -2209,6 +2209,22 @@
         let groups = [];
         let selectedGroupId = "__all__";
         let editingGroupId = null;
+        let externalApiConfig = {
+            base_url: "http://127.0.0.1:9000"
+        };
+
+        // Load external API configuration
+        async function loadExternalApiConfig() {
+            try {
+                const response = await fetch("/api/external-api-config");
+                if (response.ok) {
+                    externalApiConfig = await response.json();
+                    console.log("External API config loaded:", externalApiConfig);
+                }
+            } catch (error) {
+                console.warn("Failed to load external API config, using default:", error);
+            }
+        }
 
         // Load cameras from the server
         async function loadCameras() {
@@ -2596,7 +2612,7 @@
 
         // Create live camera card HTML
         function createLiveCameraCard(camera) {
-            const cameraGuid = camera?.GUID;
+            const cameraGuid = camera?.guid;
             if (!cameraGuid) {
                 return `
                     <div class="live-camera-header">
@@ -3030,8 +3046,8 @@
 
             // For update operations, pass camera_id as URL parameter, not in body
             const url = operation === 'update' && cameraId 
-                ? `http://127.0.0.1:9000/cameras/${cameraId}`
-                : 'http://127.0.0.1:9000/cameras/';
+                ? `${externalApiConfig.base_url}/cameras/${cameraId}`
+                : `${externalApiConfig.base_url}/cameras/`;
             
             const method = operation === 'update' ? 'PUT' : 'POST';
             
@@ -3689,6 +3705,7 @@
 
         // Load cameras when page loads
         document.addEventListener("DOMContentLoaded", () => {
+            loadExternalApiConfig();
             loadCameras();
             
             // Add event listeners for RTSP URL construction
