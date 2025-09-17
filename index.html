@@ -171,10 +171,266 @@
         }
 
         .camera-grid {
+            display: block;
+            padding: 0;
+            height: calc(100vh - 200px);
+            overflow: hidden;
+        }
+
+        /* Camera Table Styles */
+        .camera-table {
+            width: 100%;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-width: 1200px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .camera-table-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+        }
+
+        /* Custom scrollbar for table content */
+        .camera-table-content::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .camera-table-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .camera-table-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        .camera-table-content::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .camera-table-header {
             display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-            overflow-x: hidden;
+            grid-template-columns: 2fr 0.5fr 1fr 1fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr 1fr 1.2fr;
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e9ecef;
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+            align-items: center;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .camera-table-row {
+            display: grid;
+            grid-template-columns: 2fr 0.5fr 1fr 1fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr 1fr 1.2fr;
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid #e9ecef;
+            align-items: center;
+            font-size: 13px;
+            transition: background-color 0.2s ease;
+        }
+
+        .camera-table-row:hover {
+            background-color: #f8f9fa;
+        }
+
+        .camera-table-row:last-child {
+            border-bottom: none;
+        }
+
+        /* Column Styles */
+        .camera-col-name {
+            font-weight: 500;
+        }
+
+        .camera-name-with-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-dot.status-active {
+            background-color: #28a745;
+        }
+
+        .status-dot.status-maintenance {
+            background-color: #dc3545;
+        }
+
+        .camera-name-text {
+            font-weight: 500;
+            color: #212529;
+        }
+
+        .camera-col-id {
+            font-family: 'Courier New', monospace;
+            color: #6c757d;
+        }
+
+        .camera-col-location {
+            color: #495057;
+        }
+
+        .camera-col-ip {
+            font-family: 'Courier New', monospace;
+            color: #495057;
+        }
+
+        .camera-col-resolution {
+            color: #495057;
+        }
+
+        .camera-col-framerate {
+            color: #495057;
+        }
+
+        .camera-col-features {
+            color: #495057;
+        }
+
+        .camera-col-alerts {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .camera-col-status {
+            text-align: center;
+        }
+
+        .camera-col-recording {
+            text-align: center;
+        }
+
+        .camera-col-actions {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-badge.status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.status-maintenance {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .recording-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .recording-badge.recording-on {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .recording-badge.recording-off {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Small Toggle Switch */
+        .toggle-switch-small {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .toggle-switch-small input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider-small {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider-small:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        .toggle-switch-small input:checked + .slider-small {
+            background-color: #2196F3;
+        }
+
+        .toggle-switch-small input:checked + .slider-small:before {
+            transform: translateX(20px);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .camera-table-header,
+            .camera-table-row {
+                grid-template-columns: 2fr 0.5fr 1fr 1fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr 1fr 1.2fr;
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .camera-table-header,
+            .camera-table-row {
+                grid-template-columns: 2fr 0.5fr 1fr 1fr 1fr 0.8fr 0.8fr 1.2fr 0.8fr 1fr 1.2fr;
+                font-size: 11px;
+                padding: 10px 15px;
+            }
+            
+            .camera-col-actions {
+                flex-direction: column;
+                gap: 3px;
+            }
         }
 
         .camera-card {
@@ -471,6 +727,593 @@
             padding: 15px;
             border-radius: 8px;
             border-left: 4px solid #17a2b8;
+        }
+
+        /* Elegant Group Form Styles */
+        .elegant-group-form {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .elegant-group-form.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            border: 1px solid #e9ecef;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes modalFadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        .group-form-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-form-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .group-form-title i {
+            font-size: 20px;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .group-form-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .drag-drop-section {
+            margin-top: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .drag-hint {
+            margin-left: auto;
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: normal;
+        }
+
+        .camera-selection-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: 300px;
+        }
+
+        .available-cameras,
+        .selected-cameras {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px dashed #dee2e6;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Scroll indicators */
+        .available-cameras::after,
+        .selected-cameras::after {
+            content: '';
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+            height: 20px;
+            background: linear-gradient(transparent, #f8f9fa);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .available-cameras.scrollable::after,
+        .selected-cameras.scrollable::after {
+            opacity: 1;
+        }
+
+        .camera-search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .camera-search-box input {
+            width: 100%;
+            padding: 10px 40px 10px 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .camera-search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .camera-search-box i {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 14px;
+            pointer-events: none;
+        }
+
+        .no-results {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: #6c757d;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .no-results i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #adb5bd;
+        }
+
+        .no-results span {
+            font-size: 14px;
+        }
+
+        .available-cameras.drag-over,
+        .selected-cameras.drag-over {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            transform: scale(1.02);
+        }
+
+        .section-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .camera-list,
+        .selected-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 5px;
+        }
+
+        /* Custom scrollbar for camera lists */
+        .camera-list::-webkit-scrollbar,
+        .selected-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .camera-list::-webkit-scrollbar-track,
+        .selected-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+
+        .camera-list::-webkit-scrollbar-thumb,
+        .selected-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .camera-list::-webkit-scrollbar-thumb:hover,
+        .selected-list::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        .camera-item {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .camera-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .camera-item:active {
+            cursor: grabbing;
+        }
+
+        .camera-item.dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+
+        .camera-item i {
+            color: #667eea;
+            font-size: 16px;
+        }
+
+        .camera-item span {
+            font-weight: 500;
+            color: #495057;
+        }
+
+
+        .group-form-footer {
+            background: #f8f9fa;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Mobile responsiveness for elegant group form */
+        @media (max-width: 768px) {
+            .elegant-group-form {
+                padding: 10px;
+            }
+            
+            .modal-content {
+                max-width: 100%;
+                max-height: 95vh;
+            }
+            
+            .camera-selection-area {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .camera-list,
+            .selected-list {
+                max-height: 250px;
+            }
+            
+            .group-form-body {
+                padding: 20px;
+            }
+            
+            .group-form-header {
+                padding: 15px 20px;
+            }
+            
+            .group-form-footer {
+                padding: 15px 20px;
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* Prevent body scroll when modal is open */
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        /* Video Playback Modal Styles */
+        .video-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .video-modal.show {
+            display: flex;
+        }
+
+        .video-modal-content {
+            background: #1a1a1a;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            max-width: 90vw;
+            max-height: 90vh;
+            width: 100%;
+            overflow: hidden;
+            border: 1px solid #333;
+            animation: videoModalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes videoModalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .video-modal-header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .video-modal-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .video-modal-title i {
+            font-size: 20px;
+            color: #e74c3c;
+        }
+
+        .video-close-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .video-close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .video-modal-body {
+            padding: 0;
+            background: #000;
+        }
+
+        .video-player-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 0;
+            overflow: hidden;
+        }
+
+        .video-player-wrapper video {
+            width: 100%;
+            height: auto;
+            max-height: 70vh;
+            display: block;
+        }
+
+        .video-info-panel {
+            background: #2c2c2c;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            border-top: 1px solid #333;
+        }
+
+        .video-info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #ecf0f1;
+            font-size: 14px;
+        }
+
+        .video-info-item i {
+            color: #3498db;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .video-info-item span {
+            font-weight: 500;
+        }
+
+        .video-modal-footer {
+            background: #2c2c2c;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            border-top: 1px solid #333;
+        }
+
+        /* Mobile responsiveness for video modal */
+        @media (max-width: 768px) {
+            .video-modal {
+                padding: 10px;
+            }
+            
+            .video-modal-content {
+                max-width: 100%;
+                max-height: 95vh;
+            }
+            
+            .video-player-wrapper video {
+                max-height: 50vh;
+            }
+            
+            .video-info-panel {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 15px;
+            }
+            
+            .video-modal-header {
+                padding: 15px 20px;
+            }
+            
+            .video-modal-footer {
+                padding: 15px 20px;
+                flex-direction: column;
+            }
+            
+            .video-modal-footer .btn {
+                width: 100%;
+                justify-content: center;
+            }
         }
 
         .group-form input {
@@ -1650,22 +2493,120 @@
                 </button>
                         </div>
                         <div id="groupMembers" class="discovered-list" style="display: none; margin-top: 8px"></div>
-                        <div id="groupForm" class="group-form">
-                            <div id="groupFormTitle" class="discovered-section-title">
-                                Create Group
-                            </div>
-                            <input id="groupName" type="text" placeholder="Group name" />
-                            <div class="camera-checkboxes" id="groupCameraList"></div>
-                            <div style="display: flex; gap: 8px; margin-top: 8px">
-                                <button class="inline-btn" onclick="saveGroup()" style="background:#2a303f; color: white">Save</button>
-                                <button class="inline-btn" style="background: #6c757d" onclick="toggleGroupForm()">
-                    Cancel
-                  </button>
+                        <div id="groupForm" class="elegant-group-form" onclick="handleModalClick(event)">
+                            <div class="modal-content" onclick="event.stopPropagation()">
+                                <div class="group-form-header">
+                                    <div class="group-form-title">
+                                        <i class="fas fa-layer-group"></i>
+                                        <span id="groupFormTitle">Create New Group</span>
+                                    </div>
+                                    <button class="close-btn" onclick="toggleGroupForm()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="group-form-body">
+                                    <div class="form-group">
+                                        <label for="groupName">
+                                            <i class="fas fa-tag"></i>
+                                            Group Name
+                                        </label>
+                                        <input id="groupName" type="text" placeholder="Enter group name..." />
+                                    </div>
+                                    
+                                    <div class="drag-drop-section">
+                                        <div class="section-header">
+                                            <i class="fas fa-camera"></i>
+                                            <span>Select Cameras</span>
+                                            <div class="drag-hint">Drag cameras between lists to add/remove from group</div>
+                                        </div>
+                                        
+                                        <div class="camera-selection-area">
+                                        <div class="available-cameras" id="availableCameras">
+                                            <div class="section-label">Available Cameras</div>
+                                            <div class="camera-search-box">
+                                                <input type="text" id="cameraSearchInput" placeholder="Search cameras..." onkeyup="filterAvailableCameras()">
+                                                <i class="fas fa-search"></i>
+                                            </div>
+                                            <div class="camera-list" id="groupCameraList"></div>
+                                        </div>
+                                            
+                                            <div class="selected-cameras" id="selectedCameras">
+                                                <div class="section-label">Selected for Group</div>
+                                                <div class="selected-list" id="selectedCameraList"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="group-form-footer">
+                                    <button class="btn btn-secondary" onclick="toggleGroupForm()">
+                                        <i class="fas fa-times"></i>
+                                        Cancel
+                                    </button>
+                                    <button class="btn btn-primary" onclick="saveGroup()">
+                                        <i class="fas fa-save"></i>
+                                        Create Group
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                     <div class="camera-grid" id="cameraGrid">
                         <!-- Cameras will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Video Playback Modal -->
+                <div id="videoModal" class="video-modal" onclick="handleVideoModalClick(event)">
+                    <div class="video-modal-content" onclick="event.stopPropagation()">
+                        <div class="video-modal-header">
+                            <div class="video-modal-title">
+                                <i class="fas fa-play-circle"></i>
+                                <span id="videoModalTitle">Video Player</span>
+                            </div>
+                            <button class="video-close-btn" onclick="closeVideoModal()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="video-modal-body">
+                            <div class="video-player-wrapper">
+                                <video id="modalVideoPlayer" controls width="100%" height="auto">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                            
+                            <div class="video-info-panel">
+                                <div class="video-info-item">
+                                    <i class="fas fa-video"></i>
+                                    <span id="modalVideoTitle">Video Title</span>
+                                </div>
+                                <div class="video-info-item">
+                                    <i class="fas fa-camera"></i>
+                                    <span id="modalVideoCamera">Camera Name</span>
+                                </div>
+                                <div class="video-info-item">
+                                    <i class="fas fa-calendar"></i>
+                                    <span id="modalVideoDate">Date</span>
+                                </div>
+                                <div class="video-info-item">
+                                    <i class="fas fa-file"></i>
+                                    <span id="modalVideoSize">File Size</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="video-modal-footer">
+                            <button class="btn btn-secondary" onclick="downloadVideoFromModal()">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </button>
+                            <button class="btn btn-primary" onclick="closeVideoModal()">
+                                <i class="fas fa-times"></i>
+                                Close
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2631,6 +3572,20 @@
                 }
                 select.value = selectedGroupId;
                 if (selectLive) selectLive.value = selectedGroupId;
+                
+                // Set initial button visibility based on selected group
+                const isAll = selectedGroupId === "__all__";
+                const editBtn = document.getElementById("editGroupBtn");
+                const deleteBtn = document.getElementById("deleteGroupBtn");
+                
+                if (isAll) {
+                    editBtn.style.display = "none";
+                    deleteBtn.style.display = "none";
+                } else {
+                    editBtn.style.display = "inline-block";
+                    deleteBtn.style.display = "inline-block";
+                }
+                
                 populateGroupCameraList();
                 renderGroupMembers();
             } catch (e) {
@@ -2641,10 +3596,19 @@
         function onGroupChange() {
             const select = document.getElementById("groupSelect");
             selectedGroupId = select.value;
-            // Enable/disable edit/delete buttons
+            // Show/hide edit/delete buttons based on selection
             const isAll = selectedGroupId === "__all__";
-            document.getElementById("editGroupBtn").disabled = isAll;
-            document.getElementById("deleteGroupBtn").disabled = isAll;
+            const editBtn = document.getElementById("editGroupBtn");
+            const deleteBtn = document.getElementById("deleteGroupBtn");
+            
+            if (isAll) {
+                editBtn.style.display = "none";
+                deleteBtn.style.display = "none";
+            } else {
+                editBtn.style.display = "inline-block";
+                deleteBtn.style.display = "inline-block";
+            }
+            
             const selectLive = document.getElementById("groupSelectLive");
             if (selectLive) selectLive.value = selectedGroupId;
             updateLiveView();
@@ -2657,6 +3621,20 @@
             selectedGroupId = selectLive.value;
             const select = document.getElementById("groupSelect");
             if (select) select.value = selectedGroupId;
+            
+            // Show/hide edit/delete buttons based on selection
+            const isAll = selectedGroupId === "__all__";
+            const editBtn = document.getElementById("editGroupBtn");
+            const deleteBtn = document.getElementById("deleteGroupBtn");
+            
+            if (isAll) {
+                editBtn.style.display = "none";
+                deleteBtn.style.display = "none";
+            } else {
+                editBtn.style.display = "inline-block";
+                deleteBtn.style.display = "inline-block";
+            }
+            
             updateLiveView();
             displayCameras(cameras);
             renderGroupMembers();
@@ -2664,20 +3642,54 @@
 
         function toggleGroupForm() {
             const form = document.getElementById("groupForm");
-            form.style.display =
-                form.style.display === "none" || form.style.display === "" ?
-                "block" :
-                "none";
-            if (form.style.display === "block") populateGroupCameraList();
+            if (form.classList.contains("show")) {
+                closeGroupForm();
+            } else {
+                form.style.display = "flex";
+                // Force reflow to ensure display is set before adding class
+                form.offsetHeight;
+                form.classList.add("show");
+                document.body.classList.add("modal-open");
+                populateGroupCameraList();
+                // Clear selected cameras when opening form
+                document.getElementById("selectedCameraList").innerHTML = "";
+                // Clear search input
+                const searchInput = document.getElementById("cameraSearchInput");
+                if (searchInput) {
+                    searchInput.value = "";
+                }
+            }
+        }
+
+        function closeGroupForm() {
+            const form = document.getElementById("groupForm");
+            form.classList.remove("show");
+            document.body.classList.remove("modal-open");
+            // Add fade out animation
+            form.style.animation = "modalFadeOut 0.3s ease-in";
+            setTimeout(() => {
+                form.style.display = "none";
+                form.style.animation = "";
+            }, 300);
+        }
+
+        function handleModalClick(event) {
+            // Close modal when clicking on the backdrop (not the modal content)
+            if (event.target === event.currentTarget) {
+                closeGroupForm();
+            }
         }
 
         function startCreateGroup() {
             editingGroupId = null;
-            document.getElementById("groupFormTitle").textContent = "Create Group";
+            document.getElementById("groupFormTitle").textContent = "Create New Group";
             document.getElementById("groupName").value = "";
             toggleGroupForm();
-            // Clear checks
-            setTimeout(() => populateGroupCameraList(), 0);
+            // Clear selected cameras
+            setTimeout(() => {
+                document.getElementById("selectedCameraList").innerHTML = "";
+                populateGroupCameraList();
+            }, 0);
         }
 
         function startEditGroup() {
@@ -2692,29 +3704,251 @@
         }
 
         function populateGroupCameraList(precheckedIds = []) {
-            const list = document.getElementById("groupCameraList");
+            const availableList = document.getElementById("groupCameraList");
+            const selectedList = document.getElementById("selectedCameraList");
             const checked = new Set(precheckedIds);
-            list.innerHTML = cameras
-                .map(
-                    (c) => `
-                <label>
-                    <input type="checkbox" value="${c.id}" ${
-              checked.has(c.id) ? "checked" : ""
-            } />
-                    <span>${c.name} (${c.ip_address})</span>
-                </label>
-            `
-                )
-                .join("");
+            
+            // Clear existing lists
+            availableList.innerHTML = "";
+            selectedList.innerHTML = "";
+            
+            // Store original camera data for filtering
+            window.availableCameras = cameras.filter(camera => !checked.has(parseInt(camera.id)));
+            window.selectedCameras = cameras.filter(camera => checked.has(parseInt(camera.id)));
+            
+            // Populate available cameras
+            window.availableCameras.forEach(camera => {
+                const cameraItem = createCameraItem(camera, false);
+                availableList.appendChild(cameraItem);
+            });
+            
+            // Populate selected cameras
+            window.selectedCameras.forEach(camera => {
+                const cameraItem = createCameraItem(camera, true);
+                selectedList.appendChild(cameraItem);
+            });
+            
+            // Initialize drag and drop
+            initializeDragAndDrop();
+            
+            // Check if scrolling is needed
+            setTimeout(() => {
+                checkScrollableLists();
+            }, 100);
+        }
+
+        function filterAvailableCameras() {
+            const searchInput = document.getElementById("cameraSearchInput");
+            const searchTerm = searchInput.value.toLowerCase();
+            const availableList = document.getElementById("groupCameraList");
+            
+            // Clear current list
+            availableList.innerHTML = "";
+            
+            // Filter and display cameras
+            const filteredCameras = window.availableCameras.filter(camera => 
+                camera.name.toLowerCase().includes(searchTerm) ||
+                camera.ip_address.toLowerCase().includes(searchTerm) ||
+                camera.location.toLowerCase().includes(searchTerm)
+            );
+            
+            if (filteredCameras.length === 0 && searchTerm.length > 0) {
+                // Show "no results" message
+                const noResults = document.createElement('div');
+                noResults.className = 'no-results';
+                noResults.innerHTML = `
+                    <i class="fas fa-search"></i>
+                    <span>No cameras found matching "${searchTerm}"</span>
+                `;
+                availableList.appendChild(noResults);
+            } else {
+                filteredCameras.forEach(camera => {
+                    const cameraItem = createCameraItem(camera, false);
+                    availableList.appendChild(cameraItem);
+                });
+                
+                // Re-initialize drag and drop for filtered items
+                initializeDragAndDrop();
+            }
+            
+            // Check if scrolling is needed after filtering
+            setTimeout(() => {
+                checkScrollableLists();
+            }, 100);
+        }
+
+        function checkScrollableLists() {
+            const availableList = document.getElementById("groupCameraList");
+            const selectedList = document.getElementById("selectedCameraList");
+            const availableContainer = document.getElementById("availableCameras");
+            const selectedContainer = document.getElementById("selectedCameras");
+            
+            // Check available cameras list
+            if (availableList.scrollHeight > availableList.clientHeight) {
+                availableContainer.classList.add('scrollable');
+            } else {
+                availableContainer.classList.remove('scrollable');
+            }
+            
+            // Check selected cameras list
+            if (selectedList.scrollHeight > selectedList.clientHeight) {
+                selectedContainer.classList.add('scrollable');
+            } else {
+                selectedContainer.classList.remove('scrollable');
+            }
+        }
+
+        function createCameraItem(camera, isSelected) {
+            const item = document.createElement('div');
+            item.className = 'camera-item';
+            item.draggable = true;
+            item.dataset.cameraId = camera.id;
+            item.innerHTML = `
+                <i class="fas fa-video"></i>
+                <span>${camera.name} (${camera.ip_address})</span>
+                ${isSelected ? '<i class="fas fa-check-circle" style="margin-left: auto; color: #28a745;"></i>' : ''}
+            `;
+            return item;
+        }
+
+        function initializeDragAndDrop() {
+            const availableList = document.getElementById("groupCameraList");
+            const selectedList = document.getElementById("selectedCameraList");
+            
+            // Add drag event listeners to camera items
+            const cameraItems = document.querySelectorAll('.camera-item');
+            cameraItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+            
+            // Add drop event listeners to both lists
+            [availableList, selectedList].forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragenter', handleDragEnter);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.outerHTML);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedElement = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragEnter(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.available-cameras, .selected-cameras');
+            if (dropZone) {
+                dropZone.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const dropZone = e.target.closest('.available-cameras, .selected-cameras');
+            if (dropZone) {
+                dropZone.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const dropZone = e.target.closest('.available-cameras, .selected-cameras');
+            if (dropZone) {
+                dropZone.classList.remove('drag-over');
+            }
+            
+            if (!draggedElement) return;
+            
+            const cameraId = draggedElement.dataset.cameraId;
+            const isFromSelected = draggedElement.closest('#selectedCameraList');
+            const isToSelected = e.target.closest('#selectedCameraList');
+            
+            if (isFromSelected && !isToSelected) {
+                // Moving from selected to available
+                moveCameraToAvailable(cameraId);
+            } else if (!isFromSelected && isToSelected) {
+                // Moving from available to selected
+                moveCameraToSelected(cameraId);
+            }
+        }
+
+        function moveCameraToSelected(cameraId) {
+            const camera = cameras.find(c => c.id == cameraId);
+            if (!camera) return;
+            
+            const availableList = document.getElementById("groupCameraList");
+            const selectedList = document.getElementById("selectedCameraList");
+            
+            // Remove from available arrays
+            window.availableCameras = window.availableCameras.filter(c => parseInt(c.id) != parseInt(cameraId));
+            window.selectedCameras.push(camera);
+            
+            // Remove from available list
+            const availableItem = availableList.querySelector(`[data-camera-id="${cameraId}"]`);
+            if (availableItem) {
+                availableItem.remove();
+            }
+            
+            // Add to selected
+            const selectedItem = createCameraItem(camera, true);
+            selectedList.appendChild(selectedItem);
+            
+            // Re-initialize drag and drop for new item
+            selectedItem.addEventListener('dragstart', handleDragStart);
+            selectedItem.addEventListener('dragend', handleDragEnd);
+            
+            // Check if scrolling is needed after moving
+            setTimeout(() => {
+                checkScrollableLists();
+            }, 100);
+        }
+
+        function moveCameraToAvailable(cameraId) {
+            const camera = cameras.find(c => c.id == cameraId);
+            if (!camera) return;
+            
+            const availableList = document.getElementById("groupCameraList");
+            const selectedList = document.getElementById("selectedCameraList");
+            
+            // Remove from selected arrays
+            window.selectedCameras = window.selectedCameras.filter(c => parseInt(c.id) != parseInt(cameraId));
+            window.availableCameras.push(camera);
+            
+            // Remove from selected list
+            const selectedItem = selectedList.querySelector(`[data-camera-id="${cameraId}"]`);
+            if (selectedItem) {
+                selectedItem.remove();
+            }
+            
+            // Re-filter available cameras to show the moved camera
+            filterAvailableCameras();
+            
+            // Check if scrolling is needed after moving
+            setTimeout(() => {
+                checkScrollableLists();
+            }, 100);
         }
 
         async function saveGroup() {
             const name = document.getElementById("groupName").value.trim();
-            const cameraIds = Array.from(
-                document.querySelectorAll(
-                    '#groupCameraList input[type="checkbox"]:checked'
-                )
-            ).map((i) => i.value);
+            const selectedList = document.getElementById("selectedCameraList");
+            const cameraIds = Array.from(selectedList.querySelectorAll('.camera-item'))
+                .map(item => parseInt(item.dataset.cameraId));
             if (!name) {
                 alert("Enter a group name");
                 return;
@@ -2748,7 +3982,7 @@
                     if (!res.ok) throw new Error("Failed to update group");
                 }
                 document.getElementById("groupName").value = "";
-                toggleGroupForm();
+                closeGroupForm();
                 await loadGroups();
                 // keep selection
                 if (editingGroupId) {
@@ -2838,18 +4072,40 @@
                 return;
             }
 
-            visible.forEach((camera) => {
-                const card = document.createElement("div");
-                card.className = "camera-card";
+            // Create table container
+            const table = document.createElement("div");
+            table.className = "camera-table";
+            
+            // Create table header (fixed)
+            const header = document.createElement("div");
+            header.className = "camera-table-header";
+            header.innerHTML = `
+                <div class="camera-col-name">Camera Name</div>
+                <div class="camera-col-id">ID</div>
+                <div class="camera-col-location">Location</div>
+                <div class="camera-col-ip">IP Address</div>
+                <div class="camera-col-resolution">Resolution</div>
+                <div class="camera-col-framerate">Frame Rate</div>
+                <div class="camera-col-features">AI Features</div>
+                <div class="camera-col-alerts">Alerts</div>
+                <div class="camera-col-status">Status</div>
+                <div class="camera-col-recording">Recording</div>
+                <div class="camera-col-actions">Actions</div>
+            `;
+            table.appendChild(header);
 
-                const statusClass =
-                    camera.status === "Active" ? "status-active" : "status-maintenance";
-                const recordingClass = camera.is_recording ?
-                    "recording-on" :
-                    "recording-off";
-                const recordingText = camera.is_recording ?
-                    "Recording" :
-                    "Not Recording";
+            // Create scrollable content container
+            const content = document.createElement("div");
+            content.className = "camera-table-content";
+
+            // Create camera rows
+            visible.forEach((camera) => {
+                const row = document.createElement("div");
+                row.className = "camera-table-row";
+
+                const statusClass = camera.status === "Active" ? "status-active" : "status-maintenance";
+                const recordingClass = camera.is_recording ? "recording-on" : "recording-off";
+                const recordingText = camera.is_recording ? "Recording" : "Not Recording";
 
                 // Get camera details
                 const resolution = camera.resolution || camera.camera_settings?.resolution || '1920x1080';
@@ -2863,45 +4119,46 @@
                 if (alertSettings.email_alerts) alertTypes.push('Email');
                 if (alertSettings.in_app_alerts !== false) alertTypes.push('In-App');
 
-                card.innerHTML = `
-                    <div class="camera-name">${camera.name}</div>
-                    <div class="camera-info">
-                        <p><strong>ID:</strong> ${camera.id}</p>
-                        <p><strong>Location:</strong> ${camera.location}</p>
-                        <p><strong>IP:</strong> ${camera.ip_address}</p>
-                        <p><strong>MAC:</strong> ${camera.mac_address || 'Not specified'}</p>
-                        <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${
-            camera.status
-          }</span></p>
-                        <p><strong>Resolution:</strong> ${resolution}</p>
-                        <p><strong>Frame Rate:</strong> ${frameRate} fps</p>
-                        <p><strong>AI Features:</strong> ${enabledFeatures} enabled</p>
-                        <p><strong>Alerts:</strong> ${alertTypes.length > 0 ? alertTypes.join(', ') : 'None'}</p>
+                row.innerHTML = `
+                    <div class="camera-col-name">
+                        <div class="camera-name-with-status">
+                            <span class="status-dot ${statusClass}"></span>
+                            <span class="camera-name-text">${camera.name}</span>
+                        </div>
                     </div>
-                    <div class="recording-toggle">
-                        <label class="toggle-switch">
-                            <input type="checkbox" ${
-                              camera.is_recording ? "checked" : ""
-                            } 
-                                   onchange="toggleRecording('${
-                                     camera.id
-                                   }', this.checked, this)">
-                            <span class="slider"></span>
+                    <div class="camera-col-id">${camera.id}</div>
+                    <div class="camera-col-location">${camera.location}</div>
+                    <div class="camera-col-ip">${camera.ip_address}</div>
+                    <div class="camera-col-resolution">${resolution}</div>
+                    <div class="camera-col-framerate">${frameRate}fps</div>
+                    <div class="camera-col-features">${enabledFeatures} enabled</div>
+                    <div class="camera-col-alerts">${alertTypes.length > 0 ? alertTypes.join(', ') : 'None'}</div>
+                    <div class="camera-col-status">
+                        <span class="status-badge ${statusClass}">${camera.status}</span>
+                    </div>
+                    <div class="camera-col-recording">
+                        <span class="recording-badge ${recordingClass}">${recordingText}</span>
+                    </div>
+                    <div class="camera-col-actions">
+                        <button class="btn btn-sm btn-primary" onclick="promptEditCamera('${camera.id}')" title="Edit Camera">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteCamera('${camera.id}')" title="Delete Camera">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <label class="toggle-switch-small" title="Toggle Recording">
+                            <input type="checkbox" ${camera.is_recording ? 'checked' : ''} 
+                                   onchange="toggleRecording('${camera.id}', this.checked, this)">
+                            <span class="slider-small"></span>
                         </label>
-                        <span class="toggle-label ${recordingClass}" id="label-${
-            camera.id
-          }">${recordingText}</span>
-                        <button class="inline-btn" style="margin-left:8px;" onclick="promptEditCamera('${
-                          camera.id
-                        }')">Edit</button>
-                        <button class="inline-btn" style="margin-left:8px;background:#dc3545" onclick="deleteCamera('${
-                          camera.id
-                        }')">Delete</button>
                     </div>
                 `;
 
-                grid.appendChild(card);
+                content.appendChild(row);
             });
+
+            table.appendChild(content);
+            grid.appendChild(table);
         }
 
         // Update statistics
@@ -4021,21 +5278,67 @@
             const video = currentVideos.find(v => v.filename === filename);
             if (!video) return;
 
-            const videoPlayer = document.getElementById('videoPlayer');
-            const videoPlayerSection = document.getElementById('videoPlayerSection');
-            const videoTitle = document.getElementById('videoTitle');
-            const videoDetails = document.getElementById('videoDetails');
+            // Open video in modal
+            openVideoModal(video);
+        }
 
-            videoPlayer.src = `/api/videos/play/${filename}`;
-            videoTitle.textContent = video.filename;
-            videoDetails.innerHTML = `
-                <strong>Camera:</strong> ${video.camera_name}<br>
-                <strong>Date:</strong> ${new Date(video.created_at).toLocaleString()}<br>
-                <strong>Size:</strong> ${formatFileSize(video.size)}
-            `;
+        function openVideoModal(video) {
+            const modal = document.getElementById('videoModal');
+            const modalVideoPlayer = document.getElementById('modalVideoPlayer');
+            const modalVideoTitle = document.getElementById('modalVideoTitle');
+            const modalVideoCamera = document.getElementById('modalVideoCamera');
+            const modalVideoDate = document.getElementById('modalVideoDate');
+            const modalVideoSize = document.getElementById('modalVideoSize');
+
+            // Set video source and info
+            modalVideoPlayer.src = `/api/videos/play/${video.filename}`;
+            modalVideoTitle.textContent = video.filename;
+            modalVideoCamera.textContent = video.camera_name;
+            modalVideoDate.textContent = new Date(video.created_at).toLocaleString();
+            modalVideoSize.textContent = formatFileSize(video.size);
+
+            // Show modal
+            modal.style.display = 'flex';
+            document.body.classList.add('modal-open');
+            // Force reflow to ensure display is set before adding class
+            modal.offsetHeight;
+            modal.classList.add('show');
+
+            // Store current video for download function
+            window.currentModalVideo = video;
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const modalVideoPlayer = document.getElementById('modalVideoPlayer');
             
-            videoPlayerSection.style.display = 'block';
-            videoPlayerSection.scrollIntoView({ behavior: 'smooth' });
+            // Pause video and clear source
+            modalVideoPlayer.pause();
+            modalVideoPlayer.src = '';
+            
+            // Hide modal
+            modal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+            
+            // Add fade out animation
+            modal.style.animation = 'modalFadeOut 0.3s ease-in';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.style.animation = '';
+            }, 300);
+        }
+
+        function downloadVideoFromModal() {
+            if (window.currentModalVideo) {
+                downloadVideo(window.currentModalVideo.filename);
+            }
+        }
+
+        function handleVideoModalClick(event) {
+            // Close modal when clicking on the backdrop (not the modal content)
+            if (event.target === event.currentTarget) {
+                closeVideoModal();
+            }
         }
 
         function downloadVideo(filename) {
