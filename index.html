@@ -1295,65 +1295,41 @@
             border-left: 4px solid #17a2b8;
         }
 
-        /* Elegant Group Form Styles */
-        .elegant-group-form {
+        /* Group Form Styles */
+        #group-form-view {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .elegant-group-form.show {
-            display: flex;
-        }
-
-        .modal-content {
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 800px;
-            width: 100%;
-            max-height: 90vh;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
-            border: 1px solid #e9ecef;
-            animation: modalSlideIn 0.3s ease-out;
+            animation: slideInFromRight 0.3s ease-out;
         }
 
-        @keyframes modalSlideIn {
+        #group-form-view.show {
+            display: block;
+        }
+
+        @keyframes slideInFromRight {
             from {
                 opacity: 0;
-                transform: scale(0.9) translateY(-20px);
+                transform: translateX(20px);
             }
             to {
                 opacity: 1;
-                transform: scale(1) translateY(0);
+                transform: translateX(0);
             }
         }
 
-        @keyframes modalFadeOut {
-            from {
-                opacity: 1;
-            }
-            to {
-                opacity: 0;
-            }
-        }
 
         .group-form-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 20px 25px;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px 8px 0 0;
         }
 
         .group-form-title {
@@ -1368,7 +1344,7 @@
             font-size: 20px;
         }
 
-        .close-btn {
+        .back-btn {
             background: rgba(255, 255, 255, 0.2);
             border: none;
             color: white;
@@ -1380,15 +1356,18 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
+            margin-right: 12px;
         }
 
-        .close-btn:hover {
+        .back-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             transform: scale(1.1);
         }
 
         .group-form-body {
             padding: 25px;
+            flex: 1;
+            overflow-y: auto;
         }
 
         .form-group {
@@ -1626,6 +1605,7 @@
             justify-content: flex-end;
             gap: 12px;
             border-top: 1px solid #e9ecef;
+            border-radius: 0 0 8px 8px;
         }
 
         .btn {
@@ -1660,15 +1640,11 @@
             transform: translateY(-2px);
         }
 
-        /* Mobile responsiveness for elegant group form */
+        /* Mobile responsiveness for group form */
         @media (max-width: 768px) {
-            .elegant-group-form {
-                padding: 10px;
-            }
-            
-            .modal-content {
-                max-width: 100%;
-                max-height: 95vh;
+            #group-form-view {
+                margin: 0;
+                border-radius: 0;
             }
             
             .camera-selection-area {
@@ -3085,78 +3061,81 @@
                         </div>
                     </div>
                     <div id="groups-section" style="padding: 20px 20px 20px 20px;">
-                        <div class="discovered-section-title">Groups</div>
-                        <div class="group-controls">
-                            <select id="groupSelect" class="group-select" onchange="onGroupChange()">
-                  <option value="__all__">All cameras</option>
-                </select>
-                            <button class="inline-btn" style="background:#2a303f;" onclick="startCreateGroup()">
-                  ➕ Create Group
-                </button>
-                            <button class="inline-btn" id="editGroupBtn" style="background: #2a303f;" onclick="startEditGroup()" disabled>
-                  ✏️ Edit Group
-                </button>
-                            <button class="inline-btn" id="deleteGroupBtn" style="background: #2a303f;" onclick="deleteGroup()" disabled>
-                  🗑️ Delete
-                </button>
-                        </div>
-                        <div id="groupMembers" class="discovered-list" style="display: none; margin-top: 8px"></div>
-                        <div id="groupForm" class="elegant-group-form" onclick="handleModalClick(event)">
-                            <div class="modal-content" onclick="event.stopPropagation()">
-                                <div class="group-form-header">
-                                    <div class="group-form-title">
-                                        <i class="fas fa-layer-group"></i>
-                                        <span id="groupFormTitle">Create New Group</span>
+                        <!-- Groups List View -->
+                        <div id="groups-list-view">
+                            <div class="discovered-section-title">Groups</div>
+                            <div class="group-controls">
+                                <select id="groupSelect" class="group-select" onchange="onGroupChange()">
+                      <option value="__all__">All cameras</option>
+                    </select>
+                                <button class="inline-btn" style="background:#2a303f;" onclick="startCreateGroup()">
+                      ➕ Create Group
+                    </button>
+                                <button class="inline-btn" id="editGroupBtn" style="background: #2a303f;" onclick="startEditGroup()" disabled>
+                      ✏️ Edit Group
+                    </button>
+                                <button class="inline-btn" id="deleteGroupBtn" style="background: #2a303f;" onclick="deleteGroup()" disabled>
+                      🗑️ Delete
+                    </button>
                             </div>
-                                    <button class="close-btn" onclick="toggleGroupForm()">
-                                        <i class="fas fa-times"></i>
+                            <div id="groupMembers" class="discovered-list" style="display: none; margin-top: 8px"></div>
+                        </div>
+
+                        <!-- Group Form View -->
+                        <div id="group-form-view" style="display: none;">
+                            <div class="group-form-header">
+                                <div class="group-form-title">
+                                    <button class="back-btn" onclick="showGroupsListView()">
+                                        <i class="fas fa-arrow-left"></i>
                                     </button>
+                                    <i class="fas fa-layer-group"></i>
+                                    <span id="groupFormTitle">Create New Group</span>
+                                </div>
+                            </div>
+                            
+                            <div class="group-form-body">
+                                <div class="form-group">
+                                    <label for="groupName">
+                                        <i class="fas fa-tag"></i>
+                                        Group Name
+                                    </label>
+                                    <input id="groupName" type="text" placeholder="Enter group name..." />
                                 </div>
                                 
-                                <div class="group-form-body">
-                                    <div class="form-group">
-                                        <label for="groupName">
-                                            <i class="fas fa-tag"></i>
-                                            Group Name
-                                        </label>
-                                        <input id="groupName" type="text" placeholder="Enter group name..." />
+                                <div class="drag-drop-section">
+                                    <div class="section-header">
+                                        <i class="fas fa-camera"></i>
+                                        <span>Select Cameras</span>
+                                        <div class="drag-hint">Drag cameras between lists to add/remove from group</div>
                                     </div>
                                     
-                                    <div class="drag-drop-section">
-                                        <div class="section-header">
-                                            <i class="fas fa-camera"></i>
-                                            <span>Select Cameras</span>
-                                            <div class="drag-hint">Drag cameras between lists to add/remove from group</div>
+                                    <div class="camera-selection-area">
+                                    <div class="available-cameras" id="availableCameras">
+                                        <div class="section-label">Available Cameras</div>
+                                        <div class="camera-search-box">
+                                            <input type="text" id="cameraSearchInput" placeholder="Search cameras..." onkeyup="filterAvailableCameras()">
+                                            <i class="fas fa-search"></i>
                                         </div>
+                                        <div class="camera-list" id="groupCameraList"></div>
+                                    </div>
                                         
-                                        <div class="camera-selection-area">
-                                        <div class="available-cameras" id="availableCameras">
-                                            <div class="section-label">Available Cameras</div>
-                                            <div class="camera-search-box">
-                                                <input type="text" id="cameraSearchInput" placeholder="Search cameras..." onkeyup="filterAvailableCameras()">
-                                                <i class="fas fa-search"></i>
-                                            </div>
-                                            <div class="camera-list" id="groupCameraList"></div>
-                                        </div>
-                                            
-                                            <div class="selected-cameras" id="selectedCameras">
-                                                <div class="section-label">Selected for Group</div>
-                                                <div class="selected-list" id="selectedCameraList"></div>
-                                            </div>
+                                        <div class="selected-cameras" id="selectedCameras">
+                                            <div class="section-label">Selected for Group</div>
+                                            <div class="selected-list" id="selectedCameraList"></div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <div class="group-form-footer">
-                                    <button class="btn btn-secondary" onclick="toggleGroupForm()">
-                                        <i class="fas fa-times"></i>
+                            </div>
+                            
+                            <div class="group-form-footer">
+                                <button class="btn btn-secondary" onclick="showGroupsListView()">
+                                    <i class="fas fa-times"></i>
                     Cancel
                   </button>
-                                    <button class="btn btn-primary" onclick="saveGroup()">
-                                        <i class="fas fa-save"></i>
-                                        Create Group
+                                <button class="btn btn-primary" onclick="saveGroup()">
+                                    <i class="fas fa-save"></i>
+                                    Create Group
                   </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -4427,36 +4406,43 @@
         }
 
         function toggleGroupForm() {
-            const form = document.getElementById("groupForm");
-            if (form.classList.contains("show")) {
-                closeGroupForm();
-            } else {
-                form.style.display = "flex";
-                // Force reflow to ensure display is set before adding class
-                form.offsetHeight;
-                form.classList.add("show");
-                document.body.classList.add("modal-open");
-                populateGroupCameraList();
-                // Clear selected cameras when opening form
-                document.getElementById("selectedCameraList").innerHTML = "";
-                // Clear search input
-                const searchInput = document.getElementById("cameraSearchInput");
-                if (searchInput) {
-                    searchInput.value = "";
-                }
+            showGroupFormView();
+        }
+
+        function showGroupFormView() {
+            const groupsListView = document.getElementById("groups-list-view");
+            const groupFormView = document.getElementById("group-form-view");
+            
+            groupsListView.style.display = "none";
+            groupFormView.style.display = "block";
+            groupFormView.classList.add("show");
+            
+            populateGroupCameraList();
+            // Clear selected cameras when opening form
+            document.getElementById("selectedCameraList").innerHTML = "";
+            // Clear search input
+            const searchInput = document.getElementById("cameraSearchInput");
+            if (searchInput) {
+                searchInput.value = "";
             }
         }
 
+        function showGroupsListView() {
+            const groupsListView = document.getElementById("groups-list-view");
+            const groupFormView = document.getElementById("group-form-view");
+            
+            groupFormView.style.display = "none";
+            groupFormView.classList.remove("show");
+            groupsListView.style.display = "block";
+            
+            // Clear form data
+            document.getElementById("groupName").value = "";
+            document.getElementById("selectedCameraList").innerHTML = "";
+            editingGroupId = null;
+        }
+
         function closeGroupForm() {
-            const form = document.getElementById("groupForm");
-            form.classList.remove("show");
-            document.body.classList.remove("modal-open");
-            // Add fade out animation
-            form.style.animation = "modalFadeOut 0.3s ease-in";
-            setTimeout(() => {
-                form.style.display = "none";
-                form.style.animation = "";
-            }, 300);
+            showGroupsListView();
         }
 
         function handleModalClick(event) {
@@ -4470,7 +4456,7 @@
             editingGroupId = null;
             document.getElementById("groupFormTitle").textContent = "Create New Group";
             document.getElementById("groupName").value = "";
-            toggleGroupForm();
+            showGroupFormView();
             // Clear selected cameras
             setTimeout(() => {
                 document.getElementById("selectedCameraList").innerHTML = "";
@@ -4485,7 +4471,7 @@
             if (!group) return;
             document.getElementById("groupFormTitle").textContent = "Edit Group";
             document.getElementById("groupName").value = group.name || "";
-            toggleGroupForm();
+            showGroupFormView();
             setTimeout(() => populateGroupCameraList(group.camera_ids || []), 0);
         }
 
