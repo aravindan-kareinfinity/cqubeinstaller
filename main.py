@@ -772,6 +772,9 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                     "-crf", crf,
                     "-r", str(frame_rate),
                     "-vf", f"scale={resolution}",
+                    "-movflags", "+faststart",
+        "-avoid_negative_ts", "make_zero",  # Handle timestamp issues
+        "-fflags", "+genpts", 
                 ]
                 
                 # Add audio settings if enabled
