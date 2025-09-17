@@ -433,6 +433,205 @@
             }
         }
 
+        /* Dashboard Styles */
+        .dashboard-section {
+            padding: 0px 20px 20px 20px;
+        }
+
+        .dashboard-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-icon.active {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .stat-icon.recording {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .stat-icon.bandwidth {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .stat-icon.storage {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .stat-icon.groups {
+            background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+        }
+
+        .stat-content {
+            flex: 1;
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+            line-height: 1;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .stat-unit {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-top: 2px;
+        }
+
+        .dashboard-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .detail-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .detail-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+        }
+
+        .detail-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-content {
+            padding: 20px;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-label {
+            min-width: 80px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .status-progress {
+            flex: 1;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-bar.active {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+        }
+
+        .progress-bar.maintenance {
+            background: linear-gradient(90deg, #f44336, #d32f2f);
+        }
+
+        .status-percentage {
+            min-width: 40px;
+            text-align: right;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .storage-item, .network-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ecf0f1;
+        }
+
+        .storage-item:last-child, .network-item:last-child {
+            border-bottom: none;
+        }
+
+        .storage-label, .network-label {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .storage-value, .network-value {
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        /* Dashboard Responsive */
+        @media (max-width: 768px) {
+            .dashboard-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card {
+                padding: 15px;
+            }
+            
+            .stat-number {
+                font-size: 24px;
+            }
+        }
+
         .camera-card {
             background: #f8f9fa;
             border-radius: 8px;
@@ -2377,6 +2576,7 @@
                 <li>
                     <a class="nav-link active" href="#camera-section">📋 Camera List</a>
                 </li>
+                <li><a class="nav-link" href="#dashboard-section" onclick="showOnlySection('dashboard'); return false;">📊 Dashboard</a></li>
                 <li><a class="nav-link" href="#live-section">🎥 Live View</a></li>
                 <li><a class="nav-link" href="#video-playback-section">📹 Video Playback</a></li>
                 <li><a class="nav-link" href="#groups-section">👥 Groups</a></li>
@@ -2395,7 +2595,7 @@
                 <div class="stat-link logout-btn" id="logout-link" onclick="handleAuth()" style="display: none;">
                     <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
                 </div>
-            </div>
+                    </div>
         </aside>
 
         <div class="content-container">
@@ -2499,7 +2699,7 @@
                                     <div class="group-form-title">
                                         <i class="fas fa-layer-group"></i>
                                         <span id="groupFormTitle">Create New Group</span>
-                                    </div>
+                            </div>
                                     <button class="close-btn" onclick="toggleGroupForm()">
                                         <i class="fas fa-times"></i>
                                     </button>
@@ -2542,8 +2742,8 @@
                                 <div class="group-form-footer">
                                     <button class="btn btn-secondary" onclick="toggleGroupForm()">
                                         <i class="fas fa-times"></i>
-                                        Cancel
-                                    </button>
+                    Cancel
+                  </button>
                                     <button class="btn btn-primary" onclick="saveGroup()">
                                         <i class="fas fa-save"></i>
                                         Create Group
@@ -2607,22 +2807,171 @@
                                 Close
                             </button>
                         </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div class="dashboard-section" id="dashboard-section" style="display: none; padding: 0px 20px 20px 20px;">
+                <div class="section-title">📊 Dashboard</div>
+                
+                <!-- Statistics Cards -->
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="total-cameras">0</div>
+                            <div class="stat-label">Total Cameras</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon active">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="active-cameras">0</div>
+                            <div class="stat-label">Active Cameras</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon recording">
+                            <i class="fas fa-record-vinyl"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="recording-cameras">0</div>
+                            <div class="stat-label">Recording Cameras</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon bandwidth">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="total-bandwidth">0</div>
+                            <div class="stat-label">Total Bandwidth</div>
+                            <div class="stat-unit">Mbps</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon storage">
+                            <i class="fas fa-hdd"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="storage-used">0</div>
+                            <div class="stat-label">Storage Used</div>
+                            <div class="stat-unit">GB</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon groups">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-number" id="total-groups">0</div>
+                            <div class="stat-label">Camera Groups</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Live View Section -->
+                <!-- Detailed Statistics -->
+                <div class="dashboard-details">
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <h3><i class="fas fa-chart-line"></i> Camera Status Overview</h3>
+                        </div>
+                        <div class="detail-content">
+                            <div class="status-chart">
+                                <div class="status-bar">
+                                    <div class="status-label">Active</div>
+                                    <div class="status-progress">
+                                        <div class="progress-bar active" id="active-progress"></div>
+                                    </div>
+                                    <div class="status-percentage" id="active-percentage">0%</div>
+                                </div>
+                                <div class="status-bar">
+                                    <div class="status-label">Maintenance</div>
+                                    <div class="status-progress">
+                                        <div class="progress-bar maintenance" id="maintenance-progress"></div>
+                                    </div>
+                                    <div class="status-percentage" id="maintenance-percentage">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <h3><i class="fas fa-database"></i> Storage Information</h3>
+                        </div>
+                        <div class="detail-content">
+                            <div class="storage-info">
+                                <div class="storage-item">
+                                    <span class="storage-label">Total Space Used:</span>
+                                    <span class="storage-value" id="total-storage">0 GB</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span class="storage-label">Videos Recorded Today:</span>
+                                    <span class="storage-value" id="videos-today">0</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span class="storage-label">Average File Size:</span>
+                                    <span class="storage-value" id="avg-file-size">0 MB</span>
+                                </div>
+                                <div class="storage-item">
+                                    <span class="storage-label">Retention Period:</span>
+                                    <span class="storage-value">30 days</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="detail-card">
+                        <div class="detail-header">
+                            <h3><i class="fas fa-network-wired"></i> Network Information</h3>
+                        </div>
+                        <div class="detail-content">
+                            <div class="network-info">
+                                <div class="network-item">
+                                    <span class="network-label">Total Bandwidth:</span>
+                                    <span class="network-value" id="network-bandwidth">0 Mbps</span>
+                                </div>
+                                <div class="network-item">
+                                    <span class="network-label">Average per Camera:</span>
+                                    <span class="network-value" id="avg-bandwidth">0 Mbps</span>
+                                </div>
+                                <div class="network-item">
+                                    <span class="network-label">Peak Usage:</span>
+                                    <span class="network-value" id="peak-bandwidth">0 Mbps</span>
+                                </div>
+                                <div class="network-item">
+                                    <span class="network-label">Data Transferred Today:</span>
+                                    <span class="network-value" id="data-today">0 GB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live View Section -->
                 <div class="live-view-section" id="live-section">
                      <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                          <div>🎥 Live View</div>
                          <div style="display: flex; gap: 10px; align-items: center;">
-                             <select id="groupSelectLive" class="group-select" onchange="onLiveGroupChange()">
-                                 <option value="__all__">All cameras</option>
-                             </select>
-                             <button class="refresh-button" onclick="refreshLiveView()" style="margin-bottom: 0px">
-                                 🔄 Refresh Live View
-                             </button>
+                        <select id="groupSelectLive" class="group-select" onchange="onLiveGroupChange()">
+                <option value="__all__">All cameras</option>
+              </select>
+                        <button class="refresh-button" onclick="refreshLiveView()" style="margin-bottom: 0px">
+                🔄 Refresh Live View
+              </button>
                          </div>
-                     </div>
+                    </div>
                     <div class="live-view-grid" id="liveViewGrid">
                         <div class="no-active-cameras">
                             No active cameras. Turn on recording to see live feeds.
@@ -3535,6 +3884,7 @@
                 console.log('Number of cameras:', cameras.length);
                 displayCameras(cameras);
                 updateStats();
+                updateDashboardStats();
                 updateLiveView();
                 populateCameraDropdown();
                 await loadGroups();
@@ -4124,7 +4474,7 @@
                         <div class="camera-name-with-status">
                             <span class="status-dot ${statusClass}"></span>
                             <span class="camera-name-text">${camera.name}</span>
-                        </div>
+                    </div>
                     </div>
                     <div class="camera-col-id">${camera.id}</div>
                     <div class="camera-col-location">${camera.location}</div>
@@ -4170,6 +4520,66 @@
             document.getElementById("totalCameras").textContent = total;
             document.getElementById("activeCameras").textContent = active;
             document.getElementById("recordingCameras").textContent = recording;
+        }
+
+        // Update dashboard statistics
+        function updateDashboardStats() {
+            const total = cameras.length;
+            const active = cameras.filter(c => c.status === 'Active').length;
+            const recording = cameras.filter(c => c.is_recording).length;
+            const groupsCount = groups.length;
+            
+            // Calculate bandwidth (estimated based on camera settings)
+            let totalBandwidth = 0;
+            cameras.forEach(camera => {
+                const bitrate = camera.video_bitrate || 2000; // Default 2Mbps
+                totalBandwidth += bitrate;
+            });
+            
+            // Calculate storage (estimated)
+            const avgFileSize = 50; // MB per hour per camera
+            const hoursPerDay = 24;
+            const days = 30; // retention period
+            const totalStorage = (recording * avgFileSize * hoursPerDay * days) / 1024; // Convert to GB
+            
+            // Calculate videos recorded today (estimated)
+            const videosToday = recording * 24; // 1 video per hour per recording camera
+            
+            // Update main stats
+            document.getElementById('total-cameras').textContent = total;
+            document.getElementById('active-cameras').textContent = active;
+            document.getElementById('recording-cameras').textContent = recording;
+            document.getElementById('total-bandwidth').textContent = Math.round(totalBandwidth / 1000); // Convert to Mbps
+            document.getElementById('storage-used').textContent = Math.round(totalStorage);
+            document.getElementById('total-groups').textContent = groupsCount;
+            
+            // Update detailed stats
+            const activePercentage = total > 0 ? Math.round((active / total) * 100) : 0;
+            const maintenancePercentage = total > 0 ? Math.round(((total - active) / total) * 100) : 0;
+            
+            document.getElementById('active-percentage').textContent = activePercentage + '%';
+            document.getElementById('maintenance-percentage').textContent = maintenancePercentage + '%';
+            
+            // Animate progress bars
+            setTimeout(() => {
+                document.getElementById('active-progress').style.width = activePercentage + '%';
+                document.getElementById('maintenance-progress').style.width = maintenancePercentage + '%';
+            }, 100);
+            
+            // Update storage info
+            document.getElementById('total-storage').textContent = Math.round(totalStorage) + ' GB';
+            document.getElementById('videos-today').textContent = videosToday;
+            document.getElementById('avg-file-size').textContent = avgFileSize + ' MB';
+            
+            // Update network info
+            const avgBandwidth = total > 0 ? Math.round(totalBandwidth / total / 1000) : 0;
+            const peakBandwidth = Math.round(totalBandwidth / 1000 * 1.2); // 20% peak
+            const dataToday = Math.round((totalBandwidth / 1000) * 24 / 8); // Convert to GB
+            
+            document.getElementById('network-bandwidth').textContent = Math.round(totalBandwidth / 1000) + ' Mbps';
+            document.getElementById('avg-bandwidth').textContent = avgBandwidth + ' Mbps';
+            document.getElementById('peak-bandwidth').textContent = peakBandwidth + ' Mbps';
+            document.getElementById('data-today').textContent = dataToday + ' GB';
         }
 
         // Global variable to track selected camera for live view
@@ -5382,6 +5792,7 @@
             // Sidebar navigation: show only selected area
             function showOnlySection(sectionKey) {
                 const cameraSec = document.getElementById("camera-section");
+                const dashboardSec = document.getElementById("dashboard-section");
                 const liveSec = document.getElementById("live-section");
                 const analyticsSec = document.getElementById("analytics-section");
                 const settingsSec = document.getElementById("settings-section");
@@ -5393,6 +5804,7 @@
 
                 // Hide ALL sections first
                 if (cameraSec) cameraSec.style.display = "none";
+                if (dashboardSec) dashboardSec.style.display = "none";
                 if (liveSec) liveSec.style.display = "none";
                 if (analyticsSec) analyticsSec.style.display = "none";
                 if (settingsSec) settingsSec.style.display = "none";
@@ -5405,6 +5817,10 @@
                     if (cameraSec) cameraSec.style.display = "block";
                     if (statsEl) statsEl.style.display = "";
                     if (gridEl) gridEl.style.display = "";
+                } else if (sectionKey === "dashboard") {
+                    if (dashboardSec) dashboardSec.style.display = "block";
+                    // Update dashboard stats when shown
+                    updateDashboardStats();
                 } else if (sectionKey === "live") {
                     if (liveSec) liveSec.style.display = "block";
                 } else if (sectionKey === "video-playback") {
