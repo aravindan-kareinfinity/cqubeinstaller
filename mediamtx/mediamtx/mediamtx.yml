@@ -213,5 +213,3 @@ paths:
     source: rtsp://root:k2bsecure%3F%3F%3F@192.168.1.12/axis-media/media.amp
   98c9b45e-8ef5-41e7-b689-b81464ede864:
     source: rtsp://root:k2bsecure%3F%3F%3F@192.168.1.14/axis-media/media.amp
-  14f7d462-5657-4cfb-b389-01238b9282cc:
-    source: rtsp://root:abc@192.168.1.15:554/axis-media/media.amp

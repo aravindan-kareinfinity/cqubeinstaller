@@ -9,10 +9,14 @@ import requests
 import cv2
 import glob
 import urllib.parse
+import hashlib
+import pickle
 from datetime import datetime
 from flask import Flask, render_template, jsonify, request, send_from_directory, send_file, session, redirect, url_for, make_response
 from PIL import Image
 from io import BytesIO
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 app = Flask(__name__)
 app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
@@ -61,13 +65,507 @@ video_config = {
     'min_file_age_seconds': 15,  # Increase from 5 to 15 seconds
     'file_stability_check_seconds': 3  # Increase from 1 to 3 seconds
 }
-api_organization_id = 'default_org'
+def get_default_organization_id():
+    """Get the default organization ID from config.json"""
+    try:
+        with open('config.json', 'r') as f:
+            config_data = json.load(f)
+        if 'organizations' in config_data and len(config_data['organizations']) > 0:
+            return config_data['organizations'][0]['id']
+    except Exception as e:
+        print(f"⚠️ Error loading organization ID from config.json: {e}")
+    return 18  # Default fallback
+
+api_organization_id = get_default_organization_id()
+print(f"🏢 Default Organization ID loaded from config: {api_organization_id}")
+
+# Video status tracking
+VIDEO_STATUS_FILE = "video_upload_status.pkl"
+video_status = {}  # Dictionary to track video upload status
+
+def load_video_status():
+    """Load video upload status from file"""
+    global video_status
+    try:
+        if os.path.exists(VIDEO_STATUS_FILE):
+            with open(VIDEO_STATUS_FILE, 'rb') as f:
+                video_status = pickle.load(f)
+            print(f"📊 Loaded {len(video_status)} video status records")
+        else:
+            video_status = {}
+            print("📊 No existing video status file found, starting fresh")
+    except Exception as e:
+        print(f"⚠️ Error loading video status: {e}")
+        video_status = {}
+
+def save_video_status():
+    """Save video upload status to file"""
+    try:
+        with open(VIDEO_STATUS_FILE, 'wb') as f:
+            pickle.dump(video_status, f)
+    except Exception as e:
+        print(f"⚠️ Error saving video status: {e}")
+
+def update_video_status(file_path, status, error_msg=None, retry_count=None):
+    """Update video upload status"""
+    file_key = os.path.basename(file_path)
+    current_retry = video_status.get(file_key, {}).get('retry_count', 0)
+    video_status[file_key] = {
+        'file_path': file_path,
+        'status': status,  # 'pending', 'uploading', 'completed', 'failed'
+        'timestamp': datetime.now().isoformat(),
+        'error_msg': error_msg,
+        'retry_count': retry_count if retry_count is not None else current_retry
+    }
+    save_video_status()
+
+def process_pending_videos():
+    """Process videos that were not successfully uploaded on startup"""
+    print("🔄 Checking for pending video uploads...")
+    
+    pending_count = 0
+    failed_count = 0
+    
+    # Create a list of keys to remove to avoid modifying dict during iteration
+    keys_to_remove = []
+    
+    for file_key, status_info in video_status.items():
+        if status_info['status'] in ['pending', 'failed']:
+            file_path = status_info['file_path']
+            
+            # Check if file still exists
+            if not os.path.exists(file_path):
+                print(f"⚠️ File no longer exists, removing from status: {file_key}")
+                keys_to_remove.append(file_key)
+                continue
+            
+            # Check retry count (max 5 retries)
+            if status_info['retry_count'] >= 5:
+                print(f"❌ Max retries reached for {file_key}, marking as permanently failed")
+                update_video_status(file_path, 'failed', 'Max retries exceeded')
+                failed_count += 1
+                continue
+            
+            print(f"🔄 Retrying upload for {file_key} (attempt {status_info['retry_count'] + 1})")
+            pending_count += 1
+            
+            # Add to upload queue
+            upload_queue.append(file_path)
+    
+    # Remove keys that were marked for deletion
+    for key in keys_to_remove:
+        if key in video_status:
+            del video_status[key]
+    
+    if pending_count > 0:
+        print(f"📤 Queued {pending_count} pending videos for upload")
+    if failed_count > 0:
+        print(f"❌ {failed_count} videos marked as permanently failed")
+    
+    save_video_status()
+
+def enhanced_upload_video_to_api(video_file_path, organization_id=None, camera_guid=None, thumbnail_path=None):
+    """Enhanced upload function with status tracking"""
+    file_key = os.path.basename(video_file_path)
+    
+    try:
+        # Update status to uploading
+        update_video_status(video_file_path, 'uploading')
+        
+        # Call the original upload function
+        success = upload_video_to_api(video_file_path, organization_id, camera_guid, thumbnail_path)
+        
+        if success:
+            update_video_status(video_file_path, 'completed')
+            print(f"✅ Successfully uploaded and marked as completed: {file_key}")
+            return True
+        else:
+            # Increment retry count
+            current_retry = video_status.get(file_key, {}).get('retry_count', 0)
+            update_video_status(video_file_path, 'failed', 'Upload failed', current_retry + 1)
+            print(f"❌ Upload failed, marked for retry: {file_key}")
+            return False
+            
+    except Exception as e:
+        current_retry = video_status.get(file_key, {}).get('retry_count', 0)
+        update_video_status(video_file_path, 'failed', str(e), current_retry + 1)
+        print(f"❌ Upload error: {file_key} - {e}")
+        return False
+
+class VideoFileHandler(FileSystemEventHandler):
+    """File system event handler for video files"""
+    
+    def __init__(self, upload_callback):
+        self.upload_callback = upload_callback
+        self.pending_files = {}  # Track files being written
+        
+    def on_created(self, event):
+        if not event.is_directory and event.src_path.endswith('.mp4'):
+            print(f"📁 New video file detected: {os.path.basename(event.src_path)}")
+            # Wait 30 seconds before even starting to monitor the file
+            self.pending_files[event.src_path] = {
+                'created_time': time.time(),
+                'last_size': 0,
+                'stable_count': 0,
+                'monitoring_started': False
+            }
+    
+    def on_modified(self, event):
+        if not event.is_directory and event.src_path.endswith('.mp4'):
+            if event.src_path in self.pending_files:
+                self._check_file_stability(event.src_path)
+    
+    def _check_file_stability(self, file_path):
+        """Check if file is stable (no longer being written) and has valid MP4 structure"""
+        try:
+            if not os.path.exists(file_path):
+                return
+                
+            file_info = self.pending_files[file_path]
+            current_time = time.time()
+            
+            # Wait 30 seconds before even starting to monitor the file
+            if not file_info['monitoring_started']:
+                if current_time - file_info['created_time'] < 30:
+                    return  # Still waiting
+                else:
+                    file_info['monitoring_started'] = True
+                    print(f"⏰ Starting to monitor file: {os.path.basename(file_path)}")
+            
+            current_size = os.path.getsize(file_path)
+            
+            # If file size hasn't changed, increment stable count
+            if current_size == file_info['last_size'] and current_size > 0:
+                file_info['stable_count'] += 1
+            else:
+                file_info['stable_count'] = 0
+                file_info['last_size'] = current_size
+            
+            # If file has been stable for 15 consecutive checks (very conservative for MP4)
+            if file_info['stable_count'] >= 15:
+                # Additional MP4 structure validation
+                if self._validate_mp4_structure(file_path):
+                    print(f"✅ File stable and ready for upload: {os.path.basename(file_path)}")
+                    del self.pending_files[file_path]
+                    
+                    # Check if file is not already processed
+                    file_key = os.path.basename(file_path)
+                    if file_key not in video_status or video_status[file_key]['status'] != 'completed':
+                        update_video_status(file_path, 'pending')
+                        self.upload_callback(file_path)
+                    else:
+                        print(f"📋 File already processed: {file_key}")
+                else:
+                    print(f"⚠️ File structure validation failed: {os.path.basename(file_path)}")
+                    file_info['stable_count'] = 0  # Reset counter
+                    
+        except Exception as e:
+            print(f"⚠️ Error checking file stability for {file_path}: {e}")
+    
+    def _validate_mp4_structure(self, file_path):
+        """Validate MP4 file structure"""
+        try:
+            with open(file_path, 'rb') as f:
+                # Read first 1024 bytes to check for MP4 header
+                header = f.read(1024)
+                if len(header) < 1024:
+                    return False
+                
+                # Check for MP4 file signature (ftyp box)
+                if b'ftyp' not in header and b'moov' not in header:
+                    return False
+                
+                # Try to open with OpenCV to verify it's readable
+                cap = cv2.VideoCapture(file_path)
+                if not cap.isOpened():
+                    return False
+                
+                # Try to read first frame
+                ret, frame = cap.read()
+                cap.release()
+                
+                return ret and frame is not None
+                
+        except Exception as e:
+            print(f"⚠️ Error validating MP4 structure: {e}")
+            return False
+
+class VideoFileMonitor:
+    """Monitors video directory for new files"""
+    
+    def __init__(self, watch_directory, upload_callback):
+        self.watch_directory = watch_directory
+        self.upload_callback = upload_callback
+        self.observer = None
+        self.event_handler = VideoFileHandler(upload_callback)
+        self.monitor_thread = None
+        self.running = False
+    
+    def start(self):
+        """Start the file monitor"""
+        if self.running:
+            return
+            
+        self.running = True
+        self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+        self.monitor_thread.start()
+        print(f"👀 Started video file monitor for: {self.watch_directory}")
+    
+    def stop(self):
+        """Stop the file monitor"""
+        self.running = False
+        if self.observer:
+            self.observer.stop()
+            self.observer.join()
+        print("🛑 Video file monitor stopped")
+    
+    def _monitor_loop(self):
+        """Main monitoring loop"""
+        try:
+            self.observer = Observer()
+            self.observer.schedule(self.event_handler, self.watch_directory, recursive=True)
+            self.observer.start()
+            
+            while self.running:
+                time.sleep(1)
+                
+        except Exception as e:
+            print(f"❌ Error in file monitor: {e}")
+        finally:
+            if self.observer:
+                self.observer.stop()
+                self.observer.join()
 
 # Global variables for dedicated upload thread
 upload_thread = None
 upload_thread_running = False
 upload_queue = []  # Queue of videos waiting to be uploaded
 uploaded_files = set()  # Set of files that have been uploaded
+
+# Video state tracking for completion-based uploads
+video_states = {}  # Track video states per camera GUID
+last_video_times = {}  # Track last video modification times per camera
+
+# Global file monitor
+file_monitor = None
+
+# Global cleanup thread
+cleanup_thread = None
+cleanup_thread_running = False
+
+def cleanup_worker():
+    """Dedicated cleanup thread that handles file management and uploads"""
+    global cleanup_thread_running
+    
+    print("🧹 Cleanup worker thread started")
+    cleanup_thread_running = True
+    
+    while cleanup_thread_running:
+        try:
+            # Process all camera directories
+            if base_video_path and os.path.exists(base_video_path):
+                for date_dir in os.listdir(base_video_path):
+                    date_path = os.path.join(base_video_path, date_dir)
+                    if not os.path.isdir(date_path):
+                        continue
+                    
+                    # Look for camera GUID directories
+                    for guid_dir in os.listdir(date_path):
+                        guid_path = os.path.join(date_path, guid_dir)
+                        if not os.path.isdir(guid_path):
+                            continue
+                        
+                        # Process each hour directory
+                        for hour_dir in os.listdir(guid_path):
+                            hour_path = os.path.join(guid_path, hour_dir)
+                            if not os.path.isdir(hour_path):
+                                continue
+                            
+                            # Process video files in this hour directory
+                            process_video_files_in_directory(hour_path, guid_dir)
+            
+            # Sleep before next cleanup cycle
+            time.sleep(60)  # Check every 60 seconds to avoid processing incomplete files
+            
+        except Exception as e:
+            print(f"❌ Error in cleanup worker: {e}")
+            time.sleep(10)  # Shorter sleep on error
+    
+    print("🧹 Cleanup worker thread stopped")
+
+def process_video_files_in_directory(directory_path, camera_guid):
+    """Process video files in a specific directory for cleanup only (uploads handled by dedicated worker)"""
+    try:
+        # Get all .mp4 files in the directory
+        video_files = [f for f in os.listdir(directory_path) if f.endswith('.mp4')]
+        
+        for video_file in video_files:
+            file_path = os.path.join(directory_path, video_file)
+            file_key = os.path.basename(file_path)
+            
+            # Check if file is already processed
+            if file_key in video_status and video_status[file_key]['status'] == 'completed':
+                continue
+            
+            # Check if file is stable and has minimum size
+            if not is_file_stable(file_path):
+                continue
+            
+            # Check minimum file size (1KB = 1024 bytes)
+            file_size = os.path.getsize(file_path)
+            if file_size < 1024:
+                print(f"⚠️ File too small ({file_size} bytes), skipping: {video_file}")
+                continue
+            
+            # Check file age (must be at least 30 seconds old for segmented MP4 files)
+            try:
+                file_age = time.time() - os.path.getctime(file_path)
+                if file_age < 30:  # 30 seconds minimum age for segmented files
+                    print(f"⚠️ File too new ({file_age:.1f}s), skipping: {video_file}")
+                    continue
+            except Exception as e:
+                print(f"⚠️ Error checking file age: {e}")
+                continue
+            
+            # Only cleanup old files, uploads are handled by dedicated upload worker
+            print(f"🧹 Cleanup worker found stable file: {video_file} (upload handled by dedicated worker)")
+                
+    except Exception as e:
+        print(f"❌ Error processing directory {directory_path}: {e}")
+
+def is_file_stable(file_path, stability_checks=3):
+    """Check if file is stable (not being written) and has valid MP4 structure"""
+    try:
+        if not os.path.exists(file_path):
+            return False
+        
+        # Check if file is locked (being written to)
+        try:
+            with open(file_path, 'r+b') as f:
+                pass  # If we can open in read-write mode, file is not locked
+        except (PermissionError, OSError):
+            print(f"⚠️ File is locked (being written): {os.path.basename(file_path)}")
+            return False
+        
+        # Additional check: ensure file is not currently being written by checking if it's growing
+        initial_size = os.path.getsize(file_path)
+        time.sleep(1)  # Wait 1 second
+        current_size = os.path.getsize(file_path)
+        if current_size > initial_size:
+            print(f"⚠️ File is still growing ({initial_size} -> {current_size}): {os.path.basename(file_path)}")
+            return False
+        
+        # Check file size stability with shorter waits for faster processing
+        size1 = os.path.getsize(file_path)
+        time.sleep(2)  # Wait 2 seconds for MP4 files to be complete
+        size2 = os.path.getsize(file_path)
+        time.sleep(2)  # Wait another 2 seconds
+        size3 = os.path.getsize(file_path)
+        
+        # File is stable if size hasn't changed for 3 checks
+        if size1 != size2 or size2 != size3 or size1 <= 0:
+            return False
+        
+        # Additional check: verify MP4 structure
+        try:
+            with open(file_path, 'rb') as f:
+                # Read first 1024 bytes to check for MP4 header
+                header = f.read(1024)
+                if len(header) < 1024:
+                    return False
+                
+                # Check for MP4 file signature (ftyp box)
+                if b'ftyp' not in header and b'moov' not in header:
+                    return False
+                
+                # Use ffprobe to verify file is playable (more reliable than OpenCV for segmented MP4)
+                try:
+                    import subprocess
+                    result = subprocess.run(['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_format', file_path], 
+                                          capture_output=True, text=True, timeout=5)
+                    if result.returncode != 0:
+                        print(f"⚠️ File not playable (ffprobe failed): {os.path.basename(file_path)}")
+                        return False
+                    
+                    # Parse JSON to check duration and format
+                    import json
+                    probe_data = json.loads(result.stdout)
+                    if 'format' not in probe_data or 'duration' not in probe_data['format']:
+                        print(f"⚠️ Invalid format data: {os.path.basename(file_path)}")
+                        return False
+                        
+                    duration = float(probe_data['format']['duration'])
+                    if duration < 1.0:  # File too short, likely incomplete
+                        print(f"⚠️ File too short ({duration}s): {os.path.basename(file_path)}")
+                        return False
+                        
+                except Exception as e:
+                    print(f"⚠️ Error testing file with ffprobe: {e}")
+                    return False
+                
+                return True
+                
+        except Exception as e:
+            print(f"⚠️ Error verifying MP4 structure for {os.path.basename(file_path)}: {e}")
+            return False
+        
+    except Exception as e:
+        print(f"⚠️ Error checking file stability: {e}")
+        return False
+
+def generate_video_thumbnail(file_path):
+    """Generate thumbnail for video file"""
+    try:
+        thumbnail_filename = f"thumb_{os.path.splitext(os.path.basename(file_path))[0]}.jpg"
+        thumbnail_dir = os.path.dirname(file_path)
+        thumbnail_path = os.path.join(thumbnail_dir, thumbnail_filename)
+        
+        # Generate thumbnail using OpenCV
+        cap = cv2.VideoCapture(file_path)
+        if cap.isOpened():
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                # Resize frame for thumbnail
+                height, width = frame.shape[:2]
+                max_size = 320
+                if width > height:
+                    new_width = max_size
+                    new_height = int(height * max_size / width)
+                else:
+                    new_height = max_size
+                    new_width = int(width * max_size / height)
+                
+                thumbnail = cv2.resize(frame, (new_width, new_height))
+                cv2.imwrite(thumbnail_path, thumbnail)
+                cap.release()
+                return thumbnail_path
+            cap.release()
+    except Exception as e:
+        print(f"⚠️ Error generating thumbnail for {os.path.basename(file_path)}: {e}")
+    
+    return None
+
+def start_cleanup_thread():
+    """Start the cleanup thread"""
+    global cleanup_thread, cleanup_thread_running
+    
+    if cleanup_thread_running:
+        return
+    
+    cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True, name="CleanupWorker")
+    cleanup_thread.start()
+    print("🧹 Cleanup thread started")
+
+def stop_cleanup_thread():
+    """Stop the cleanup thread"""
+    global cleanup_thread_running
+    
+    cleanup_thread_running = False
+    if cleanup_thread and cleanup_thread.is_alive():
+        cleanup_thread.join(timeout=5)
+    print("🧹 Cleanup thread stopped")
+
+# video_upload_callback function removed - now using completion-based upload logic
 
 # Known camera vendors to help classify devices discovered on the LAN
 KNOWN_CAMERA_VENDORS = [
@@ -102,15 +600,7 @@ def validate_video_file(video_path):
             print(f"❌ Video file too small ({file_size} bytes), likely corrupted")
             return False
         
-        # For segment files, we need to be more lenient about the structure
-        # Check if file is being written to (size changes)
-        size1 = os.path.getsize(video_path)
-        stability_wait = video_config.get('file_stability_check_seconds', 3)
-        time.sleep(stability_wait)
-        size2 = os.path.getsize(video_path)
-        if size1 != size2:
-            print(f"❌ Video file is still being written (size changed: {size1} -> {size2})")
-            return False
+        # Skip stability check - process files immediately
         
         # For segment files, we can't always expect complete MP4 structure
         # Try to open with OpenCV first as a better validation method
@@ -249,8 +739,8 @@ def generate_video_thumbnail(video_path, thumbnail_path, timestamp_seconds=5):
         return False
 
 def dedicated_upload_worker():
-    """Dedicated thread that continuously uploads videos to server"""
-    global upload_thread_running, upload_queue, uploaded_files
+    """Dedicated thread that waits for video completion before uploading"""
+    global upload_thread_running, uploaded_files, video_states, last_video_times
     
     print("🚀 Starting dedicated upload worker thread...")
     
@@ -258,105 +748,143 @@ def dedicated_upload_worker():
         try:
             # Scan for new video files in the videos directory
             if os.path.exists(base_video_path):
+                current_time = time.time()
+                
+                # Get all video files sorted by modification time
+                video_files = []
                 for root, dirs, files in os.walk(base_video_path):
                     for file in files:
                         if file.endswith('.mp4'):
                             file_path = os.path.join(root, file)
-                            
-                            # Skip if already uploaded
-                            if file_path in uploaded_files:
-                                continue
-                            
-                            # Check if file is ready for upload (older than configured minimum age and stable)
-                            try:
-                                file_age = time.time() - os.path.getctime(file_path)
-                                min_age = video_config.get('min_file_age_seconds', 10)
-                                if file_age < min_age:  # File too new
-                                    continue
-                                
-                                # Comprehensive video validation
-                                if not validate_video_file(file_path):
-                                    print(f"⚠️ Video validation failed, skipping: {file}")
-                                    uploaded_files.add(file_path)  # Mark as processed to avoid retry
-                                    continue
-                                
-                                # Extract camera GUID from path
-                                path_parts = file_path.replace('\\', '/').split('/')
-                                camera_guid = None
-                                organization_id = api_organization_id
-                                
-                                # Look for GUID in path (format: videos/date/guid/hour/file.mp4)
-                                for i, part in enumerate(path_parts):
-                                    if part == 'videos' and i + 3 < len(path_parts):
-                                        # Check if next part looks like a date (YYYY-MM-DD)
-                                        if len(path_parts[i + 1]) == 10 and '-' in path_parts[i + 1]:
-                                            camera_guid = path_parts[i + 2]
-                                            break
-                                
-                                if not camera_guid:
-                                    print(f"⚠️ Could not extract camera GUID from path: {file_path}")
-                                    uploaded_files.add(file_path)
-                                    continue
-                                
-                                # Find camera config to get organization_id
-                                camera_config = None
-                                for camera in cameras_data:
-                                    if camera.get('GUID') == camera_guid:
-                                        camera_config = camera
-                                        break
-                                
-                                if camera_config:
-                                    organization_id = camera_config.get('organization_id', api_organization_id)
-                                
-                                # Generate thumbnail
-                                thumbnail_path = None
+                            if file_path not in uploaded_files:
                                 try:
-                                    thumbnail_filename = f"thumb_{os.path.splitext(file)[0]}.jpg"
-                                    thumbnail_path = os.path.join(os.path.dirname(file_path), thumbnail_filename)
-                                    
-                                    print(f"📷 Generating thumbnail for {file}...")
-                                    if generate_video_thumbnail(file_path, thumbnail_path, timestamp_seconds=5):
-                                        print(f"✅ Thumbnail generated: {thumbnail_filename}")
-                                    else:
-                                        print(f"⚠️ Thumbnail generation failed for {file}")
+                                    mod_time = os.path.getmtime(file_path)
+                                    video_files.append((file_path, mod_time))
+                                except OSError:
+                                    continue
+                
+                # Sort by modification time (oldest first)
+                video_files.sort(key=lambda x: x[1])
+                
+                for file_path, mod_time in video_files:
+                    try:
+                        # Extract camera GUID from path
+                        path_parts = file_path.replace('\\', '/').split('/')
+                        camera_guid = None
+                        
+                        # Look for GUID in path (format: videos/date/guid/hour/file.mp4)
+                        for i, part in enumerate(path_parts):
+                            if part == 'videos' and i + 3 < len(path_parts):
+                                # Check if next part looks like a date (YYYY-MM-DD)
+                                if len(path_parts[i + 1]) == 10 and '-' in path_parts[i + 1]:
+                                    camera_guid = path_parts[i + 2]
+                                    break
+                        
+                        if not camera_guid:
+                            print(f"⚠️ Could not extract camera GUID from path: {file_path}")
+                            uploaded_files.add(file_path)
+                            continue
+                        
+                        # Initialize camera state if not exists
+                        if camera_guid not in video_states:
+                            video_states[camera_guid] = {
+                                'current_file': None,
+                                'last_upload_time': 0,
+                                'pending_uploads': []
+                            }
+                        
+                        camera_state = video_states[camera_guid]
+                        
+                        # Check if this is a new video file (different from current)
+                        if camera_state['current_file'] != file_path:
+                            # If there was a previous file, it's now complete - add to pending uploads
+                            if camera_state['current_file'] and camera_state['current_file'] not in uploaded_files:
+                                print(f"📹 Video completed for camera {camera_guid}: {os.path.basename(camera_state['current_file'])}")
+                                camera_state['pending_uploads'].append(camera_state['current_file'])
+                            
+                            # Update current file
+                            camera_state['current_file'] = file_path
+                            last_video_times[camera_guid] = mod_time
+                            print(f"📹 New video started for camera {camera_guid}: {os.path.basename(file_path)}")
+                        
+                        # Check if current file is stable (not being written to)
+                        if camera_state['current_file'] == file_path:
+                            if is_file_stable(file_path, stability_checks=3):
+                                # File is stable, but don't upload yet - wait for next video
+                                print(f"✅ Video file stable for camera {camera_guid}: {os.path.basename(file_path)} (waiting for next video)")
+                            else:
+                                print(f"⏳ Video file still being written for camera {camera_guid}: {os.path.basename(file_path)}")
+                        
+                        # Process pending uploads (completed videos)
+                        if camera_state['pending_uploads']:
+                            print(f"📤 Processing {len(camera_state['pending_uploads'])} pending uploads for camera {camera_guid}")
+                            
+                            for pending_file in camera_state['pending_uploads'][:]:  # Copy list to avoid modification during iteration
+                                try:
+                                    # Double-check file is still stable before upload
+                                    if is_file_stable(pending_file, stability_checks=1):
+                                        print(f"🚀 Uploading completed video: {os.path.basename(pending_file)}")
+                                        
+                                        # Generate thumbnail
                                         thumbnail_path = None
-                                except Exception as e:
-                                    print(f"⚠️ Error generating thumbnail for {file}: {e}")
-                                    thumbnail_path = None
-                                
-                                # Upload video
-                                print(f"🚀 Uploading {file} (GUID: {camera_guid}, Org: {organization_id})")
-                                upload_success = upload_video_to_api(
-                                    file_path,
-                                    organization_id=organization_id,
-                                    camera_guid=camera_guid,
-                                    thumbnail_path=thumbnail_path
-                                )
-                                
-                                if upload_success:
-                                    print(f"✅ Successfully uploaded {file}")
-                                    uploaded_files.add(file_path)
-                                    
-                                    # Clean up thumbnail
-                                    if thumbnail_path and os.path.exists(thumbnail_path):
                                         try:
-                                            os.remove(thumbnail_path)
-                                            print(f"🗑️ Cleaned up thumbnail: {os.path.basename(thumbnail_path)}")
+                                            thumbnail_filename = f"thumb_{os.path.splitext(os.path.basename(pending_file))[0]}.jpg"
+                                            thumbnail_path = os.path.join(os.path.dirname(pending_file), thumbnail_filename)
+                                            
+                                            print(f"📷 Generating thumbnail for {os.path.basename(pending_file)}...")
+                                            if generate_video_thumbnail(pending_file, thumbnail_path, timestamp_seconds=5):
+                                                print(f"✅ Thumbnail generated: {thumbnail_filename}")
+                                            else:
+                                                print(f"⚠️ Thumbnail generation failed for {os.path.basename(pending_file)}")
+                                                thumbnail_path = None
                                         except Exception as e:
-                                            print(f"⚠️ Could not clean up thumbnail: {e}")
-                                else:
-                                    print(f"❌ Failed to upload {file}")
-                                
-                            except Exception as e:
-                                print(f"⚠️ Error processing file {file}: {e}")
-                                continue
+                                            print(f"⚠️ Error generating thumbnail for {os.path.basename(pending_file)}: {e}")
+                                            thumbnail_path = None
+                                        
+                                        # Upload video
+                                        upload_success = upload_video_to_api(
+                                            pending_file,
+                                            organization_id=api_organization_id,
+                                            camera_guid=camera_guid,
+                                            thumbnail_path=thumbnail_path
+                                        )
+                                        
+                                        if upload_success:
+                                            print(f"✅ Successfully uploaded {os.path.basename(pending_file)}")
+                                            uploaded_files.add(pending_file)
+                                            camera_state['last_upload_time'] = current_time
+                                            
+                                            # Clean up thumbnail
+                                            if thumbnail_path and os.path.exists(thumbnail_path):
+                                                try:
+                                                    os.remove(thumbnail_path)
+                                                    print(f"🗑️ Cleaned up thumbnail: {os.path.basename(thumbnail_path)}")
+                                                except Exception as e:
+                                                    print(f"⚠️ Could not clean up thumbnail: {e}")
+                                        else:
+                                            print(f"❌ Failed to upload {os.path.basename(pending_file)}")
+                                        
+                                        # Remove from pending list
+                                        camera_state['pending_uploads'].remove(pending_file)
+                                        
+                                    else:
+                                        print(f"⏳ Pending file still being written: {os.path.basename(pending_file)}")
+                                        
+                                except Exception as e:
+                                    print(f"⚠️ Error processing pending file {os.path.basename(pending_file)}: {e}")
+                                    # Remove from pending list to avoid infinite retry
+                                    camera_state['pending_uploads'].remove(pending_file)
+                    
+                    except Exception as e:
+                        print(f"⚠️ Error processing file {os.path.basename(file_path)}: {e}")
+                        continue
             
             # Sleep before next scan
-            time.sleep(5)  # Scan every 5 seconds
+            time.sleep(10)  # Scan every 10 seconds
             
         except Exception as e:
             print(f"❌ Error in dedicated upload worker: {e}")
-            time.sleep(10)  # Wait longer on error
+            time.sleep(15)  # Wait longer on error
     
     print("🛑 Dedicated upload worker thread stopped")
 
@@ -508,10 +1036,8 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None,
         # The actual upload attempt will determine if the server is working
         print(f"📡 Proceeding with upload to API server...")
         
-        # Comprehensive video validation before upload
-        if not validate_video_file(video_file_path):
-            print(f"❌ Video validation failed, skipping upload: {video_file_path}")
-            return False
+        # Skip video validation - push directly to API
+        print(f"📤 Skipping validation, pushing directly to API: {os.path.basename(video_file_path)}")
         
         # Upload to API if configured
         if video_config['upload_to_api']:
@@ -535,9 +1061,9 @@ def upload_video_to_api(video_file_path, organization_id=None, camera_guid=None,
                     print(f"❌ Error reading files for upload: {e}")
                     return False
                 
-                # Prepare form data
+                # Prepare form data - always use organization ID from config as source of truth
                 data = {
-                    'organization_id': str(organization_id or api_organization_id),
+                    'organization_id': str(api_organization_id),  # Always use config organization ID
                     'guid': str(camera_guid) if camera_guid else str(uuid.uuid4())
                 }
                 
@@ -772,9 +1298,8 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                     "-crf", crf,
                     "-r", str(frame_rate),
                     "-vf", f"scale={resolution}",
-                    "-movflags", "+faststart",
         "-avoid_negative_ts", "make_zero",  # Handle timestamp issues
-        "-fflags", "+genpts", 
+                    "-fflags", "+genpts"
                 ]
                 
                 # Add audio settings if enabled
@@ -784,16 +1309,18 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                         "-b:a", audio_bitrate,
                     ])
                 
-                # Add segment settings for video recording
+                # Create complete MP4 files with proper segmentation
                 video_ffmpeg_cmd.extend([
             "-f", "segment",
-                    "-segment_format", "mp4",  # Explicitly specify segment format
-                    "-movflags", "frag_keyframe+empty_moov+faststart",  # Critical for proper MP4 structure
+                    "-segment_format", "mp4",
+                    "-movflags", "+faststart",  # Create complete MP4 files
                     "-segment_time", str(segment_time),
                     "-segment_time_delta", "0.1",
             "-reset_timestamps", "1",
-            "-strftime", "1",
-            "-avoid_negative_ts", "make_zero",
+                    "-segment_atclocktime", "1",  # Align to clock time
+                    "-strftime", "1",  # Enable strftime in segment names
+                    "-force_key_frames", f"expr:gte(t,n_forced*{segment_time})",  # Force keyframes at segment boundaries
+                    "-g", str(int(frame_rate) * segment_time),  # Set GOP size to match segment time
             os.path.join(output_dir, "%H%M.mp4")
                 ])
                 
@@ -822,23 +1349,13 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                 video_monitor_thread.daemon = True
                 video_monitor_thread.start()
                 
-                # Monitor file creation during video creation
+                # Simple file monitoring for logging only (no upload processing)
                 def monitor_files():
                     last_files = set()
-                    processing_files = set()
-                    processed_files = set()  # Track files that have been processed
-                    pending_files = {}  # Track files that are too new: {filename: {'added_time': time, 'retry_count': int}}
-                    cleanup_counter = 0  # Counter for periodic cleanup
                     while video_process.poll() is None and not stop_flags.get(camera_id, False):
                         try:
                             # Update output directory in case hour changed
                             update_output_directory()
-                            
-                            # Periodic cleanup of corrupted files (every 10 iterations)
-                            cleanup_counter += 1
-                            if cleanup_counter >= 10:
-                                cleanup_corrupted_files(output_dir, camera_name)
-                                cleanup_counter = 0
                             
                             current_files = set()
                             if os.path.exists(output_dir):
@@ -846,232 +1363,20 @@ def camera_thread_function(camera_id, camera_name, camera_rtsp_url, camera_guid)
                                     if file.endswith('.mp4'):
                                         current_files.add(file)
                             
-                            # Check for new files
+                            # Check for new files and log them
                             new_files = current_files - last_files
                             if new_files:
                                 for new_file in new_files:
-                                    print(f"New file detected [{camera_name}]: {new_file}")
-                                    # Only add to processing if not already there and not already processed
-                                    if new_file not in processing_files and new_file not in processed_files and new_file not in pending_files:
-                                        # Check file age to avoid processing very new files
-                                        file_path = os.path.join(output_dir, new_file)
-                                        try:
-                                            file_age = time.time() - os.path.getctime(file_path)
-                                            min_age = video_config.get('min_file_age_seconds', 15)
-                                            if file_age < min_age:  # Less than configured minimum age
-                                                print(f"⏳ File {new_file} too new ({file_age:.1f}s), adding to pending queue")
-                                                pending_files[new_file] = {
-                                                    'added_time': time.time(),
-                                                    'retry_count': 0,
-                                                    'file_path': file_path
-                                                }
-                                            else:
-                                                processing_files.add(new_file)
-                                                print(f"New video file added to processing queue [{camera_name}]: {new_file}")
-                                        except Exception as e:
-                                            print(f"⚠️ Could not check file age for {new_file}: {e}")
-                                            processing_files.add(new_file)
-                                    elif new_file in processed_files:
-                                        print(f"File {new_file} already processed, skipping")
-                                    elif new_file in pending_files:
-                                        print(f"File {new_file} already in pending queue")
-                                    else:
-                                        print(f"File already in processing queue [{camera_name}]: {new_file}")
-                            
-                            # Check pending files to see if they're ready for processing
-                            current_time = time.time()
-                            files_to_move_from_pending = []
-                            
-                            for pending_file, pending_info in pending_files.items():
-                                file_age = current_time - pending_info['added_time']
-                                pending_info['retry_count'] += 1
-                                
-                                # Check if file is ready (older than configured minimum age) or max retries reached
-                                min_age = video_config.get('min_file_age_seconds', 15)
-                                if file_age >= min_age or pending_info['retry_count'] >= 10:
-                                    file_path = pending_info['file_path']
-                                    
-                                    # Final check if file exists and is stable
-                                    if os.path.exists(file_path):
-                                        try:
-                                            # Check if file is stable (no size changes for configured time)
-                                            stability_wait = video_config.get('file_stability_check_seconds', 3)
-                                            size1 = os.path.getsize(file_path)
-                                            time.sleep(stability_wait)
-                                            size2 = os.path.getsize(file_path)
-                                            
-                                            if size1 == size2 and size1 > 1024:  # File is stable and has content
-                                                print(f"✅ Pending file {pending_file} is now ready for processing (age: {file_age:.1f}s)")
-                                                processing_files.add(pending_file)
-                                                files_to_move_from_pending.append(pending_file)
-                                            else:
-                                                print(f"⚠️ Pending file {pending_file} still unstable, will retry")
-                                        except Exception as e:
-                                            print(f"⚠️ Error checking pending file {pending_file}: {e}")
-                                            files_to_move_from_pending.append(pending_file)  # Remove from pending
-                                    else:
-                                        print(f"⚠️ Pending file {pending_file} no longer exists, removing from queue")
-                                        files_to_move_from_pending.append(pending_file)
-                                else:
-                                    print(f"⏳ File {pending_file} still too new ({file_age:.1f}s), retry {pending_info['retry_count']}/10")
-                            
-                            # Remove files that are no longer pending
-                            for file_to_remove in files_to_move_from_pending:
-                                del pending_files[file_to_remove]
-                            
-                            # Check for completed files with better validation
-                            completed_files = set()
-                            files_to_remove = set()  # Track files to remove after iteration
-                            
-                            # Create a copy of processing_files to avoid modification during iteration
-                            for file in list(processing_files):
-                                file_path = os.path.join(output_dir, file)
-                                if os.path.exists(file_path):
-                                    try:
-                                        # Wait for file to stabilize (no size changes for configured time)
-                                        stability_wait = video_config.get('file_stability_check_seconds', 3)
-                                        size1 = os.path.getsize(file_path)
-                                        time.sleep(stability_wait)
-                                        size2 = os.path.getsize(file_path)
-                                        
-                                        if size1 == size2 and size1 > 1024:  # File size stable and > 1KB
-                                            # Additional validation: check if file can be opened and read
-                                            try:
-                                                with open(file_path, 'rb') as test_file:
-                                                    # Try to read first 1KB to check file integrity
-                                                    header = test_file.read(1024)
-                                                    if len(header) >= 1024 and b'mdat' in header:
-                                                        completed_files.add(file)
-                                                        print(f"✅ File validated and ready for processing: {file}")
-                                                    else:
-                                                        print(f"⚠️ File appears incomplete, skipping: {file}")
-                                                        files_to_remove.add(file)
-                                            except Exception as e:
-                                                print(f"⚠️ Cannot read file {file}, skipping: {e}")
-                                                files_to_remove.add(file)
-                                        elif size1 < 1024:
-                                            print(f"⚠️ File {file} too small ({size1} bytes), likely corrupted")
-                                            files_to_remove.add(file)
-                                        else:
-                                            print(f"🔄 File {file} still being written (size: {size1} -> {size2})")
-                                            # If file size is decreasing, it might be a new segment replacing old one
-                                            if size2 < size1:
-                                                print(f"⚠️ File {file} size decreased, likely new segment replacing old one")
-                                                files_to_remove.add(file)
-                                    except Exception as e:
-                                        print(f"⚠️ Error checking file {file}: {e}")
-                                        files_to_remove.add(file)
-                            
-                            # Remove files after iteration to avoid modification during iteration
-                            processing_files -= files_to_remove
-                            
-                            # Process completed files for upload
-                            for completed_file in completed_files:
-                                if completed_file in processing_files:
-                                    processing_files.remove(completed_file)
-                                
-                                print(f"File completed and validated [{camera_name}]: {completed_file}")
-                                file_path = os.path.join(output_dir, completed_file)
-                                
-                                # Double-check file still exists and is valid before processing
-                                if not os.path.exists(file_path):
-                                    print(f"⚠️ File {completed_file} no longer exists, skipping")
-                                    continue
-                                
-                                # Final validation before upload
-                                try:
-                                    final_size = os.path.getsize(file_path)
-                                    if final_size < 1024:
-                                        print(f"❌ File {completed_file} too small ({final_size} bytes), skipping upload")
-                                        continue
-                                    
-                                    # Test file readability
-                                    with open(file_path, 'rb') as test_file:
-                                        test_file.read(1024)
-                                    
-                                    print(f"✅ File {completed_file} passed final validation ({final_size} bytes)")
-                                    
-                                    # Upload video segment with thumbnail
-                                    def upload_segment():
-                                        try:
-                                            print(f"🚀 Starting upload for {completed_file} from camera {camera_name}")
-                                            
-                                            # Generate thumbnail
-                                            thumbnail_path = None
-                                            try:
-                                                # Create thumbnail filename
-                                                thumbnail_filename = f"thumb_{os.path.splitext(completed_file)[0]}.jpg"
-                                                thumbnail_path = os.path.join(output_dir, thumbnail_filename)
-                                                
-                                                print(f"📷 Generating thumbnail for {completed_file}...")
-                                                if generate_video_thumbnail(file_path, thumbnail_path, timestamp_seconds=5):
-                                                    print(f"✅ Thumbnail generated: {thumbnail_filename}")
-                                                else:
-                                                    print(f"⚠️ Thumbnail generation failed for {completed_file}")
-                                                    thumbnail_path = None
-                                            except Exception as e:
-                                                print(f"⚠️ Error generating thumbnail for {completed_file}: {e}")
-                                                thumbnail_path = None
-                                            
-                                            # Get organization_id from camera config or use default
-                                            camera_org_id = camera_config.get('organization_id') if camera_config else api_organization_id
-                                            print(f"📋 Using organization_id: {camera_org_id} for camera {camera_name}")
-                                            
-                                            # Upload video with thumbnail
-                                            upload_success = upload_video_to_api(
-                                                file_path, 
-                                                organization_id=camera_org_id, 
-                                                camera_guid=camera_guid,
-                                                thumbnail_path=thumbnail_path
-                                            )
-                                            
-                                            if upload_success:
-                                                print(f"✅ Upload completed for {completed_file} from camera {camera_name}")
-                                                # Mark as processed to avoid reprocessing
-                                                processed_files.add(completed_file)
-                                                
-                                                # Clean up thumbnail file after successful upload
-                                                if thumbnail_path and os.path.exists(thumbnail_path):
-                                                    try:
-                                                        os.remove(thumbnail_path)
-                                                        print(f"🗑️ Cleaned up thumbnail: {os.path.basename(thumbnail_path)}")
-                                                    except Exception as e:
-                                                        print(f"⚠️ Could not clean up thumbnail: {e}")
-                                            else:
-                                                print(f"❌ Upload failed for {completed_file} from camera {camera_name}")
-                                        except Exception as e:
-                                            print(f"❌ Upload error for {completed_file} from camera {camera_name}: {e}")
-                                    
-                                    upload_thread = threading.Thread(target=upload_segment, 
-                                                                  name=f"upload_{camera_name}_{completed_file}")
-                                    upload_thread.daemon = True
-                                    upload_thread.start()
-                                    
-                                    # Small delay to prevent overwhelming the server with simultaneous uploads
-                                    upload_delay = video_config.get('upload_delay_between_files', 0.5)
-                                    time.sleep(upload_delay)
-                                    
-                                except Exception as e:
-                                    print(f"❌ Final validation failed for {completed_file}: {e}")
-                                    continue
+                                    print(f"📹 New video file created [{camera_name}]: {new_file}")
                             
                             last_files = current_files
+                            time.sleep(5)  # Check every 5 seconds
                             
-                            # Clean up any files that are no longer in the directory
-                            files_to_remove_from_processing = set()
-                            for file in processing_files:
-                                if not os.path.exists(os.path.join(output_dir, file)):
-                                    files_to_remove_from_processing.add(file)
-                                    print(f"🗑️ File {file} no longer exists, removing from processing queue")
-                            
-                            processing_files -= files_to_remove_from_processing
-                            
-                            time.sleep(2)
                         except Exception as e:
                             print(f"Error monitoring files for {camera_name}: {e}")
                             time.sleep(5)
                 
-                # Start file monitoring thread
+                # Start simple file monitoring thread
                 file_monitor_thread = threading.Thread(target=monitor_files)
                 file_monitor_thread.daemon = True
                 file_monitor_thread.start()
@@ -3582,6 +3887,29 @@ def stop_frp_client_api():
             'message': f'Error stopping FRP client: {str(e)}'
         }), 500
 
+def initialize_video_monitoring():
+    """Initialize video file monitoring system"""
+    global file_monitor
+    
+    # Load video status on startup
+    load_video_status()
+    
+    # Process any pending videos from previous runs
+    process_pending_videos()
+    
+    # Determine video directory to monitor
+    video_base_dir = base_video_path if base_video_path else "videos"
+    
+    if not os.path.exists(video_base_dir):
+        os.makedirs(video_base_dir)
+        print(f"📁 Created video directory: {video_base_dir}")
+    
+    # Start file monitor (disabled for now - using cleanup thread only)
+    # file_monitor = VideoFileMonitor(video_base_dir, video_upload_callback)
+    # file_monitor.start()
+    
+    print(f"🎬 Video monitoring system initialized for: {video_base_dir} (using cleanup thread only)")
+
 def main():
     """Main function"""
     # Load cameras first
@@ -3597,6 +3925,12 @@ def main():
     # Start the dedicated upload thread
     start_dedicated_upload_thread()
     
+    # Initialize video monitoring system
+    initialize_video_monitoring()
+    
+    # Start cleanup thread for file management and uploads
+    start_cleanup_thread()
+    
     # Start the Flask server
     print("Starting Camera Management System...")
     print(f"Web interface available at: http://{server_config['host']}:{server_config['port']}")
@@ -3611,6 +3945,16 @@ def main():
         stop_mediamtx()
         # Stop dedicated upload thread
         stop_dedicated_upload_thread()
+        
+        # Stop file monitor
+        if file_monitor:
+            print("🛑 Stopping video file monitor...")
+            file_monitor.stop()
+        
+        # Stop cleanup thread
+        print("🛑 Stopping cleanup thread...")
+        stop_cleanup_thread()
+        
         # Stop all active threads
         for camera_id in list(active_threads.keys()):
             stop_camera_thread(camera_id)
