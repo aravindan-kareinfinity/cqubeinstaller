@@ -24,17 +24,32 @@ app.secret_key = 'cqubepro_secret_key_2024'  # Change this in production
 # Global variable to store camera data
 cameras_data = []
 
-# Global variable to store external API configuration
-external_api_config = {
-    "base_url": "http://127.0.0.1:9000"
+# Global configuration - centralized settings
+# This is the single source of truth for all URLs and server settings
+# To change the camera base URL, update the "camera_base_url" value below
+# To change the API base URL, update the "api_base_url" value below
+GLOBAL_CONFIG = {
+    "camera_base_url": "https://vms.cqubepro.com",  # Base URL for camera operations
+    "api_base_url": "https://vms.cqubepro.com",    # Base URL for API operations
+    "server": {
+        "host": "0.0.0.0",
+        "port": 5000,
+        "debug": False
+    }
 }
 
-# Global variable to store server configuration
-server_config = {
-    "host": "0.0.0.0",
-    "port": 5000,
-    "debug": False
+# Usage examples:
+# - Get camera base URL: get_camera_base_url()
+# - Get API base URL: get_api_base_url()
+# - Access server config: GLOBAL_CONFIG["server"]
+
+# Global variable to store external API configuration (deprecated - use GLOBAL_CONFIG)
+external_api_config = {
+    "base_url": GLOBAL_CONFIG["api_base_url"]
 }
+
+# Global variable to store server configuration (deprecated - use GLOBAL_CONFIG)
+server_config = GLOBAL_CONFIG["server"]
 
 # MediaMTX process management
 mediamtx_process = None
@@ -56,7 +71,7 @@ merging_tasks = {}
 video_config = {
     'upload_to_api': True,  # Enabled - API server is running
     'store_locally': True,
-    'api_url': 'http://127.0.0.1:9000/api/video/upload',  # Original API endpoint
+    'api_url': f"{GLOBAL_CONFIG['api_base_url']}/api/video/upload",  # Uses global config
     'api_key': 'your_api_key_here',
     'upload_retry_attempts': 3,
     'upload_timeout': 30,
@@ -65,6 +80,14 @@ video_config = {
     'min_file_age_seconds': 15,  # Increase from 5 to 15 seconds
     'file_stability_check_seconds': 3  # Increase from 1 to 3 seconds
 }
+def get_camera_base_url():
+    """Get the camera base URL from global configuration"""
+    return GLOBAL_CONFIG['camera_base_url']
+
+def get_api_base_url():
+    """Get the API base URL from global configuration"""
+    return GLOBAL_CONFIG['api_base_url']
+
 def get_default_organization_id():
     """Get the default organization ID from config.json"""
     try:
@@ -1529,7 +1552,7 @@ def load_cameras():
         
         print(f"Loaded {len(cameras_data)} cameras from config.json")
         print(f"Base video path: {base_video_path}")
-        print(f"External API config: {external_api_config['base_url']}")
+        print(f"External API config: {get_api_base_url()}")
         print(f"Server config: {server_config['host']}:{server_config['port']} (debug: {server_config['debug']})")
         print(f"Loaded {len(groups_data)} groups from config.json")
         
@@ -1791,7 +1814,7 @@ def create_camera():
     # Send to external API
     try:
         print(f"📡 Sending camera data to external API: {name}")
-        api_url = f"{external_api_config['base_url']}/cameras/"
+        api_url = f"{get_api_base_url()}/cameras/"
         api_response = requests.post(
             api_url,
             json=api_payload,
@@ -1948,7 +1971,7 @@ def update_camera(camera_id):
             
             if external_camera_id:
                 # Update existing camera in external API (handle both string and numeric IDs)
-                api_url = f"{external_api_config['base_url']}/cameras/{external_camera_id}"
+                api_url = f"{get_api_base_url()}/cameras/{external_camera_id}"
                 api_response = requests.put(
                     api_url,
                     json=api_payload,
@@ -1968,7 +1991,7 @@ def update_camera(camera_id):
                     print(f"❌ External API update error: {api_response.status_code} - {api_response.text}")
             else:
                 # Create new camera in external API if no external ID exists
-                api_url = f"{external_api_config['base_url']}/cameras/"
+                api_url = f"{get_api_base_url()}/cameras/"
                 api_response = requests.post(
                     api_url,
                     json=api_payload,
