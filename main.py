@@ -99,8 +99,48 @@ def get_default_organization_id():
         print(f"⚠️ Error loading organization ID from config.json: {e}")
     return 18  # Default fallback
 
+def fetch_cameras_from_api(organization_id=None):
+    """Fetch cameras list from external API and update config.json"""
+    try:
+        if organization_id is None:
+            organization_id = get_default_organization_id()
+        
+        # API endpoint for fetching cameras
+        api_url = f"http://192.168.1.6:9000/cameras/?organization_id={organization_id}"
+        
+        print(f"Fetching cameras from API: {api_url}")
+        
+        # Make API request
+        response = requests.get(api_url, timeout=10)
+        
+        if response.status_code == 200:
+            cameras_data = response.json()
+            print(f"Successfully fetched {len(cameras_data)} cameras from API")
+            
+            # Load current config
+            with open('config.json', 'r') as f:
+                config_data = json.load(f)
+            
+            # Update cameras in config
+            config_data['cameras'] = cameras_data
+            
+            # Save updated config
+            with open('config.json', 'w') as f:
+                json.dump(config_data, f, indent=2)
+            
+            print(f"Updated config.json with {len(cameras_data)} cameras")
+            return cameras_data
+            
+        else:
+            print(f"API request failed with status {response.status_code}: {response.text}")
+            return None
+            
+    except Exception as e:
+        print(f"Error fetching cameras from API: {e}")
+        return None
+
 api_organization_id = get_default_organization_id()
-print(f"🏢 Default Organization ID loaded from config: {api_organization_id}")
+print(f"Default Organization ID loaded from config: {api_organization_id}")
 
 # Video status tracking
 VIDEO_STATUS_FILE = "video_upload_status.pkl"
@@ -1614,6 +1654,28 @@ def get_cameras():
     """API endpoint to get all cameras"""
     return jsonify(cameras_data)
 
+@app.route('/api/cameras/fetch', methods=['POST'])
+def fetch_cameras():
+    """API endpoint to fetch cameras from external API and update config.json"""
+    try:
+        data = request.get_json() or {}
+        organization_id = data.get('organization_id')
+        
+        result = fetch_cameras_from_api(organization_id)
+        
+        if result is not None:
+            return jsonify({
+                'message': 'Cameras fetched successfully',
+                'count': len(result),
+                'cameras': result
+            })
+        else:
+            return jsonify({'error': 'Failed to fetch cameras from API'}), 500
+            
+    except Exception as e:
+        print(f"Error in fetch_cameras endpoint: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/cameras', methods=['POST'])
 def create_camera():
     """Create a new camera and persist in config.json
@@ -2517,6 +2579,12 @@ def login():
             
             session['user'] = user
             session['is_authenticated'] = True
+            
+            # Fetch cameras from API after successful login
+            try:
+                fetch_cameras_from_api()
+            except Exception as e:
+                print(f"Warning: Failed to fetch cameras after login: {e}")
             
             return jsonify({
                 'message': 'Login successful',
