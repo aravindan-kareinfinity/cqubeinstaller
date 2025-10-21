@@ -53,8 +53,8 @@ server_config = GLOBAL_CONFIG["server"]
 
 # MediaMTX process management
 mediamtx_process = None
-mediamtx_exe_path = os.path.abspath("mediamtx/mediamtx.exe")
-mediamtx_config_file = os.path.abspath("mediamtx/mediamtx/mediamtx.yml")
+mediamtx_exe_path = os.path.abspath("mediamtx.exe")
+mediamtx_config_file = os.path.abspath("mediamtx.yml")
 # Global variable to store base video path
 base_video_path = ""
 # Dictionary to store active threads for each camera
@@ -3229,7 +3229,7 @@ def update_config():
 def get_mediamtx_config():
     """Get MediaMTX configuration"""
     try:
-        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        config_path = 'mediamtx.yml'
         if not os.path.exists(config_path):
             return jsonify({'error': 'MediaMTX config file not found'}), 404
         
@@ -3257,7 +3257,7 @@ def save_mediamtx_config():
     """Save MediaMTX configuration"""
     try:
         data = request.get_json()
-        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        config_path = 'mediamtx.yml'
         
         if not os.path.exists(config_path):
             return jsonify({'error': 'MediaMTX config file not found'}), 404
@@ -3335,7 +3335,7 @@ def restart_mediamtx():
 def save_mediamtx_yaml():
     """Save MediaMTX YAML configuration file"""
     try:
-        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        config_path = 'mediamtx.yml'
         
         # Get the YAML content from request body
         yaml_content = request.get_data(as_text=True)
@@ -3355,7 +3355,7 @@ def save_mediamtx_yaml():
 def serve_mediamtx_yaml():
     """Serve MediaMTX YAML configuration file"""
     try:
-        config_path = 'mediamtx/mediamtx/mediamtx.yml'
+        config_path = 'mediamtx.yml'
         return send_file(config_path, mimetype='text/yaml')
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -3364,7 +3364,7 @@ def update_mediamtx_config(camera_guid, rtsp_url):
     """Update mediamtx.yml file with new camera entry using YAML"""
     try:
         import yaml
-        mediamtx_file = 'mediamtx/mediamtx/mediamtx.yml'
+        mediamtx_file = 'mediamtx.yml'
         
         # Read the current configuration
         with open(mediamtx_file, 'r', encoding='utf-8') as file:
@@ -3399,7 +3399,7 @@ def remove_mediamtx_config(camera_guid):
     """Remove camera entry from mediamtx.yml file using YAML"""
     try:
         import yaml
-        mediamtx_file = 'mediamtx/mediamtx/mediamtx.yml'
+        mediamtx_file = 'mediamtx.yml'
         
         # Read the current configuration
         with open(mediamtx_file, 'r', encoding='utf-8') as file:
@@ -3428,7 +3428,7 @@ def update_mediamtx_camera(camera_guid, rtsp_url):
     """Update existing camera entry in mediamtx.yml file using YAML"""
     try:
         import yaml
-        mediamtx_file = 'mediamtx/mediamtx/mediamtx.yml'
+        mediamtx_file = 'mediamtx.yml'
         
         # Read the current configuration
         with open(mediamtx_file, 'r', encoding='utf-8') as file:
