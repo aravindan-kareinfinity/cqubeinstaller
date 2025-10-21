@@ -6,7 +6,7 @@ def test_streaming_upload():
     video_file_path = 'videos/2025-09-20/4f61f145-0835-49ab-b2cf-98e28923650c/17/1817.mp4'
     organization_id = '18'
     camera_guid = '4f61f145-0835-49ab-b2cf-98e28923650c'
-    api_url = 'https://vms.cqubepro.com/api/video/upload'
+    api_url = 'http://192.168.1.3:9000/api/video/upload'
 
     print(f'📤 Testing streaming upload of: {video_file_path}')
     print(f'📤 File size: {os.path.getsize(video_file_path)} bytes')

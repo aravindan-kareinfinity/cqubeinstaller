@@ -29,8 +29,8 @@ cameras_data = []
 # To change the camera base URL, update the "camera_base_url" value below
 # To change the API base URL, update the "api_base_url" value below
 GLOBAL_CONFIG = {
-    "camera_base_url": "https://vms.cqubepro.com",  # Base URL for camera operations
-    "api_base_url": "https://vms.cqubepro.com",    # Base URL for API operations
+    "camera_base_url": "http://192.168.1.3:9000",  # Base URL for camera operations
+    "api_base_url": "http://192.168.1.3:9000",    # Base URL for API operations
     "server": {
         "host": "0.0.0.0",
         "port": 5000,
@@ -3977,6 +3977,25 @@ def stop_frp_client_api():
             'success': False,
             'message': f'Error stopping FRP client: {str(e)}'
         }), 500
+
+
+@app.route('/api/update-config-v2', methods=['POST'])  # Changed route
+def update_config_v2():  # Changed function name
+    try:
+        config_data = request.get_json()
+        config_file_path = "config.json"
+        
+        # Overwrite the config file
+        with open(config_file_path, "w") as f:
+            json.dump(config_data, f, indent=2)
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"Config updated with {len(config_data.get('cameras', []))} cameras"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 def initialize_video_monitoring():
     """Initialize video file monitoring system"""

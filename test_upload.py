@@ -19,7 +19,7 @@ if os.path.exists(video_path):
         }
         
         print("📤 Uploading to server...")
-        response = requests.post('https://vms.cqubepro.com/api/video/upload', files=files, data=data)
+        response = requests.post('http://192.168.1.3:9000/api/video/upload', files=files, data=data)
         
         print(f"📤 Response status: {response.status_code}")
         print(f"📤 Response content: {response.text}")
