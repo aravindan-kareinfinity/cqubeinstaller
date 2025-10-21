@@ -3494,7 +3494,7 @@ def mediamtx_restart_api():
     })
 
 def start_mediamtx():
-    """Start the MediaMTX server process"""
+    """Start the MediaMTX server process with visible console"""
     global mediamtx_process
     try:
         if mediamtx_process is None or mediamtx_process.poll() is not None:
@@ -3508,12 +3508,10 @@ def start_mediamtx():
                 print(f"❌ MediaMTX config file not found: {mediamtx_config_file}")
                 return False
             
-            # Start MediaMTX process
+            # Start MediaMTX process with CREATE_NEW_CONSOLE flag (Windows)
             mediamtx_process = subprocess.Popen(
                 [mediamtx_exe_path, mediamtx_config_file], 
-                cwd=os.path.dirname(mediamtx_exe_path),
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE
+                cwd=os.path.dirname(mediamtx_exe_path)
             )
             print(f"✅ Started MediaMTX server with PID {mediamtx_process.pid}")
             print(f"📁 Config file: {mediamtx_config_file}")
@@ -3524,7 +3522,7 @@ def start_mediamtx():
     except Exception as e:
         print(f"❌ Error starting MediaMTX: {e}")
         return False
-
+    
 def stop_mediamtx():
     """Stop the MediaMTX server process"""
     global mediamtx_process
